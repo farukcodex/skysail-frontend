@@ -2,46 +2,15 @@
 
 import { LogOut } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { NAV_SECTIONS } from "./user-sidebar";
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-  badge?: number;
-};
+import { ADMIN_NAV_SECTIONS } from "./admin-sidebar";
+import { NavLink } from "./app-sidebar";
 
-export function NavLink({ item, active }: { item: NavItem; active: boolean }) {
-  return (
-    <Link
-      href={item.href}
-      className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative",
-        active
-          ? "bg-[#C49A3C]/15 text-[#C49A3C] font-medium"
-          : "text-white/50 hover:text-white/80 hover:bg-white/5",
-      )}
-    >
-      <item.icon
-        size={18}
-        className={cn(active ? "text-[#C49A3C]" : "text-white/40")}
-      />
-      <span className="flex-1">{item.label}</span>
-      {item.badge != null && (
-        <span className="flex items-center justify-center min-w-5 h-5 px-1.5 rounded-md bg-[#C49A3C] text-[10px] font-bold text-black tabular-nums">
-          {item.badge}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-export function AppSidebar() {
+export function AdminAppSidebar() {
   const pathname = usePathname();
 
   return (
@@ -80,9 +49,9 @@ export function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 flex flex-col gap-5 overflow-y-auto">
-        {NAV_SECTIONS.map((section, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+      <nav className="flex-1 px-3 flex flex-col gap-0.5 overflow-y-auto">
+        {ADMIN_NAV_SECTIONS.map((section, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static list
           <div key={i} className="flex flex-col gap-0.5">
             {section.label && (
               <p className="text-[9px] font-semibold tracking-widest uppercase text-white/25 px-3 mb-1">

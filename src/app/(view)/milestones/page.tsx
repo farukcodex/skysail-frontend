@@ -1,4 +1,5 @@
 import { CheckCircle2, Circle, CircleEllipsisIcon, Clock } from "lucide-react";
+import Image from "next/image";
 
 type MilestoneStatus = "completed" | "active" | "upcoming";
 
@@ -9,6 +10,7 @@ type Milestone = {
   label: string;
   dateLabel: string;
   date: string;
+  completedBy?: { name: string; role: string; avatar: string };
 };
 
 const MILESTONES: Milestone[] = [
@@ -19,6 +21,12 @@ const MILESTONES: Milestone[] = [
     label: "COMPLETED",
     dateLabel: "",
     date: "Jan 15, 2025",
+    completedBy: {
+      name: "Bob Henderson",
+      role: "Interior designer",
+      avatar:
+        "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=40&backgroundColor=b6e3f4",
+    },
   },
   {
     id: 2,
@@ -26,7 +34,13 @@ const MILESTONES: Milestone[] = [
     status: "completed",
     label: "COMPLETED",
     dateLabel: "",
-    date: "Apr 28, 2025",
+    date: "Jan 15, 2025",
+    completedBy: {
+      name: "Bob Henderson",
+      role: "Interior designer",
+      avatar:
+        "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=40&backgroundColor=b6e3f4",
+    },
   },
   {
     id: 3,
@@ -116,7 +130,7 @@ function MilestoneRow({ m, isLast }: { m: Milestone; isLast: boolean }) {
           isActive ? "border-[#C49A3C] bg-[#C49A3C]/5" : "border-border bg-card"
         }`}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {isActive && (
             <p className="text-[10px] font-bold tracking-widest text-[#C49A3C] mb-1">
               {m.label}
@@ -133,13 +147,49 @@ function MilestoneRow({ m, isLast }: { m: Milestone; isLast: boolean }) {
           >
             {m.title}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {!isActive && (
-              <span className="uppercase tracking-wide">{m.label} · </span>
-            )}
-            {m.dateLabel && <span>{m.dateLabel} </span>}
-            <span className="font-semibold text-foreground">{m.date}</span>
-          </p>
+          {isCompleted && m.completedBy ? (
+            <div className="mt-2">
+              <p className="text-xs text-muted-foreground mb-1.5">
+                Completed by
+              </p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="size-9 rounded-full overflow-hidden bg-muted shrink-0">
+                    <Image
+                      src={m.completedBy.avatar}
+                      alt={m.completedBy.name}
+                      width={36}
+                      height={36}
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold leading-tight">
+                      {m.completedBy.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {m.completedBy.role}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground shrink-0">
+                  <span className="size-1 rounded-full bg-muted-foreground/40 inline-block" />
+                  <span className="text-sm font-bold text-foreground">
+                    {m.date}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {!isActive && (
+                <span className="uppercase tracking-wide">{m.label} · </span>
+              )}
+              {m.dateLabel && <span>{m.dateLabel} </span>}
+              <span className="font-semibold text-foreground">{m.date}</span>
+            </p>
+          )}
         </div>
         <StatusIcon status={m.status} />
       </div>

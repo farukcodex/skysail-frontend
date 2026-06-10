@@ -17,11 +17,13 @@ import {
 import { ADMIN_NAV_SECTIONS } from "./admin-sidebar";
 import { NavLink } from "./app-sidebar";
 import { NAV_SECTIONS } from "./user-sidebar";
+import { VENDOR_NAV_SECTIONS } from "./vendor-sidebar";
 
 export function MobileNav() {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
-  const sections = isAdmin ? ADMIN_NAV_SECTIONS : NAV_SECTIONS;
+  const isVendor = pathname.startsWith("/vendor");
+  const sections = isAdmin ? ADMIN_NAV_SECTIONS : isVendor ? VENDOR_NAV_SECTIONS : NAV_SECTIONS;
 
   return (
     <Sheet>

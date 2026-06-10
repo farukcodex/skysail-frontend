@@ -32,6 +32,7 @@ type MilestoneStatus = "completed" | "inprogress" | "notstart";
 interface Milestone {
   label: string;
   status: MilestoneStatus;
+  completedBy?: string;
 }
 
 interface NewsItem {
@@ -83,8 +84,16 @@ interface UpcomingEvent {
 // ─── Static data ─────────────────────────────────────────────────────────────
 
 const MILESTONES: Milestone[] = [
-  { label: "Site prep & demolition", status: "completed" },
-  { label: "Foundation & excavation", status: "completed" },
+  {
+    label: "Site prep & demolition",
+    status: "completed",
+    completedBy: "Anna Keller, Architect",
+  },
+  {
+    label: "Foundation & excavation",
+    status: "completed",
+    completedBy: "Anna Keller, Architect",
+  },
   { label: "Framing", status: "inprogress" },
   { label: "MEP Systems", status: "notstart" },
   { label: "Interior Finishes", status: "notstart" },
@@ -235,41 +244,56 @@ function SectionLink({
 function MilestoneRow({ milestone }: { milestone: Milestone }) {
   const cfg = {
     completed: {
-      icon: <CheckCircle2 size={16} className="text-green-500 shrink-0" />,
+      icon: (
+        <CheckCircle2 size={16} className="text-green-500 shrink-0 mt-0.5" />
+      ),
       label: "Completed",
       labelCls: "text-green-600 font-medium",
-      barCls: "bg-green-500",
-      pct: 100,
     },
     inprogress: {
-      icon: <CircleEllipsisIcon size={16} className="text-[#C49A3C]" />,
+      icon: (
+        <CircleEllipsisIcon
+          size={16}
+          className="text-[#C49A3C] shrink-0 mt-0.5"
+        />
+      ),
       label: "Inprocess",
       labelCls: "text-[#C49A3C] font-medium",
-      barCls: "bg-[#C49A3C]",
-      pct: 55,
     },
     notstart: {
-      icon: <Circle size={16} className="text-muted-foreground/40 shrink-0" />,
+      icon: (
+        <Circle
+          size={16}
+          className="text-muted-foreground/40 shrink-0 mt-0.5"
+        />
+      ),
       label: "Not Start",
       labelCls: "text-muted-foreground/50",
-      barCls: "bg-muted",
-      pct: 0,
     },
   }[milestone.status];
 
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+    <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
       {cfg.icon}
-      <span
-        className={`flex-1 text-sm ${
-          milestone.status === "notstart"
-            ? "text-muted-foreground/50"
-            : "text-foreground"
-        }`}
-      >
-        {milestone.label}
-      </span>
-      <span className={`text-xs ${cfg.labelCls}`}>{cfg.label}</span>
+      <div className="flex-1 min-w-0">
+        <span
+          className={`text-sm ${
+            milestone.status === "notstart"
+              ? "text-muted-foreground/50"
+              : milestone.status === "completed"
+                ? "text-green-600 font-medium"
+                : "text-foreground"
+          }`}
+        >
+          {milestone.label}
+        </span>
+        {milestone.completedBy && (
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mt-0.5">
+            Completed by {milestone.completedBy}
+          </p>
+        )}
+      </div>
+      <span className={`text-xs shrink-0 ${cfg.labelCls}`}>{cfg.label}</span>
     </div>
   );
 }

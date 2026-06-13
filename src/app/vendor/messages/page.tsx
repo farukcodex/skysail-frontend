@@ -50,7 +50,6 @@ export default function VendorMessagesPage() {
               </p>
             </div>
           </div>
-          {/* <Separator className="mt-4" /> */}
         </div>
       </div>
 

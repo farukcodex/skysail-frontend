@@ -1,10 +1,21 @@
 "use client";
 
-import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
-const VENDOR_TABS = ["Architect", "Designer", "Builder", "General Vendor"] as const;
+const VENDOR_TABS = [
+  "Architect",
+  "Designer",
+  "Builder",
+  "General Vendor",
+] as const;
 type VendorTab = (typeof VENDOR_TABS)[number];
 
 const DOC_FILTER_TABS = ["All", "Pending", "Approved"] as const;
@@ -35,13 +46,15 @@ interface MilestoneRow {
   completion: number;
   status: "complete" | "inprogress" | "upcoming";
   targetDate: string;
+  document?: { name: string; docStatus: "pending" | "approved" };
   assignedVendor: { name: string; role: string };
 }
 
 const UPLOADER: DocUploader = {
   name: "Bob Henderson",
   role: "Interior designer",
-  avatar: "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=40&backgroundColor=b6e3f4",
+  avatar:
+    "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=40&backgroundColor=b6e3f4",
 };
 
 const DOCS: VendorDoc[] = Array.from({ length: 8 }, (_, i) => ({
@@ -49,7 +62,7 @@ const DOCS: VendorDoc[] = Array.from({ length: 8 }, (_, i) => ({
   name: "Living room mood board v2",
   size: "4.2 MB",
   status: i % 2 === 0 ? "pending" : "approved",
-  note: "\"Updated to reflect client preference for warmer tones as discussed\"",
+  note: '"Updated to reflect client preference for warmer tones as discussed"',
   uploader: UPLOADER,
 }));
 
@@ -58,12 +71,17 @@ const MILESTONES: MilestoneRow[] = Array.from({ length: 6 }, (_, i) => ({
   phase: 1,
   phaseName: "Site prep & demolition",
   completion: 100,
-  status: "complete",
+  status: "complete" as const,
   targetDate: "Apr 28",
+  document: { name: "Schematic design", docStatus: "pending" as const },
   assignedVendor: { name: "Bob Henderson", role: "Interior designer" },
 }));
 
-const PROJECTS = ["The Henderson Residence", "The Sterling Penthouse", "Ocean View Villa"];
+const PROJECTS = [
+  "The Henderson Residence",
+  "The Sterling Penthouse",
+  "Ocean View Villa",
+];
 
 function PdfIcon({ pending }: { pending: boolean }) {
   return (
@@ -92,7 +110,9 @@ function DocCard({ doc }: { doc: VendorDoc }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold truncate">{doc.name}</p>
-            <span className="text-xs text-muted-foreground shrink-0">{doc.size}</span>
+            <span className="text-xs text-muted-foreground shrink-0">
+              {doc.size}
+            </span>
           </div>
           <div className="mt-1">
             {isPending ? (
@@ -122,17 +142,24 @@ function DocCard({ doc }: { doc: VendorDoc }) {
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold leading-tight">{doc.uploader.name}</p>
+            <p className="text-sm font-bold leading-tight">
+              {doc.uploader.name}
+            </p>
             <p className="text-xs text-muted-foreground">{doc.uploader.role}</p>
           </div>
-          <button type="button" className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
+          <button
+            type="button"
+            className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          >
             <ChevronDown size={14} />
           </button>
         </div>
       </div>
 
       <div className="bg-secondary/50 rounded-lg px-3 py-2">
-        <p className="text-xs text-muted-foreground leading-relaxed">{doc.note}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {doc.note}
+        </p>
       </div>
 
       <div className="flex gap-2">
@@ -161,7 +188,9 @@ function DocPreviewCard({ doc }: { doc: VendorDoc }) {
       {doc.status === "pending" && (
         <div className="bg-red-50 dark:bg-red-950/20 border-b border-red-100 dark:border-red-900/30 px-4 py-2 flex items-center gap-2">
           <span className="text-amber-500 text-xs">⚠</span>
-          <span className="text-xs font-bold text-red-500 tracking-wider uppercase">Overdue by 2 days</span>
+          <span className="text-xs font-bold text-red-500 tracking-wider uppercase">
+            Overdue by 2 days
+          </span>
         </div>
       )}
       <div className="aspect-[4/3] bg-muted relative">
@@ -170,7 +199,9 @@ function DocPreviewCard({ doc }: { doc: VendorDoc }) {
         </div>
       </div>
       <div className="p-4 flex flex-col gap-2">
-        <p className="text-base font-bold leading-snug">Primary kitchen tile selection</p>
+        <p className="text-base font-bold leading-snug">
+          Primary kitchen tile selection
+        </p>
         <div>
           <p className="text-xs text-muted-foreground mb-1.5">Uploaded by</p>
           <div className="flex items-center gap-2">
@@ -185,8 +216,12 @@ function DocPreviewCard({ doc }: { doc: VendorDoc }) {
               />
             </div>
             <div>
-              <p className="text-sm font-bold leading-tight">{doc.uploader.name}</p>
-              <p className="text-xs text-muted-foreground">{doc.uploader.role}</p>
+              <p className="text-sm font-bold leading-tight">
+                {doc.uploader.name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {doc.uploader.role}
+              </p>
             </div>
           </div>
         </div>
@@ -224,14 +259,25 @@ function MilestoneTable() {
       <div className="px-5 py-4 border-b border-border">
         <p className="text-sm font-bold">
           Henderson Residence{" "}
-          <span className="text-muted-foreground font-normal">/ Milestones status</span>
+          <span className="text-muted-foreground font-normal">
+            / Milestones status
+          </span>
         </p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              {["Phase", "Phase Name", "Completion %", "Status", "Target Date", "Assigned vendor", "Actions"].map((h) => (
+              {[
+                "Phase",
+                "Phase Name",
+                "Completion %",
+                "Status",
+                "Target Date",
+                "Document",
+                "Assigned vendor",
+                "Actions",
+              ].map((h) => (
                 <th
                   key={h}
                   className="px-5 py-3 text-left text-[10px] font-bold tracking-widest uppercase text-muted-foreground whitespace-nowrap"
@@ -243,21 +289,65 @@ function MilestoneTable() {
           </thead>
           <tbody>
             {rows.map((m) => (
-              <tr key={m.id} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
+              <tr
+                key={m.id}
+                className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
+              >
                 <td className="px-5 py-4 text-muted-foreground text-sm">
                   {String(m.phase).padStart(2, "0")}
                 </td>
-                <td className="px-5 py-4 font-medium whitespace-nowrap">{m.phaseName}</td>
+                <td className="px-5 py-4 font-medium whitespace-nowrap">
+                  {m.phaseName}
+                </td>
                 <td className="px-5 py-4 font-semibold">{m.completion}%</td>
                 <td className="px-5 py-4">
                   <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-950/30 text-green-600 text-xs font-bold">
                     {m.status}
                   </span>
                 </td>
-                <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">{m.targetDate}</td>
+                <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">
+                  {m.targetDate}
+                </td>
+                <td className="px-5 py-4">
+                  {m.document ? (
+                    <div className="flex items-center gap-2">
+                      <div className="size-8 shrink-0 relative">
+                        <div className="absolute inset-0 bg-gray-100 dark:bg-muted rounded-sm border border-border" />
+                        <div
+                          className="absolute top-0 right-0 size-2.5 bg-background"
+                          style={{
+                            clipPath: "polygon(100% 0, 0 0, 100% 100%)",
+                          }}
+                        />
+                        <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[6px] font-bold px-0.5 rounded-sm leading-tight py-px">
+                          PDF
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold whitespace-nowrap">
+                          {m.document.name}
+                        </p>
+                        <p
+                          className={`text-[10px] font-bold tracking-wide ${m.document.docStatus === "pending" ? "text-amber-500" : "text-green-500"}`}
+                        >
+                          ●{" "}
+                          {m.document.docStatus === "pending"
+                            ? "PENDING REVIEW"
+                            : "APPROVED"}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </td>
                 <td className="px-5 py-4 whitespace-nowrap">
-                  <p className="text-sm font-bold leading-tight">{m.assignedVendor.name}</p>
-                  <p className="text-xs text-muted-foreground">{m.assignedVendor.role}</p>
+                  <p className="text-sm font-bold leading-tight">
+                    {m.assignedVendor.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {m.assignedVendor.role}
+                  </p>
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
@@ -286,9 +376,13 @@ function MilestoneTable() {
           <p className="text-xs text-muted-foreground">
             Showing{" "}
             <span className="font-semibold text-foreground">
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, MILESTONES.length)}
+              {(page - 1) * PAGE_SIZE + 1}–
+              {Math.min(page * PAGE_SIZE, MILESTONES.length)}
             </span>{" "}
-            of <span className="font-semibold text-foreground">{MILESTONES.length}</span>
+            of{" "}
+            <span className="font-semibold text-foreground">
+              {MILESTONES.length}
+            </span>
           </p>
           <div className="flex items-center gap-1">
             <button
@@ -315,7 +409,8 @@ function MilestoneTable() {
 }
 
 export default function VendorUploadPage() {
-  const [activeVendorTab, setActiveVendorTab] = useState<VendorTab>("Architect");
+  const [activeVendorTab, setActiveVendorTab] =
+    useState<VendorTab>("Architect");
   const [activeDocTab, setActiveDocTab] = useState<DocFilterTab>("All");
   const [selectedProject, setSelectedProject] = useState(PROJECTS[0]);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
@@ -327,7 +422,10 @@ export default function VendorUploadPage() {
     return true;
   });
   const docTotalPages = Math.ceil(filteredDocs.length / PAGE_SIZE);
-  const pageDocs = filteredDocs.slice((docPage - 1) * PAGE_SIZE, docPage * PAGE_SIZE);
+  const pageDocs = filteredDocs.slice(
+    (docPage - 1) * PAGE_SIZE,
+    docPage * PAGE_SIZE,
+  );
   const previewDocs = DOCS.filter((d) => d.status === "pending").slice(0, 2);
 
   return (
@@ -383,7 +481,10 @@ export default function VendorUploadPage() {
               onClick={() => setActiveVendorTab(tab)}
               className="relative px-4 pb-3 text-sm font-medium transition-colors z-10"
               style={{
-                color: activeVendorTab === tab ? "var(--foreground)" : "var(--muted-foreground)",
+                color:
+                  activeVendorTab === tab
+                    ? "var(--foreground)"
+                    : "var(--muted-foreground)",
               }}
             >
               {tab}
@@ -391,7 +492,8 @@ export default function VendorUploadPage() {
                 className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300 origin-left"
                 style={{
                   backgroundColor: "var(--foreground)",
-                  transform: activeVendorTab === tab ? "scaleX(1)" : "scaleX(0)",
+                  transform:
+                    activeVendorTab === tab ? "scaleX(1)" : "scaleX(0)",
                 }}
               />
             </button>
@@ -414,7 +516,10 @@ export default function VendorUploadPage() {
                   }}
                   className="relative px-4 py-3 text-sm font-medium transition-colors z-10"
                   style={{
-                    color: activeDocTab === tab ? "var(--foreground)" : "var(--muted-foreground)",
+                    color:
+                      activeDocTab === tab
+                        ? "var(--foreground)"
+                        : "var(--muted-foreground)",
                   }}
                 >
                   {tab}
@@ -422,7 +527,8 @@ export default function VendorUploadPage() {
                     className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300 origin-left"
                     style={{
                       backgroundColor: "var(--foreground)",
-                      transform: activeDocTab === tab ? "scaleX(1)" : "scaleX(0)",
+                      transform:
+                        activeDocTab === tab ? "scaleX(1)" : "scaleX(0)",
                     }}
                   />
                 </button>
@@ -444,9 +550,15 @@ export default function VendorUploadPage() {
               <p className="text-xs text-muted-foreground">
                 Showing{" "}
                 <span className="font-semibold text-foreground">
-                  {filteredDocs.length === 0 ? 0 : (docPage - 1) * PAGE_SIZE + 1}–{Math.min(docPage * PAGE_SIZE, filteredDocs.length)}
+                  {filteredDocs.length === 0
+                    ? 0
+                    : (docPage - 1) * PAGE_SIZE + 1}
+                  –{Math.min(docPage * PAGE_SIZE, filteredDocs.length)}
                 </span>{" "}
-                of <span className="font-semibold text-foreground">{filteredDocs.length}</span>
+                of{" "}
+                <span className="font-semibold text-foreground">
+                  {filteredDocs.length}
+                </span>
               </p>
               <div className="flex items-center gap-1">
                 <button
@@ -457,7 +569,10 @@ export default function VendorUploadPage() {
                 >
                   <ChevronLeft size={12} />
                 </button>
-                {Array.from({ length: Math.min(docTotalPages, 4) }, (_, i) => i + 1).map((p) => (
+                {Array.from(
+                  { length: Math.min(docTotalPages, 4) },
+                  (_, i) => i + 1,
+                ).map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -465,7 +580,11 @@ export default function VendorUploadPage() {
                     className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
                     style={
                       docPage === p
-                        ? { backgroundColor: GOLD, color: "#fff", borderColor: GOLD }
+                        ? {
+                            backgroundColor: GOLD,
+                            color: "#fff",
+                            borderColor: GOLD,
+                          }
                         : {}
                     }
                   >
@@ -474,14 +593,20 @@ export default function VendorUploadPage() {
                 ))}
                 {docTotalPages > 4 && (
                   <>
-                    <span className="px-1 text-xs text-muted-foreground">...</span>
+                    <span className="px-1 text-xs text-muted-foreground">
+                      ...
+                    </span>
                     <button
                       type="button"
                       onClick={() => setDocPage(docTotalPages)}
                       className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
                       style={
                         docPage === docTotalPages
-                          ? { backgroundColor: GOLD, color: "#fff", borderColor: GOLD }
+                          ? {
+                              backgroundColor: GOLD,
+                              color: "#fff",
+                              borderColor: GOLD,
+                            }
                           : {}
                       }
                     >

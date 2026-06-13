@@ -26,7 +26,7 @@ export default function Page() {
                 alt="logo"
                 width={110}
                 height={42}
-                className="object-contain mb-4 invert"
+                className="object-contain mb-4"
               />
               <p className="text-lg font-semibold leading-snug mb-3 w-full text-center">
                 Managing the evolution of your residential estate.

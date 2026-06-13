@@ -22,7 +22,7 @@ export function AdminAppSidebar() {
           alt="Skysail Coastal Estates"
           width={100}
           height={38}
-          className="object-contain invert"
+          className="object-contain"
           priority
         />
       </div>

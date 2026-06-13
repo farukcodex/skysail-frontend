@@ -23,7 +23,11 @@ export function MobileNav() {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
   const isVendor = pathname.startsWith("/vendor");
-  const sections = isAdmin ? ADMIN_NAV_SECTIONS : isVendor ? VENDOR_NAV_SECTIONS : NAV_SECTIONS;
+  const sections = isAdmin
+    ? ADMIN_NAV_SECTIONS
+    : isVendor
+      ? VENDOR_NAV_SECTIONS
+      : NAV_SECTIONS;
 
   return (
     <Sheet>
@@ -46,7 +50,7 @@ export function MobileNav() {
         {/* Logo */}
         <div className="flex justify-center pt-8 pb-6 px-4">
           <Image
-            src="/image/logo.webp"
+            src="/image/logo.svg"
             alt="Skysail Coastal Estates"
             width={100}
             height={38}

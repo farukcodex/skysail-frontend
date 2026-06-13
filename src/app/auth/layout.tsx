@@ -16,7 +16,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="absolute bottom-8 left-6 right-6">
             <div className="rounded-2xl bg-white/10 backdrop-blur-md border flex flex-col items-center border-white/20 p-6 text-white">
               <Image
-                src="/image/logo.webp"
+                src="/image/logo.svg"
                 alt="logo"
                 width={110}
                 height={42}
@@ -34,7 +34,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
         <section className="col-span-1 md:col-span-3 px-6 py-10 sm:px-10 sm:py-12 lg:px-16 lg:py-14 flex flex-col justify-center bg-background relative">
           <Image
-            src="/image/logo.webp"
+            src="/image/logo.svg"
             alt="logo"
             width={92}
             height={35}

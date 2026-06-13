@@ -18,7 +18,7 @@ export function AdminAppSidebar() {
       {/* Logo */}
       <div className="flex justify-center pt-8 pb-6 px-4">
         <Image
-          src="/image/logo.webp"
+          src="/image/logo.svg"
           alt="Skysail Coastal Estates"
           width={100}
           height={38}

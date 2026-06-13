@@ -22,7 +22,7 @@ export default function Page() {
           <div className="absolute bottom-8 left-6 right-6">
             <div className="rounded-2xl bg-white/10 backdrop-blur-md border flex flex-col items-center border-white/20 p-6 text-white">
               <Image
-                src="/image/logo.webp"
+                src="/image/logo.svg"
                 alt="logo"
                 width={110}
                 height={42}

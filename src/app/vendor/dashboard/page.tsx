@@ -8,16 +8,47 @@ import {
   Calendar,
   Send,
   CheckCircle,
+  ChevronDown,
 } from "lucide-react";
+
+const PROJECTS = [
+  "Bob Henderson — The Henderson Residence",
+  "Bob Henderson — The Sterling Penthouse",
+];
 
 const GOLD = "#C49A3C";
 
 const RECENT_DOCS = [
-  { id: 1, name: "Living room mood board v2", size: "2.1 MB", status: "Pending" as const },
-  { id: 2, name: "Interior finishes schedule", size: "2.1 MB", status: "Approved" as const },
-  { id: 3, name: "Living room mood board v2", size: "2.1 MB", status: "Pending" as const },
-  { id: 4, name: "Living room mood board v2", size: "2.1 MB", status: "Pending" as const },
-  { id: 5, name: "Living room mood board v2", size: "2.1 MB", status: "Pending" as const },
+  {
+    id: 1,
+    name: "Living room mood board v2",
+    size: "2.1 MB",
+    status: "Pending" as const,
+  },
+  {
+    id: 2,
+    name: "Interior finishes schedule",
+    size: "2.1 MB",
+    status: "Approved" as const,
+  },
+  {
+    id: 3,
+    name: "Living room mood board v2",
+    size: "2.1 MB",
+    status: "Pending" as const,
+  },
+  {
+    id: 4,
+    name: "Living room mood board v2",
+    size: "2.1 MB",
+    status: "Pending" as const,
+  },
+  {
+    id: 5,
+    name: "Living room mood board v2",
+    size: "2.1 MB",
+    status: "Pending" as const,
+  },
 ];
 
 const PENDING_DECISIONS = [
@@ -85,6 +116,8 @@ const MILESTONES = [
 
 export default function VendorDashboardPage() {
   const [replyText, setReplyText] = useState("");
+  const [selectedProject, setSelectedProject] = useState(PROJECTS[0]);
+  const [showProjectDrop, setShowProjectDrop] = useState(false);
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
@@ -98,23 +131,45 @@ export default function VendorDashboardPage() {
         </div>
 
         {/* PROJECT selector */}
-        <div className="flex items-center gap-3">
-          <label
-            htmlFor="vendor-dash-project"
-            className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground whitespace-nowrap"
-          >
-            Client / Project
-          </label>
-          <select
-            id="vendor-dash-project"
-            className="rounded-xl bg-secondary/60 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
-          >
-            <option>Bob Henderson — The Henderson Residence</option>
-          </select>
+        <div>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-2">
+            Project
+          </p>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowProjectDrop((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-background text-sm font-medium hover:bg-secondary/50 transition-colors"
+            >
+              <span className="truncate pr-2">{selectedProject}</span>
+              <ChevronDown
+                size={16}
+                className="text-muted-foreground shrink-0"
+              />
+            </button>
+            {showProjectDrop && (
+              <div className="absolute top-full mt-1 left-0 w-full bg-background border border-border rounded-xl shadow-lg z-20 overflow-hidden">
+                {PROJECTS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      setSelectedProject(p);
+                      setShowProjectDrop(false);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-secondary transition-colors"
+                    style={{ fontWeight: selectedProject === p ? 700 : 400 }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Hero image */}
-        <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "21/7" }}>
+        <div className="relative w-full overflow-hidden rounded-2xl aspect-4/3 sm:aspect-16/6">
           <Image
             src="https://placehold.co/1200x400/1a2332/ffffff?text=The+Henderson+Residence"
             alt="The Henderson Residence"
@@ -122,9 +177,8 @@ export default function VendorDashboardPage() {
             className="object-cover"
             unoptimized
           />
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          <div className="absolute bottom-5 left-5 flex flex-col gap-2">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          <div className="absolute bottom-4 left-4 flex flex-col gap-1.5">
             <span
               className="text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full w-fit"
               style={{
@@ -134,7 +188,7 @@ export default function VendorDashboardPage() {
             >
               ACTIVE PROJECT
             </span>
-            <p className="text-white text-xl font-bold">
+            <p className="text-white text-base sm:text-xl font-bold leading-tight">
               The Henderson Residence
             </p>
           </div>
@@ -167,7 +221,10 @@ export default function VendorDashboardPage() {
               <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
                 Approved
               </p>
-              <p className="text-3xl font-bold leading-none mt-1" style={{ color: GOLD }}>
+              <p
+                className="text-3xl font-bold leading-none mt-1"
+                style={{ color: GOLD }}
+              >
                 1
               </p>
               <p className="text-xs text-green-600 mt-0.5">Verified</p>
@@ -216,7 +273,9 @@ export default function VendorDashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">{doc.size}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {doc.size}
+                      </p>
                     </div>
                     <span
                       className={`text-xs font-semibold ${
@@ -295,9 +354,9 @@ export default function VendorDashboardPage() {
                       Remy Diangelo
                     </p>
                     <div className="rounded-2xl rounded-tl-sm bg-secondary px-4 py-3 text-sm">
-                      Marco, I&apos;ve reviewed the latest mood board. Let&apos;s look at
-                      the two options for the living room in our next meeting.
-                      The velvet textures are spot on.
+                      Marco, I&apos;ve reviewed the latest mood board.
+                      Let&apos;s look at the two options for the living room in
+                      our next meeting. The velvet textures are spot on.
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1">
                       09:12 AM
@@ -348,14 +407,12 @@ export default function VendorDashboardPage() {
                       <span
                         className={`size-5 rounded-full shrink-0 ${m.iconBg}`}
                         style={
-                          m.status === "Inprocess"
-                            ? { borderColor: GOLD }
-                            : {}
+                          m.status === "Inprocess" ? { borderColor: GOLD } : {}
                         }
                       />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{m.title}</p>
+                      <p className="text-sm font-medium truncate">{m.title}</p>
                       {m.status === "Inprocess" && (
                         <div className="mt-1 h-1 rounded-full bg-border w-full">
                           <div
@@ -368,7 +425,9 @@ export default function VendorDashboardPage() {
                         </div>
                       )}
                     </div>
-                    <span className={`text-xs font-semibold ${m.statusColor}`}>
+                    <span
+                      className={`text-xs font-semibold shrink-0 ${m.statusColor}`}
+                    >
                       {m.status}
                     </span>
                   </div>

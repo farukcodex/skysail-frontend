@@ -316,7 +316,7 @@ function EventActionBtn({ action }: { action: UpcomingEvent["action"] }) {
   return (
     <button
       type="button"
-      className={`text-[11px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full transition-colors ${
+      className={`shrink-0 text-[11px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full transition-colors ${
         action === "rsvp"
           ? "bg-foreground text-background hover:opacity-80"
           : "bg-[#C49A3C] text-black hover:opacity-80"
@@ -333,7 +333,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       {/* ── Content ── */}
-      <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
+      <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8 flex flex-col gap-6">
         {/* ── Greeting ── */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -372,9 +372,9 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Stat cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {/* Phase */}
-          <Card className="bg-foreground text-background ring-0 rounded-2xl col-span-2 sm:col-span-1 relative">
+          <Card className="bg-foreground text-background ring-0 rounded-2xl col-span-2 sm:col-span-1 relative overflow-hidden">
             <CardHeader>
               <div className=" p-4 bg-secondary/10 rounded-full w-min">
                 <FileCog2Icon className="size-4" />
@@ -412,7 +412,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Days remaining */}
-          <Card className="rounded-2xl">
+          <Card className="rounded-2xl ">
             <CardHeader>
               <div className="p-4 bg-secondary rounded-full w-min">
                 <CalendarIcon className="size-4" />
@@ -430,7 +430,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Decisions needed */}
-          <Card className="rounded-2xl">
+          <Card className="rounded-2xl col-span-2 sm:col-span-1">
             <CardHeader>
               <div className="p-4 bg-secondary rounded-full w-min">
                 <CalendarCheckIcon className="size-4" />
@@ -454,11 +454,11 @@ export default function DashboardPage() {
           <div className="lg:col-span-3 flex flex-col gap-6">
             {/* News feed */}
             <Card className="rounded-2xl">
-              <CardHeader className="border-b border-border pb-4">
+              <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-semibold">
                   Project news feed
                 </CardTitle>
-                <div className="col-start-2 row-start-1 self-center">
+                <div className="">
                   <SectionLink href="/news-feed" />
                 </div>
               </CardHeader>
@@ -508,11 +508,11 @@ export default function DashboardPage() {
 
             {/* Recent documents */}
             <Card className="rounded-2xl">
-              <CardHeader className="border-b border-border pb-4">
+              <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-semibold">
                   Recent Documents
                 </CardTitle>
-                <div className="col-start-2 row-start-1 self-center">
+                <div className="">
                   <SectionLink href="/documents" />
                 </div>
               </CardHeader>
@@ -545,11 +545,11 @@ export default function DashboardPage() {
 
             {/* Pending decisions */}
             <Card className="rounded-2xl">
-              <CardHeader className="border-b border-border pb-4">
+              <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-semibold">
                   Pending decisions
                 </CardTitle>
-                <div className="col-start-2 row-start-1 self-center">
+                <div className="">
                   <SectionLink href="/decisions" />
                 </div>
               </CardHeader>
@@ -590,11 +590,11 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 flex flex-col gap-6">
             {/* Budget analysis */}
             <Card className="rounded-2xl">
-              <CardHeader className="border-b border-border pb-4">
+              <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-semibold">
                   Budget Analysis
                 </CardTitle>
-                <div className="col-start-2 row-start-1 self-center ml-auto">
+                <div className="">
                   <Button
                     variant="outline"
                     size="xs"
@@ -627,11 +627,11 @@ export default function DashboardPage() {
 
             {/* Key milestones */}
             <Card className="rounded-2xl">
-              <CardHeader className="border-b border-border pb-4">
+              <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-semibold">
                   Key Milestones
                 </CardTitle>
-                <div className="col-start-2 row-start-1 self-center">
+                <div className="">
                   <SectionLink href="/milestones" />
                 </div>
               </CardHeader>
@@ -643,7 +643,7 @@ export default function DashboardPage() {
             </Card>
             {/* ── Video section ── */}
             <Card className="rounded-2xl">
-              <CardHeader className="border-b border-border pb-4">
+              <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-semibold">Video</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -682,14 +682,14 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Bottom grid: Team / Risks / Events ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {/* Project team */}
           <Card className="rounded-2xl">
-            <CardHeader className="border-b border-border pb-4">
+            <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-semibold">
                 Your project team
               </CardTitle>
-              <div className="col-start-2 row-start-1 self-center">
+              <div className="">
                 <SectionLink href="/team" />
               </div>
             </CardHeader>
@@ -716,11 +716,11 @@ export default function DashboardPage() {
 
           {/* Active risks */}
           <Card className="rounded-2xl">
-            <CardHeader className="border-b border-border pb-4">
+            <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-semibold">
                 Active risks
               </CardTitle>
-              <div className="col-start-2 row-start-1 self-center">
+              <div className="">
                 <SectionLink href="/risks" />
               </div>
             </CardHeader>
@@ -744,11 +744,11 @@ export default function DashboardPage() {
 
           {/* Upcoming events */}
           <Card className="rounded-2xl">
-            <CardHeader className="border-b border-border pb-4">
+            <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-semibold">
                 Upcoming Event
               </CardTitle>
-              <div className="col-start-2 row-start-1 self-center">
+              <div className="">
                 <SectionLink href="/calendar" />
               </div>
             </CardHeader>

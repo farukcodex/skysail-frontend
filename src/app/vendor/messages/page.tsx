@@ -54,7 +54,7 @@ export default function VendorMessagesPage() {
       </div>
 
       {/* Info banner */}
-      <div className="px-6 pt-3 lg:px-8">
+      {/* <div className="px-6 pt-3 lg:px-8">
         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 flex items-center gap-3 text-sm text-red-800 dark:text-red-200">
           <AlertCircle size={16} className="shrink-0" />
           <span>
@@ -62,7 +62,7 @@ export default function VendorMessagesPage() {
             client contact
           </span>
         </div>
-      </div>
+      </div> */}
 
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto px-6 py-4 lg:px-8 flex flex-col gap-4">

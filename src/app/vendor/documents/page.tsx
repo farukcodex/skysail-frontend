@@ -1,12 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  ImagePlus,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, ImagePlus } from "lucide-react";
 
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 10;
@@ -63,7 +58,9 @@ export default function VendorDocumentsPage() {
     activeTab === "All"
       ? ALL_DOCS
       : ALL_DOCS.filter((d) =>
-          activeTab === "Pending" ? d.status === "PENDING" : d.status === "APPROVED",
+          activeTab === "Pending"
+            ? d.status === "PENDING"
+            : d.status === "APPROVED",
         );
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -121,8 +118,7 @@ export default function VendorDocumentsPage() {
                     className="absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-300 origin-left"
                     style={{
                       background: GOLD,
-                      transform:
-                        activeTab === tab ? "scaleX(1)" : "scaleX(0)",
+                      transform: activeTab === tab ? "scaleX(1)" : "scaleX(0)",
                     }}
                   />
                 </button>
@@ -160,7 +156,9 @@ export default function VendorDocumentsPage() {
                             : "text-green-600"
                         }`}
                       >
-                        {doc.status === "PENDING" ? "PENDING REVIEW" : "APPROVED"}
+                        {doc.status === "PENDING"
+                          ? "PENDING REVIEW"
+                          : "APPROVED"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 italic line-clamp-2">
@@ -266,7 +264,7 @@ export default function VendorDocumentsPage() {
                   id="doc-type"
                   className="w-full rounded-xl bg-secondary/60 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
                 >
-                  <option>Mood board</option>
+                  {/* <option>Mood board</option> */}
                   <option>Contract</option>
                   <option>Plan</option>
                   <option>Report</option>

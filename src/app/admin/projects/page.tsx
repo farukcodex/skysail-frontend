@@ -1,11 +1,12 @@
 "use client";
 
-import { PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { PlusIcon, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { Pagination } from "@/components/shared/Pagination";
 import { AddProjectModal } from "./components/AddProjectModal";
 import { EditProjectModal } from "./components/EditProjectModal";
 import { ProjectCard } from "./components/ProjectCard";
+import { apiFetch } from "@/lib/api";
 
 const PAGE_SIZE = 6;
 
@@ -21,35 +22,49 @@ export interface Project {
   image: string;
 }
 
-const ALL_PROJECTS: Project[] = Array.from({ length: 32 }, (_, i) => ({
-  id: i + 1,
-  name: "The Henderson Residence",
-  phase: "Phase 3: Framing",
-  client: "Bob Henderson",
-  email: "j.@sterling.com",
-  started: "2025-05-01",
-  location: "Central Park West, NY",
-  image: `https://placehold.co/600x340/1a2332/ffffff?text=Project+${i + 1}`,
-}));
+
 
 export default function AllProjectsPage() {
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
 
-  const totalPages = Math.ceil(ALL_PROJECTS.length / PAGE_SIZE);
-  const pageProjects = ALL_PROJECTS.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE,
-  );
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProjects = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiFetch(`/api/admin/projects?page=${page}&per_page=${PAGE_SIZE}`);
+      const data = await res.json();
+      if (res.ok) {
+        setProjects(data.data);
+        setTotalPages(data.meta.last_page);
+        setTotalItems(data.meta.total);
+      } else {
+        console.error("Failed to fetch projects", data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-      {showAdd && <AddProjectModal onClose={() => setShowAdd(false)} />}
+      {showAdd && <AddProjectModal onClose={() => setShowAdd(false)} onSuccess={fetchProjects} />}
       {editProject && (
         <EditProjectModal
           project={editProject}
           onClose={() => setEditProject(null)}
+          onSuccess={fetchProjects}
         />
       )}
 
@@ -75,25 +90,35 @@ export default function AllProjectsPage() {
         {/* Card section */}
         <div className="rounded-2xl border border-border p-5 flex flex-col gap-5">
           <p className="text-sm font-semibold">Active projects</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pageProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onEdit={setEditProject}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="animate-spin text-muted-foreground" size={40} />
+            </div>
+          ) : projects.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">No projects found.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onEdit={setEditProject}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          setPage={setPage}
-          totalItems={ALL_PROJECTS.length}
-          pageSize={PAGE_SIZE}
-        />
+        {!isLoading && totalItems > 0 && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            setPage={setPage}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+          />
+        )}
       </div>
     </div>
   );

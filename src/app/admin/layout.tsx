@@ -40,7 +40,7 @@ export default function ViewLayout({
               </p>
             </div>
             <div className="relative ml-2">
-              <Link href="/admin/notifications">
+              <Link href="/notifications">
                 <BellIcon size={16} />
               </Link>
               <span className="absolute top-0 right-0 size-2 rounded-full bg-red-500 ring-2 ring-background" />

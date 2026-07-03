@@ -1,83 +1,22 @@
-import { CheckCircle2, Circle, CircleEllipsisIcon, Clock } from "lucide-react";
+"use client";
+
+import { CheckCircle2, Circle, CircleEllipsisIcon, Clock, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 type MilestoneStatus = "completed" | "active" | "upcoming";
 
-type Milestone = {
+type MilestoneUI = {
   id: number;
   title: string;
   status: MilestoneStatus;
   label: string;
   dateLabel: string;
   date: string;
+  completionPercent: number;
   completedBy?: { name: string; role: string; avatar: string };
 };
-
-const MILESTONES: Milestone[] = [
-  {
-    id: 1,
-    title: "1. Site Prep & Demolition",
-    status: "completed",
-    label: "COMPLETED",
-    dateLabel: "",
-    date: "Jan 15, 2025",
-    completedBy: {
-      name: "Bob Henderson",
-      role: "Interior designer",
-      avatar:
-        "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=40&backgroundColor=b6e3f4",
-    },
-  },
-  {
-    id: 2,
-    title: "2. Foundation & Excavation",
-    status: "completed",
-    label: "COMPLETED",
-    dateLabel: "",
-    date: "Jan 15, 2025",
-    completedBy: {
-      name: "Bob Henderson",
-      role: "Interior designer",
-      avatar:
-        "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=40&backgroundColor=b6e3f4",
-    },
-  },
-  {
-    id: 3,
-    title: "3. Framing",
-    status: "active",
-    label: "ACTIVE PHASE",
-    dateLabel: "Est. Completion:",
-    date: "Jun 20, 2025",
-  },
-  {
-    id: 4,
-    title: "4. Mechanical, Electrical & Plumbing",
-    status: "upcoming",
-    label: "TARGET START",
-    dateLabel: "",
-    date: "Jul 1, 2025",
-  },
-  {
-    id: 5,
-    title: "5. Interior Finishes",
-    status: "upcoming",
-    label: "TARGET START",
-    dateLabel: "",
-    date: "Sep 1, 2025",
-  },
-  {
-    id: 6,
-    title: "6. Punch List & Handover",
-    status: "upcoming",
-    label: "EST. COMPLETION",
-    dateLabel: "",
-    date: "Nov 2025",
-  },
-];
-
-const ACTIVE = MILESTONES.find((m) => m.status === "active") ?? MILESTONES[0];
-const PROGRESS = 72;
 
 function DotIcon({ status }: { status: MilestoneStatus }) {
   if (status === "completed")
@@ -101,7 +40,7 @@ function StatusIcon({ status }: { status: MilestoneStatus }) {
   return <Circle size={18} className="text-muted-foreground/30 shrink-0" />;
 }
 
-function MilestoneRow({ m, isLast }: { m: Milestone; isLast: boolean }) {
+function MilestoneRow({ m, isLast }: { m: MilestoneUI; isLast: boolean }) {
   const isActive = m.status === "active";
   const isCompleted = m.status === "completed";
 
@@ -198,8 +137,60 @@ function MilestoneRow({ m, isLast }: { m: Milestone; isLast: boolean }) {
 }
 
 export default function MilestonesPage() {
+  const [milestones, setMilestones] = useState<MilestoneUI[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetch("/api/milestones")
+      .then(res => res.json())
+      .then(data => {
+        if (data.data) {
+          // Transform backend milestone to frontend UI milestone
+          const transformed = data.data.map((m: any) => {
+            let status: MilestoneStatus = "upcoming";
+            if (m.status === "completed") status = "completed";
+            else if (m.status === "in-progress" || m.status === "pending_review") status = "active";
+
+            let label = "TARGET START";
+            if (status === "completed") label = "COMPLETED";
+            else if (status === "active") label = "ACTIVE PHASE";
+            else if (status === "upcoming") label = "UPCOMING";
+
+            return {
+              id: m.id,
+              title: `${m.phase}. ${m.name}`,
+              status: status,
+              label: label,
+              dateLabel: status === "active" ? "Est. Completion:" : "",
+              date: m.target_date || "TBD",
+              completionPercent: m.completion_percent,
+              completedBy: (status === "completed" && m.assignee_name) ? {
+                name: m.assignee_name,
+                role: "Assigned Vendor",
+                avatar: `https://api.dicebear.com/9.x/avataaars/png?seed=${m.assigned_to}&size=40&backgroundColor=b6e3f4`
+              } : undefined
+            };
+          });
+          setMilestones(transformed);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex justify-center py-20">
+        <Loader2 className="animate-spin text-muted-foreground" size={32} />
+      </div>
+    );
+  }
+
+  const activeMilestone = milestones.find((m) => m.status === "active") ?? milestones[0];
+  const progress = activeMilestone?.completionPercent || 0;
+
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -210,41 +201,45 @@ export default function MilestonesPage() {
             Timeline &amp; Milestones
           </p>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-            Projected Handover
-          </p>
-          <p className="text-lg font-bold">Nov 2025</p>
-        </div>
       </div>
 
-      {/* Active phase progress bar */}
-      <div className="bg-card border border-border rounded-xl px-5 py-4 mb-6 flex items-center gap-4">
-        <CircleEllipsisIcon size={16} className="text-[#C49A3C]" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-sm font-semibold">
-              {ACTIVE.title.replace(/^\d+\.\s/, "")}
-            </span>
-            <span className="text-xs font-semibold text-[#C49A3C] bg-[#C49A3C]/10 px-2 py-0.5 rounded-full">
-              In Progress · {PROGRESS}%
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full bg-border overflow-hidden">
-            <div
-              className="h-full rounded-full bg-[#C49A3C]"
-              style={{ width: `${PROGRESS}%` }}
-            />
-          </div>
+      {milestones.length === 0 ? (
+        <div className="bg-card border border-border rounded-xl px-5 py-8 text-center text-muted-foreground text-sm">
+          No milestones have been defined for your project yet.
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Active phase progress bar */}
+          {activeMilestone && (
+            <div className="bg-card border border-border rounded-xl px-5 py-4 mb-6 flex items-center gap-4 shadow-sm">
+              <CircleEllipsisIcon size={16} className="text-[#C49A3C]" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-semibold">
+                    {activeMilestone.title.replace(/^\d+\.\s/, "")}
+                  </span>
+                  <span className="text-xs font-semibold text-[#C49A3C] bg-[#C49A3C]/10 px-2.5 py-1 rounded-full">
+                    In Progress &middot; {progress}%
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#C49A3C] transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
-      {/* Timeline */}
-      <div>
-        {MILESTONES.map((m, i) => (
-          <MilestoneRow key={m.id} m={m} isLast={i === MILESTONES.length - 1} />
-        ))}
-      </div>
+          {/* Timeline */}
+          <div>
+            {milestones.map((m, i) => (
+              <MilestoneRow key={m.id} m={m} isLast={i === milestones.length - 1} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Pagination } from "@/components/shared/Pagination";
 import { AddProjectModal } from "./components/AddProjectModal";
 import { EditProjectModal } from "./components/EditProjectModal";
+import { ManageVendorsModal } from "./components/ManageVendorsModal";
 import { ProjectCard } from "./components/ProjectCard";
 import { apiFetch } from "@/lib/api";
 
@@ -16,10 +17,12 @@ export interface Project {
   phase: string;
   client: string;
   clientId?: string;
+  clientAvatar?: string;
   email: string;
   started: string;
   location: string;
   image: string;
+  vendors?: { id: number; name: string; avatar: string }[];
 }
 
 
@@ -28,6 +31,7 @@ export default function AllProjectsPage() {
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
+  const [manageVendorsProject, setManageVendorsProject] = useState<Project | null>(null);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -67,6 +71,13 @@ export default function AllProjectsPage() {
           onSuccess={fetchProjects}
         />
       )}
+      {manageVendorsProject && (
+        <ManageVendorsModal
+          project={manageVendorsProject}
+          onClose={() => setManageVendorsProject(null)}
+          onSuccess={fetchProjects}
+        />
+      )}
 
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
         {/* Header */}
@@ -103,6 +114,7 @@ export default function AllProjectsPage() {
                   key={project.id}
                   project={project}
                   onEdit={setEditProject}
+                  onManageVendors={setManageVendorsProject}
                 />
               ))}
             </div>

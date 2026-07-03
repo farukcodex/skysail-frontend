@@ -19,9 +19,11 @@ function MetaField({ label, value }: { label: string; value: string }) {
 export function ProjectCard({
   project,
   onEdit,
+  onManageVendors,
 }: {
   project: Project;
   onEdit: (p: Project) => void;
+  onManageVendors: (p: Project) => void;
 }) {
   return (
     <div className="rounded-3xl border border-border bg-background overflow-hidden flex flex-col shadow-sm">
@@ -66,9 +68,10 @@ export function ProjectCard({
         {/* CTA */}
         <button
           type="button"
+          onClick={() => onManageVendors(project)}
           className="mt-1 w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity"
         >
-          Add vendors
+          Add / Manage vendors
         </button>
       </div>
     </div>

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ModalShell } from "@/components/shared/ModalShell";
 import { Field } from "@/components/shared/Field";
 import { ClientCombobox } from "./ClientCombobox";
+import { VendorMultiSelect } from "./VendorMultiSelect";
 import { apiFetch } from "@/lib/api";
 
 export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
@@ -11,6 +12,7 @@ export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, o
   const [projectName, setProjectName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [vendorIds, setVendorIds] = useState<string[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,6 +30,7 @@ export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, o
       formData.append("name", projectName);
       formData.append("address", projectAddress);
       formData.append("started_at", startDate);
+      vendorIds.forEach(id => formData.append("vendor_ids[]", id));
       if (imageFile) formData.append("image", imageFile);
 
       const res = await apiFetch(`/api/admin/projects`, {
@@ -61,6 +64,9 @@ export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, o
           </div>
           <Field label="Project Address" id="add-project-address" placeholder="Central Park West, NY" value={projectAddress} onChange={e => setProjectAddress(e.target.value)} required />
           <Field label="Start Date" type="date" id="add-project-start" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+          <div className="sm:col-span-2">
+            <VendorMultiSelect selectedVendorIds={vendorIds} onChange={setVendorIds} />
+          </div>
           <div className="sm:col-span-2">
             <Field label="Cover Image" type="file" id="add-project-image" accept="image/*" onChange={e => {
               const file = (e.target as HTMLInputElement).files?.[0];

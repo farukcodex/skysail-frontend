@@ -53,7 +53,7 @@ export function Pagination({
         <button
           type="button"
           disabled={page === 1 || totalPages === 0}
-          onClick={() => setPage((p) => typeof p === 'number' ? p - 1 : p(page) - 1)}
+          onClick={() => setPage(page - 1)}
           className="size-8 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft size={14} />
@@ -91,7 +91,7 @@ export function Pagination({
         <button
           type="button"
           disabled={page === totalPages || totalPages === 0}
-          onClick={() => setPage((p) => typeof p === 'number' ? p + 1 : p(page) + 1)}
+          onClick={() => setPage(page + 1)}
           className="size-8 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronRight size={14} />

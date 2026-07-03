@@ -36,7 +36,7 @@ export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, o
       const res = await apiFetch(`/api/admin/projects`, {
         method: "POST",
         body: formData,
-      }, true); // pass true for isFormData if implemented that way, wait, apiFetch in lib/api.ts. Let's check how apiFetch handles body. Wait! The user previously passed `isFormData`? Actually native `fetch` handles FormData automatically if headers don't have Content-Type: application/json.
+      });
       
       const data = await res.json();
       if (res.ok) {

@@ -9,7 +9,8 @@ export function Field({
   value,
   onChange,
   type = "text",
-  required = false
+  required = false,
+  accept
 }: {
   label: string;
   id: string;
@@ -19,6 +20,7 @@ export function Field({
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
   required?: boolean;
+  accept?: string;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPasswordType = type === "password";
@@ -41,6 +43,7 @@ export function Field({
           onChange={onChange}
           placeholder={placeholder}
           required={required}
+          accept={accept}
           className="w-full rounded-xl bg-secondary/60 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition pr-10"
         />
         {isPasswordType && (

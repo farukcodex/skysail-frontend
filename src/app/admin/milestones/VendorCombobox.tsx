@@ -58,7 +58,7 @@ export function VendorCombobox({
           <ComboboxContent>
             <ComboboxList>
               {/* Optional: Add an "Unassigned" option */}
-              <ComboboxItem textValue="Unassigned" value="">
+              <ComboboxItem value="">
                 <div className="flex items-center gap-3 py-1 text-muted-foreground">
                   <div className="size-8 shrink-0 rounded-full bg-secondary/50 flex items-center justify-center">
                     <span className="text-xs">--</span>
@@ -69,7 +69,6 @@ export function VendorCombobox({
               {filteredVendors.map((vendor) => (
                 <ComboboxItem
                   key={vendor.id}
-                  textValue={vendor.name}
                   value={vendor.id.toString()}
                 >
                   <div className="flex items-center gap-3 py-1">

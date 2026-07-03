@@ -130,7 +130,6 @@ export function VendorMultiSelect({
               .map((vendor) => (
               <ComboboxItem 
                 key={vendor.id} 
-                textValue={`${vendor.firstName} ${vendor.lastName}`}
                 value={vendor.id.toString()}
               >
                 <div className="flex items-center gap-3 py-1">

@@ -75,7 +75,6 @@ export function ClientCombobox({
             {clients.map((client) => (
               <ComboboxItem 
                 key={client.id} 
-                textValue={`${client.firstName} ${client.lastName}`}
                 value={client.id.toString()}
               >
                 <div className="flex items-center gap-3 py-1">

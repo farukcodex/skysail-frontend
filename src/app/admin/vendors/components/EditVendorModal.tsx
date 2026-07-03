@@ -92,7 +92,7 @@ export function EditVendorModal({ vendor, onClose, onSuccess }: { vendor: Vendor
             <select
               id="edit-designation"
               value={designation}
-              onChange={(e) => setDesignation(e.target.value)}
+              onChange={(e) => setDesignation(e.target.value as typeof DESIGNATIONS[number])}
               className="w-full rounded-xl bg-secondary/60 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition appearance-none"
             >
               {DESIGNATIONS.map((d) => (

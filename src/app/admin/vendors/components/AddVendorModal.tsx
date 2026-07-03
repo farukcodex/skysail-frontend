@@ -14,7 +14,7 @@ export function AddVendorModal({ onClose, onSuccess }: { onClose: () => void, on
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [designation, setDesignation] = useState(DESIGNATIONS[0]);
+  const [designation, setDesignation] = useState<typeof DESIGNATIONS[number]>(DESIGNATIONS[0]);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +88,7 @@ export function AddVendorModal({ onClose, onSuccess }: { onClose: () => void, on
             <select
               id="vendor-designation"
               value={designation}
-              onChange={(e) => setDesignation(e.target.value)}
+              onChange={(e) => setDesignation(e.target.value as typeof DESIGNATIONS[number])}
               className="w-full rounded-xl bg-secondary/60 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition appearance-none"
             >
               {DESIGNATIONS.map((d) => (

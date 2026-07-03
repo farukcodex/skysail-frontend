@@ -2,6 +2,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { MobileNav } from "@/components/mobile-nav";
 import { BellIcon } from "lucide-react";
 import Link from "next/link";
+import { AuthGuard } from "@/components/auth-guard";
 
 export default function ViewLayout({
   children,
@@ -9,7 +10,8 @@ export default function ViewLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh w-full bg-foreground">
+    <AuthGuard>
+      <div className="flex min-h-dvh w-full bg-foreground">
       {/* Sidebar */}
       <div className="sticky top-0 w-64 shrink-0 hidden md:flex flex-col h-dvh">
         {/* Glow */}
@@ -28,7 +30,7 @@ export default function ViewLayout({
           <div className="flex items-center gap-3 border-l pl-4">
             <div className="text-right">
               <Link
-                href="/profile"
+                href="/client/profile"
                 className="text-sm font-bold bg-linear-to-r from-[#C49A3C] to-[#A46909] bg-clip-text text-transparent"
               >
                 Bob Henderson
@@ -38,7 +40,7 @@ export default function ViewLayout({
               </p>
             </div>
             <div className="relative ml-2">
-              <Link href="/notifications">
+              <Link href="/client/notifications">
                 <BellIcon size={16} />
               </Link>
               <span className="absolute top-0 right-0 size-2 rounded-full bg-red-500 ring-2 ring-background" />
@@ -68,5 +70,6 @@ export default function ViewLayout({
         </footer>
       </main>
     </div>
+    </AuthGuard>
   );
 }

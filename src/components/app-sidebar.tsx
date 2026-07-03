@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useLogout } from "@/hooks/useLogout";
 import { NAV_SECTIONS } from "./user-sidebar";
 
 type NavItem = {
@@ -43,6 +44,7 @@ export function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { logout, isLoggingOut } = useLogout();
 
   return (
     <aside className="flex flex-col h-full w-full bg-foreground overflow-hidden">
@@ -104,10 +106,12 @@ export function AppSidebar() {
       <div className="px-3 py-5 border-t border-white/10">
         <button
           type="button"
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors"
+          onClick={logout}
+          disabled={isLoggingOut}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-50"
         >
           <LogOut size={18} />
-          <span>Log Out</span>
+          <span>{isLoggingOut ? "Logging Out..." : "Log Out"}</span>
         </button>
       </div>
     </aside>

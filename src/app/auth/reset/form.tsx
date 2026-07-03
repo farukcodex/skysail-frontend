@@ -1,25 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
+import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
-
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 export default function Form() {
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") || "";
+  const token = searchParams.get("token") || "";
+
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordB, setShowPasswordB] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const navig = useRouter();
+
+  const handleReset = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
+      const res = await fetch(`${baseUrl}/api/auth/forgot-password/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          email,
+          password_reset_token: token,
+          password,
+          password_confirmation: passwordConfirmation,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to reset password.");
+      
+      toast.success(data.message || "Password reset successful!");
+      setTimeout(() => navig.push("/auth/login"), 2000);
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <form
       className="flex flex-col gap-5 w-full"
-      onSubmit={(e) => {
-        e.preventDefault();
-        navig.push("/auth/login");
-      }}
+      onSubmit={handleReset}
     >
       <div className="flex flex-col gap-2">
         <Label
@@ -33,7 +66,11 @@ export default function Form() {
             id="password"
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
-            autoComplete="current-password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            required
             className="h-12 rounded-full bg-muted/50 border-0 px-5 pr-12 text-sm focus-visible:ring-2 focus-visible:ring-ring/30"
           />
           <button
@@ -56,10 +93,14 @@ export default function Form() {
         </Label>
         <div className="relative">
           <Input
-            id="password"
+            id="password_confirmation"
             type={showPasswordB ? "text" : "password"}
             placeholder="••••••••"
-            autoComplete="current-password"
+            autoComplete="new-password"
+            value={passwordConfirmation}
+            onChange={(e) => setPasswordConfirmation(e.target.value)}
+            disabled={isLoading}
+            required
             className="h-12 rounded-full bg-muted/50 border-0 px-5 pr-12 text-sm focus-visible:ring-2 focus-visible:ring-ring/30"
           />
           <button
@@ -74,15 +115,15 @@ export default function Form() {
         </div>
       </div>
 
-      {/* Placeholder — replace with reusable SignInButton component */}
       <div className="pt-1">
         <button
           type="submit"
-          className="flex items-center gap-12 w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all"
+          disabled={isLoading}
+          className="flex items-center gap-12 w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50"
         >
-          Save Changes
+          {isLoading ? "Saving..." : "Save Changes"}
           <span className="flex items-center justify-center bg-linear-to-b from-[#865B15] to-[#E1C283] rounded-full w-9 h-9">
-            <ArrowRight size={16} className="text-white" />
+            {isLoading ? <Loader2 size={16} className="text-white animate-spin" /> : <ArrowRight size={16} className="text-white" />}
           </span>
         </button>
       </div>

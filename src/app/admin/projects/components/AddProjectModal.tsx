@@ -1,0 +1,45 @@
+import { X } from "lucide-react";
+import React, { useState } from "react";
+import { ModalShell } from "@/components/shared/ModalShell";
+import { Field } from "@/components/shared/Field";
+import { ClientCombobox } from "./ClientCombobox";
+
+export function AddProjectModal({ onClose }: { onClose: () => void }) {
+  const [clientId, setClientId] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [projectAddress, setProjectAddress] = useState("");
+  const [startDate, setStartDate] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // TODO: Send to ProjectController once implemented
+    console.log("Add project:", { clientId, projectName, projectAddress, startDate });
+    onClose();
+  };
+
+  return (
+    <ModalShell id="add-project-title" title="Add Project" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="sm:col-span-2">
+            <ClientCombobox value={clientId} onChange={setClientId} />
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Project Name" id="add-project-name" placeholder="The Sterling Penthouse" value={projectName} onChange={e => setProjectName(e.target.value)} required />
+          </div>
+          <Field label="Project Address" id="add-project-address" placeholder="Central Park West, NY" value={projectAddress} onChange={e => setProjectAddress(e.target.value)} required />
+          <Field label="Start Date" type="date" id="add-project-start" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+        </div>
+
+        <div className="flex gap-3">
+          <button type="button" onClick={onClose} className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-border text-sm font-semibold hover:bg-secondary transition-colors">
+            <X size={14} /> Cancel
+          </button>
+          <button type="submit" className="flex-1 py-3.5 rounded-2xl bg-foreground text-background text-sm font-semibold hover:opacity-80 transition-opacity">
+            Add Project
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}

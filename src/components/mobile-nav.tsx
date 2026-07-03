@@ -3,6 +3,7 @@
 import { LogOut, MenuIcon } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,12 @@ import { ADMIN_NAV_SECTIONS } from "./admin-sidebar";
 import { NavLink } from "./app-sidebar";
 import { NAV_SECTIONS } from "./user-sidebar";
 import { VENDOR_NAV_SECTIONS } from "./vendor-sidebar";
+import { useLogout } from "@/hooks/useLogout";
 
 export function MobileNav() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const { logout, isLoggingOut } = useLogout();
   const isAdmin = pathname.startsWith("/admin");
   const isVendor = pathname.startsWith("/vendor");
   const sections = isAdmin
@@ -30,7 +34,7 @@ export function MobileNav() {
       : NAV_SECTIONS;
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button size="icon" variant="ghost">
           <MenuIcon />
@@ -102,13 +106,15 @@ export function MobileNav() {
         </nav>
 
         {/* Log Out */}
-        <div className="px-3 py-5 border-t border-white/10">
+        <div className="px-5 py-6 border-t border-white/10 mt-auto shrink-0">
           <button
             type="button"
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors"
+            onClick={logout}
+            disabled={isLoggingOut}
+            className="flex items-center gap-3 w-full text-white/40 hover:text-white/70 transition-colors disabled:opacity-50"
           >
             <LogOut size={18} />
-            <span>Log Out</span>
+            <span>{isLoggingOut ? "Logging Out..." : "Log Out"}</span>
           </button>
         </div>
       </SheetContent>

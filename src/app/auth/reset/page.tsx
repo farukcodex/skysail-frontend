@@ -1,5 +1,4 @@
-import Image from "next/image";
-
+import { Suspense } from "react";
 import Form from "./form";
 
 export default function Page() {
@@ -8,7 +7,9 @@ export default function Page() {
       <h1 className="text-3xl sm:text-4xl font-semibold mb-6 sm:mb-8">
         Reset Password
       </h1>
-      <Form />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Form />
+      </Suspense>
     </div>
   );
 }

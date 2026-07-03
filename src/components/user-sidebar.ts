@@ -23,25 +23,25 @@ type NavSection = {
 export const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { label: "Dashboard", href: "/", icon: LayoutDashboard },
-      { label: "News Feed", href: "/feed", icon: Rss, badge: 4 },
+      { label: "Dashboard", href: "/client", icon: LayoutDashboard },
+      { label: "News Feed", href: "/client/feed", icon: Rss, badge: 4 },
     ],
   },
   {
     label: "The Project",
     items: [
-      { label: "Milestones", href: "/milestones", icon: Milestone },
-      { label: "Budget", href: "/budget", icon: Wallet },
-      { label: "Decisions", href: "/decisions", icon: CheckCircle },
-      { label: "Risks", href: "/risks", icon: Triangle },
+      { label: "Milestones", href: "/client/milestones", icon: Milestone },
+      { label: "Budget", href: "/client/budget", icon: Wallet },
+      { label: "Decisions", href: "/client/decisions", icon: CheckCircle },
+      { label: "Risks", href: "/client/risks", icon: Triangle },
     ],
   },
   {
     label: "System",
     items: [
-      { label: "Calendar", href: "/calendar", icon: Calendar },
-      { label: "Documents", href: "/documents", icon: FileText },
-      { label: "Team", href: "/team", icon: Users },
+      { label: "Calendar", href: "/client/calendar", icon: Calendar },
+      { label: "Documents", href: "/client/documents", icon: FileText },
+      { label: "Team", href: "/client/team", icon: Users },
     ],
   },
 ];

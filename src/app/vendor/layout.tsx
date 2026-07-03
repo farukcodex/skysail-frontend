@@ -2,6 +2,7 @@ import { VendorAppSidebar } from "@/components/vendor-app-sidebar";
 import { MobileNav } from "@/components/mobile-nav";
 import { BellIcon } from "lucide-react";
 import Link from "next/link";
+import { AuthGuard } from "@/components/auth-guard";
 
 export default function VendorLayout({
   children,
@@ -9,7 +10,8 @@ export default function VendorLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh w-full bg-foreground">
+    <AuthGuard>
+      <div className="flex min-h-dvh w-full bg-foreground">
       {/* Sidebar */}
       <div className="sticky top-0 w-64 shrink-0 hidden md:flex flex-col h-dvh">
         {/* Glow */}
@@ -68,5 +70,6 @@ export default function VendorLayout({
         </footer>
       </main>
     </div>
+    </AuthGuard>
   );
 }

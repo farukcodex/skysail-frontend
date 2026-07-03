@@ -1,20 +1,22 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent } from "react";
+import { toast } from "sonner";
 
-export default function Form() {
+export default function Form({ email }: { email: string }) {
   const [timer, setTimer] = useState(59);
+  const [otp, setOtp] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navig = useRouter();
   useEffect(() => {
     if (timer === 0) return;
@@ -23,16 +25,36 @@ export default function Form() {
     }, 1000);
     return () => clearInterval(interval);
   }, [timer]);
+  const handleVerify = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
+      const res = await fetch(`${baseUrl}/api/auth/forgot-password/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to verify OTP.");
+      
+      toast.success(data.message || "OTP Verified Successfully!");
+      navig.push(`/auth/reset?email=${encodeURIComponent(email)}&token=${data.data.password_reset_token}`);
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <form
       className="flex flex-col gap-5 w-full"
-      onSubmit={(e) => {
-        e.preventDefault();
-        navig.push("/auth/reset");
-      }}
+      onSubmit={handleVerify}
     >
       <div className="flex flex-col gap-2 items-center">
-        <InputOTP maxLength={6} className="gap-2">
+        <InputOTP maxLength={6} className="gap-2" value={otp} onChange={setOtp} disabled={isLoading}>
           <InputOTPGroup>
             <InputOTPSlot index={0} className="w-12 h-12 text-lg" />
             <InputOTPSlot index={1} className="w-12 h-12 text-lg" />
@@ -52,17 +74,21 @@ export default function Form() {
           00:{timer.toString().padStart(2, "0")}
         </span>
       </p>
-      {/* Placeholder — replace with reusable SignInButton component */}
-      <div className="pt-1 w-full flex items-center justify-center">
+      
+      <div className="pt-2 flex flex-col items-center gap-6 w-full">
         <button
           type="submit"
-          className="flex items-center gap-12 w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all"
+          disabled={isLoading || otp.length < 6}
+          className="flex items-center gap-12 w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50"
         >
-          Verify
+          {isLoading ? "Verifying..." : "Verify"}
           <span className="flex items-center justify-center bg-linear-to-b from-[#865B15] to-[#E1C283] rounded-full w-9 h-9">
-            <ArrowRight size={16} className="text-white" />
+            {isLoading ? <Loader2 size={16} className="text-white animate-spin" /> : <ArrowRight size={16} className="text-white" />}
           </span>
         </button>
+        <Link href="/auth/forgot-password" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          Back to previous
+        </Link>
       </div>
     </form>
   );

@@ -5,6 +5,7 @@ import { Eye, EyeOff, UploadIcon, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { getToken, setAuth, getUser } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -89,18 +90,11 @@ export default function ProfilePage() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-
   const fetchProfile = async () => {
     try {
       const token = getToken();
       if (!token) return;
-      const res = await fetch(`${baseUrl}/api/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      const res = await apiFetch(`/api/profile`);
       const data = await res.json();
       if (res.ok) {
         setUserProfile(data.data);
@@ -140,12 +134,8 @@ export default function ProfilePage() {
       if (phone) formData.append("phone", phone);
       if (photoFile) formData.append("profile_photo", photoFile);
 
-      const res = await fetch(`${baseUrl}/api/profile`, {
+      const res = await apiFetch(`/api/profile`, {
         method: "POST", // Must be POST with _method=PATCH for FormData
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
         body: formData,
       });
       const data = await res.json();
@@ -171,12 +161,10 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       const token = getToken();
-      const res = await fetch(`${baseUrl}/api/profile/password`, {
+      const res = await apiFetch(`/api/profile/password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
         },
         body: JSON.stringify({
           current_password: currentPassword,

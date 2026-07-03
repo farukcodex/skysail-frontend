@@ -12,11 +12,13 @@ import {
 } from "@/components/ui/input-otp";
 import { useEffect, useState, FormEvent } from "react";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 export default function Form({ email }: { email: string }) {
   const [timer, setTimer] = useState(59);
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const navig = useRouter();
   useEffect(() => {
     if (timer === 0) return;
@@ -25,15 +27,34 @@ export default function Form({ email }: { email: string }) {
     }, 1000);
     return () => clearInterval(interval);
   }, [timer]);
+
+  const handleResend = async () => {
+    setIsResending(true);
+    try {
+      const res = await apiFetch(`/api/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to resend OTP.");
+      toast.success("OTP sent successfully!");
+      setTimer(59);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resend OTP.");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleVerify = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-      const res = await fetch(`${baseUrl}/api/auth/forgot-password/verify`, {
+      const res = await apiFetch(`/api/auth/forgot-password/verify`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
       });
       const data = await res.json();
@@ -68,12 +89,26 @@ export default function Form({ email }: { email: string }) {
           </InputOTPGroup>
         </InputOTP>
       </div>
-      <p className="text-sm text-muted-foreground text-center">
-        Send code again{" "}
-        <span className="font-medium text-foreground">
-          00:{timer.toString().padStart(2, "0")}
-        </span>
-      </p>
+      {timer === 0 ? (
+        <p className="text-sm text-center text-muted-foreground">
+          Didn't receive the code?{" "}
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={isResending}
+            className="font-semibold text-foreground hover:underline disabled:opacity-50"
+          >
+            {isResending ? "Sending..." : "Resend it"}
+          </button>
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground text-center">
+          Send code again{" "}
+          <span className="font-medium text-foreground">
+            00:{timer.toString().padStart(2, "0")}
+          </span>
+        </p>
+      )}
       
       <div className="pt-2 flex flex-col items-center gap-6 w-full">
         <button

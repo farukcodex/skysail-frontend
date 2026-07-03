@@ -7,21 +7,21 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 export default function Form() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
 
   const handleRequestOtp = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+      const res = await apiFetch(`/api/auth/forgot-password`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
       const data = await res.json();

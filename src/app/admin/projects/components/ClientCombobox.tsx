@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/combobox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Client } from "../../clients/page";
+import { apiFetch } from "@/lib/api";
 
 export function ClientCombobox({ 
   value, 
@@ -23,14 +24,7 @@ export function ClientCombobox({
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-        const res = await fetch(`${baseUrl}/api/admin/clients`, {
-          headers: {
-            "Accept": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
-        });
+        const res = await apiFetch(`/api/admin/clients?all=1`);
         const data = await res.json();
         if (res.ok) {
           setClients(data.data);

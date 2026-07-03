@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { clearAuth, getToken } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
 
 export function useLogout() {
   const router = useRouter();
@@ -11,13 +12,8 @@ export function useLogout() {
     try {
       const token = getToken();
       if (token) {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-        await fetch(`${baseUrl}/api/auth/logout`, {
-          method: "POST",
-          headers: {
-            "Accept": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
+        await apiFetch(`/api/auth/logout`, {
+          method: "POST"
         });
       }
     } catch (e) {

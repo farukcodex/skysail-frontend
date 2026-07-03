@@ -1,9 +1,10 @@
 "use client";
 
-import { PlusIcon, Loader2 } from "lucide-react";
+import { PlusIcon, Loader2, Search } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Pagination } from "@/components/shared/Pagination";
+import { apiFetch } from "@/lib/api";
 import { AddClientModal } from "./components/AddClientModal";
 import { EditClientModal } from "./components/EditClientModal";
 import { ClientDetailsModal } from "./components/ClientDetailsModal";
@@ -24,7 +25,10 @@ const PAGE_SIZE = 5;
 
 export default function ClientManagementPage() {
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [viewClient, setViewClient] = useState<Client | null>(null);
@@ -33,17 +37,12 @@ export default function ClientManagementPage() {
   const fetchClients = useCallback(async () => {
     setIsLoading(true);
     try {
-      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-      const res = await fetch(`${baseUrl}/api/admin/clients`, {
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
-      });
+      const res = await apiFetch(`/api/admin/clients?page=${page}&search=${encodeURIComponent(searchQuery)}&per_page=${PAGE_SIZE}`);
       const data = await res.json();
       if (res.ok) {
         setClients(data.data);
+        setTotalPages(data.meta.last_page);
+        setTotalItems(data.meta.total);
       } else {
         console.error("Failed to fetch clients", data.message);
       }
@@ -52,7 +51,7 @@ export default function ClientManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page, searchQuery]);
 
   useEffect(() => {
     fetchClients();
@@ -60,14 +59,8 @@ export default function ClientManagementPage() {
 
   const handleBlockToggle = async (clientId: number) => {
     try {
-      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-      const res = await fetch(`${baseUrl}/api/admin/clients/${clientId}/block`, {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
+      const res = await apiFetch(`/api/admin/clients/${clientId}/block`, {
+        method: "POST"
       });
       if (res.ok) {
         fetchClients();
@@ -77,8 +70,7 @@ export default function ClientManagementPage() {
     }
   };
 
-  const totalPages = Math.ceil(clients.length / PAGE_SIZE);
-  const pageClients = clients.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
@@ -99,21 +91,34 @@ export default function ClientManagementPage() {
 
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold tracking-tight">
             <span className="text-muted-foreground font-normal">All </span>
             Client
           </h1>
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-6 w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all"
-          >
-            Add Client
-            <span className="flex items-center justify-center bg-linear-to-b from-[#865B15] to-[#E1C283] rounded-full w-9 h-9">
-              <PlusIcon size={16} className="text-white" />
-            </span>
-          </button>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                className="w-full bg-background border border-border rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition-all"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAdd(true)}
+              className="flex items-center justify-center gap-6 w-full sm:w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all shrink-0"
+            >
+              Add Client
+              <span className="flex items-center justify-center bg-linear-to-b from-[#865B15] to-[#E1C283] rounded-full w-9 h-9">
+                <PlusIcon size={16} className="text-white" />
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Client list */}
@@ -123,10 +128,10 @@ export default function ClientManagementPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {pageClients.length === 0 ? (
+            {clients.length === 0 ? (
               <p className="text-center text-muted-foreground py-10">No clients found.</p>
             ) : (
-              pageClients.map((client) => (
+              clients.map((client) => (
                 <div
                   key={client.id}
                   className="flex flex-col w-full gap-4 p-4 rounded-2xl border border-border bg-background"
@@ -142,14 +147,17 @@ export default function ClientManagementPage() {
                         {client.firstName?.[0] || 'C'}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">
                         {client.firstName} {client.lastName}
                         {client.status === 'blocked' && (
                           <span className="ml-2 text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Blocked</span>
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {client.email}
+                      </p>
+                      <p className="text-[11px] font-medium text-muted-foreground/80 truncate mt-0.5">
                         {client.projects_count} Active Projects
                       </p>
                     </div>
@@ -186,12 +194,12 @@ export default function ClientManagementPage() {
         )}
 
         {/* Pagination */}
-        {!isLoading && clients.length > 0 && (
+        {!isLoading && totalItems > 0 && (
           <Pagination
             page={page}
             totalPages={totalPages}
             setPage={setPage}
-            totalItems={clients.length}
+            totalItems={totalItems}
             pageSize={PAGE_SIZE}
           />
         )}

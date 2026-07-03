@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { ModalShell } from "@/components/shared/ModalShell";
 import { Field } from "@/components/shared/Field";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 export function AddClientModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const [firstName, setFirstName] = useState("");
@@ -13,7 +15,6 @@ export function AddClientModal({ onClose, onSuccess }: { onClose: () => void, on
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     if (!profilePhoto) {
@@ -28,12 +29,8 @@ export function AddClientModal({ onClose, onSuccess }: { onClose: () => void, on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setErrorMsg("");
     
     try {
-      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-      
       const formData = new FormData();
       formData.append("name", `${firstName} ${lastName}`.trim());
       formData.append("email", email);
@@ -43,22 +40,29 @@ export function AddClientModal({ onClose, onSuccess }: { onClose: () => void, on
         formData.append("profile_photo", profilePhoto);
       }
 
-      const res = await fetch(`${baseUrl}/api/admin/clients`, {
+      const res = await apiFetch(`/api/admin/clients`, {
         method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
         body: formData,
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to add client");
+      if (!res.ok) {
+        let errMsg = data.message || "Failed to add client";
+        if (data.errors) {
+          const errorKeys = Object.keys(data.errors).filter(k => k !== 'code' && k !== 'trace');
+          if (errorKeys.length > 0) {
+            const firstError = data.errors[errorKeys[0]];
+            errMsg = Array.isArray(firstError) ? firstError[0] : firstError;
+          }
+        }
+        throw new Error(errMsg);
+      }
       
       onSuccess();
       onClose();
+      toast.success("Client added successfully!");
     } catch (err: any) {
-      setErrorMsg(err.message);
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -95,8 +99,6 @@ export function AddClientModal({ onClose, onSuccess }: { onClose: () => void, on
             </div>
           </div>
         </div>
-
-        {errorMsg && <p className="text-red-500 text-sm mb-4 font-medium">{errorMsg}</p>}
 
         <div className="flex gap-3">
           <button type="button" onClick={onClose} disabled={isLoading} className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-border text-sm font-semibold hover:bg-secondary transition-colors disabled:opacity-50">

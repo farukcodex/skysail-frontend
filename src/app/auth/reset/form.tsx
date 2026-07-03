@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 export default function Form() {
   const searchParams = useSearchParams();
@@ -26,10 +27,9 @@ export default function Form() {
     setIsLoading(true);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-      const res = await fetch(`${baseUrl}/api/auth/forgot-password/reset`, {
+      const res = await apiFetch(`/api/auth/forgot-password/reset`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           password_reset_token: token,

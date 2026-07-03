@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { setAuth } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
 
 export default function Form() {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,12 +25,10 @@ export default function Form() {
     setIsLoading(true);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
-      const res = await fetch(`${baseUrl}/api/auth/login`, {
+      const res = await apiFetch(`/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });

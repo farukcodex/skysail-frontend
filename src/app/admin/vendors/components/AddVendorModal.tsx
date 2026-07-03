@@ -3,16 +3,18 @@ import React, { useState, useEffect } from "react";
 import { ModalShell } from "@/components/shared/ModalShell";
 import { Field } from "@/components/shared/Field";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Client } from "../page"; // We'll export the interface from page.tsx
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 
-export function EditClientModal({ client, onClose, onSuccess }: { client: Client, onClose: () => void, onSuccess: () => void }) {
-  const [firstName, setFirstName] = useState(client.firstName);
-  const [lastName, setLastName] = useState(client.lastName);
-  const [email, setEmail] = useState(client.email);
-  const [phone, setPhone] = useState(client.phone || "");
-  const [newPassword, setNewPassword] = useState("");
+const DESIGNATIONS = ["Architect", "Designer", "Builder", "General Vendor"] as const;
+
+export function AddVendorModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [designation, setDesignation] = useState(DESIGNATIONS[0]);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,25 +35,23 @@ export function EditClientModal({ client, onClose, onSuccess }: { client: Client
     
     try {
       const formData = new FormData();
-      formData.append("_method", "PUT");
       formData.append("name", `${firstName} ${lastName}`.trim());
       formData.append("email", email);
+      formData.append("password", password);
+      formData.append("designation", designation);
       if (phone) formData.append("phone", phone);
-      if (newPassword) {
-        formData.append("password", newPassword);
-      }
       if (profilePhoto) {
         formData.append("profile_photo", profilePhoto);
       }
 
-      const res = await apiFetch(`/api/admin/clients/${client.id}`, {
-        method: "POST", // Laravel requires POST with _method=PUT for multipart/form-data
+      const res = await apiFetch(`/api/admin/vendors`, {
+        method: "POST",
         body: formData,
       });
 
       const data = await res.json();
       if (!res.ok) {
-        let errMsg = data.message || "Failed to update client";
+        let errMsg = data.message || "Failed to add vendor";
         if (data.errors) {
           const errorKeys = Object.keys(data.errors).filter(k => k !== 'code' && k !== 'trace');
           if (errorKeys.length > 0) {
@@ -64,7 +64,7 @@ export function EditClientModal({ client, onClose, onSuccess }: { client: Client
       
       onSuccess();
       onClose();
-      toast.success("Client updated successfully!");
+      toast.success("Vendor added successfully!");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -73,14 +73,34 @@ export function EditClientModal({ client, onClose, onSuccess }: { client: Client
   };
 
   return (
-    <ModalShell id="edit-client-title" title="Edit Client" onClose={onClose}>
+    <ModalShell id="add-vendor-title" title="Add Vendor" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <Field label="First Name" id="edit-first-name" placeholder="Jonathan" value={firstName} onChange={e => setFirstName(e.target.value)} required />
-          <Field label="Last Name" id="edit-last-name" placeholder="Sterling" value={lastName} onChange={e => setLastName(e.target.value)} required />
-          <Field label="Email Address" type="email" id="edit-email" placeholder="client@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
-          <Field label="Phone Number (Optional)" type="tel" id="edit-phone" placeholder="0139000000" value={phone} onChange={e => setPhone(e.target.value)} />
-          <Field label="New Password" type="password" id="edit-password" placeholder="Leave blank to keep current" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+          <Field label="First Name" id="add-first-name" placeholder="Jonathan" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+          <Field label="Last Name" id="add-last-name" placeholder="Sterling" value={lastName} onChange={e => setLastName(e.target.value)} required />
+          <Field label="Email Address" type="email" id="add-email" placeholder="vendor@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+          <Field label="Phone Number (Optional)" type="tel" id="add-phone" placeholder="0139000000" value={phone} onChange={e => setPhone(e.target.value)} />
+          
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="vendor-designation" className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+              Designation
+            </label>
+            <select
+              id="vendor-designation"
+              value={designation}
+              onChange={(e) => setDesignation(e.target.value)}
+              className="w-full rounded-xl bg-secondary/60 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition appearance-none"
+            >
+              {DESIGNATIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <Field label="Set Password" type="password" id="add-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+          
           <div className="sm:col-span-2">
             <div className="flex flex-col gap-1.5 w-full">
               <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
@@ -88,9 +108,9 @@ export function EditClientModal({ client, onClose, onSuccess }: { client: Client
               </label>
               <div className="flex items-center gap-4 mt-1">
                 <Avatar className="size-12 shrink-0">
-                  <AvatarImage src={previewUrl || client.avatar} alt={client.firstName} />
+                  <AvatarImage src={previewUrl || undefined} alt="Preview" />
                   <AvatarFallback className="text-sm bg-secondary text-secondary-foreground">
-                    {client.firstName?.[0]}
+                    IMG
                   </AvatarFallback>
                 </Avatar>
                 <input
@@ -109,7 +129,7 @@ export function EditClientModal({ client, onClose, onSuccess }: { client: Client
             <X size={14} /> Cancel
           </button>
           <button type="submit" disabled={isLoading} className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-foreground text-background text-sm font-semibold hover:opacity-80 transition-opacity disabled:opacity-50">
-            {isLoading ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
+            {isLoading ? <Loader2 className="animate-spin" size={16} /> : "Add Vendor"}
           </button>
         </div>
       </form>

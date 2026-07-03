@@ -139,9 +139,6 @@ export default function MilestonesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
 
-  const [globalRequests, setGlobalRequests] = useState<Milestone[]>([]);
-  const [isFetchingRequests, setIsFetchingRequests] = useState(true);
-
   useEffect(() => {
     // Fetch projects to populate dropdown
     apiFetch(`/api/admin/projects?all=1`)
@@ -184,25 +181,9 @@ export default function MilestonesPage() {
     }
   }, [selectedProjectId, selectedMilestoneId]);
 
-  const fetchGlobalRequests = useCallback(async () => {
-    setIsFetchingRequests(true);
-    try {
-      const res = await apiFetch(`/api/milestones?status=pending_review`);
-      const data = await res.json();
-      if (res.ok) {
-        setGlobalRequests(data.data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsFetchingRequests(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchMilestones();
-    fetchGlobalRequests();
-  }, [fetchMilestones, fetchGlobalRequests]);
+  }, [fetchMilestones]);
 
   const handleSave = async () => {
     if (!selectedMilestoneId) return;
@@ -243,37 +224,7 @@ export default function MilestonesPage() {
     }
   };
 
-  const handleApprove = async (milestoneId: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/milestones/${milestoneId}/approve`, {
-        method: "POST"
-      });
-      if (res.ok) {
-        toast.success("Milestone approved!");
-        fetchMilestones();
-        fetchGlobalRequests();
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to approve");
-    }
-  };
 
-  const handleReject = async (milestoneId: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/milestones/${milestoneId}/reject`, {
-        method: "POST"
-      });
-      if (res.ok) {
-        toast.success("Progress rejected and reverted.");
-        fetchMilestones();
-        fetchGlobalRequests();
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to reject");
-    }
-  };
 
   const selectedProjectObj = projects.find(p => p.id === selectedProjectId);
 
@@ -308,55 +259,7 @@ export default function MilestonesPage() {
           </button>
         </div>
 
-        {/* Global Pending Requests Section */}
-        {globalRequests.length > 0 && (
-          <div className="flex flex-col gap-4 mb-2">
-            <h2 className="text-sm font-bold text-amber-600 flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-              </span>
-              Action Required: Pending Approvals ({globalRequests.length})
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {globalRequests.map((req) => (
-                <div key={req.id} className="bg-amber-50/50 border border-amber-200/60 rounded-2xl p-5 flex flex-col gap-4">
-                  <div>
-                    <p className="text-[10px] font-bold tracking-widest uppercase text-amber-700/70 mb-1">{req.project_name}</p>
-                    <p className="text-sm font-bold text-foreground">{req.name}</p>
-                  </div>
-                  <div className="flex justify-between items-center bg-background/50 rounded-xl p-3 border border-amber-100">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase">Vendor</span>
-                      <span className="text-xs font-semibold">{req.assignee_name || "Unassigned"}</span>
-                      {req.assignee_email && (
-                        <span className="text-[10px] text-muted-foreground">{req.assignee_email}</span>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase">Progress</span>
-                      <span className="text-xs font-bold text-amber-600">{req.completion_percent}%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleReject(req.id)}
-                      className="w-1/3 py-2.5 rounded-xl bg-secondary text-muted-foreground text-xs font-bold hover:bg-secondary/70 transition-colors"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      onClick={() => handleApprove(req.id)}
-                      className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition-colors"
-                    >
-                      Approve
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {/* Client / Project selector */}
         <div className="flex flex-col gap-1.5 max-w-sm">

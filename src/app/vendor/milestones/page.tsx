@@ -44,6 +44,8 @@ export default function VendorMilestonesPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [updatingMilestone, setUpdatingMilestone] = useState<Milestone | null>(null);
   const [customPercent, setCustomPercent] = useState<number>(0);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchMilestones = async () => {
@@ -86,15 +88,27 @@ export default function VendorMilestonesPage() {
 
     setIsSubmitting(true);
     try {
+      const formData = new FormData();
+      formData.append("completion_percent", customPercent.toString());
+      if (documentFile) {
+        formData.append("document", documentFile);
+      }
+      if (note) {
+        formData.append("note", note);
+      }
+      // Laravel handles PUT with file via POST + _method=PUT
+      formData.append("_method", "PUT");
+
       const res = await apiFetch(`/api/milestones/${updatingMilestone.id}/progress`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completion_percent: customPercent })
+        method: "POST",
+        body: formData
       });
       if (res.ok) {
         toast.success("Progress submitted for review!");
         fetchMilestones();
         setUpdatingMilestone(null);
+        setDocumentFile(null);
+        setNote("");
       } else {
         const err = await res.json();
         toast.error(err.message || "Failed to update progress.");
@@ -242,6 +256,8 @@ export default function VendorMilestonesPage() {
                                 onClick={() => {
                                   setUpdatingMilestone(m);
                                   setCustomPercent(m.completion_percent);
+                                  setDocumentFile(null);
+                                  setNote("");
                                 }}
                                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition-opacity whitespace-nowrap"
                                 style={{
@@ -304,6 +320,31 @@ export default function VendorMilestonesPage() {
               <p className="text-xs text-muted-foreground mt-3">
                 Drag the slider or type a custom percentage. You cannot decrease progress below {updatingMilestone.completion_percent}%.
               </p>
+            </div>
+            
+            <div className="flex flex-col gap-4 border-t border-border pt-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+                  Attach Document (Optional)
+                </label>
+                <input 
+                  type="file" 
+                  onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm border border-border rounded-xl px-3 py-2 bg-secondary/30"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+                  Note to Admin (Optional)
+                </label>
+                <textarea 
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="e.g. Attached the invoice for this phase..."
+                  className="w-full text-sm border border-border rounded-xl px-3 py-2 bg-secondary/30 min-h-20"
+                />
+              </div>
             </div>
             
             <button

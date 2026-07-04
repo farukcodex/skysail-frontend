@@ -8,7 +8,7 @@ import { toast } from "sonner";
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 10;
 
-type DecisionStatus = "pending" | "approved" | "rejected";
+type DecisionStatus = "pending" | "approved" | "rejected" | "client_approved" | "client_rejected";
 
 interface VendorDecision {
   id: number;
@@ -93,7 +93,7 @@ export default function VendorDecisionsPage() {
       : decisions.filter((d) =>
           activeTab === "Pending"
             ? d.status === "pending"
-            : d.status === "approved",
+            : ["approved", "client_approved"].includes(d.status),
         );
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
@@ -236,15 +236,20 @@ export default function VendorDecisionsPage() {
                         </span>
                         {doc.status === "pending" && (
                           <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-full">
-                            Pending
+                            Pending Admin
                           </span>
                         )}
                         {doc.status === "approved" && (
+                          <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider bg-blue-500/10 px-2 py-0.5 rounded-full">
+                            Pending Client
+                          </span>
+                        )}
+                        {doc.status === "client_approved" && (
                           <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider bg-green-500/10 px-2 py-0.5 rounded-full">
                             Approved
                           </span>
                         )}
-                        {doc.status === "rejected" && (
+                        {(doc.status === "rejected" || doc.status === "client_rejected") && (
                           <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider bg-red-500/10 px-2 py-0.5 rounded-full">
                             Rejected
                           </span>

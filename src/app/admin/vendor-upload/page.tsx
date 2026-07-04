@@ -82,7 +82,7 @@ interface DecisionRow {
   description: string | null;
   due_date: string | null;
   urgency: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "client_approved" | "client_rejected";
   image_path: string | null;
   image_url: string | null;
   created_by: number;
@@ -259,14 +259,28 @@ function DecisionCard({ decision, onApprove, onReject }: { decision: DecisionRow
               <div className="flex flex-row items-center px-[12px] py-[6px] gap-[3.99px] bg-[#18B495]/20 rounded-[20px] h-[28px]">
                 <div className="w-[11.82px] h-[10.21px] bg-[#18B495]" style={{ clipPath: "circle(50% at 50% 50%)" }} />
                 <span className="text-[#18B495] font-inter font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase">
-                  APPROVED
+                  WAITING FOR CLIENT
+                </span>
+              </div>
+            ) : decision.status === "client_approved" ? (
+              <div className="flex flex-row items-center px-[12px] py-[6px] gap-[3.99px] bg-[#18B495]/20 rounded-[20px] h-[28px]">
+                <div className="w-[11.82px] h-[10.21px] bg-[#18B495]" style={{ clipPath: "circle(50% at 50% 50%)" }} />
+                <span className="text-[#18B495] font-inter font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase">
+                  APPROVED BY CLIENT
+                </span>
+              </div>
+            ) : decision.status === "client_rejected" ? (
+              <div className="flex flex-row items-center px-[12px] py-[6px] gap-[3.99px] bg-[#970404]/20 rounded-[20px] h-[28px]">
+                <div className="w-[11.82px] h-[10.21px] bg-[#970404]" style={{ clipPath: "circle(50% at 50% 50%)" }} />
+                <span className="text-[#970404] font-inter font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase">
+                  REJECTED BY CLIENT
                 </span>
               </div>
             ) : (
               <div className="flex flex-row items-center px-[12px] py-[6px] gap-[3.99px] bg-[#970404]/20 rounded-[20px] h-[28px]">
                 <div className="w-[11.82px] h-[10.21px] bg-[#970404]" style={{ clipPath: "circle(50% at 50% 50%)" }} />
                 <span className="text-[#970404] font-inter font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase">
-                  REJECTED
+                  REJECTED BY ADMIN
                 </span>
               </div>
             )}
@@ -673,7 +687,17 @@ export default function VendorUploadPage() {
   });
 
   const filteredDecisions = decisions.filter((d) => {
-    if (activeDocTab !== "All" && d.status !== activeDocTab.toLowerCase()) return false;
+    // If activeDocTab is not All, then we need to map our decision statuses to the doc tabs.
+    // Doc tabs are: Pending, Approved, Rejected, All
+    // For Admin: "Pending" means "pending" (vendor uploaded).
+    // "Approved" could mean "approved" or "client_approved".
+    // "Rejected" could mean "rejected" or "client_rejected".
+    if (activeDocTab !== "All") {
+      const tabLower = activeDocTab.toLowerCase();
+      if (tabLower === "pending" && d.status !== "pending") return false;
+      if (tabLower === "approved" && !["approved", "client_approved"].includes(d.status)) return false;
+      if (tabLower === "rejected" && !["rejected", "client_rejected"].includes(d.status)) return false;
+    }
     if (selectedProjectId !== "all" && d.project_id !== selectedProjectId) return false;
     if (selectedVendorRole !== "all" && d.creator_role !== selectedVendorRole) return false;
     return true;

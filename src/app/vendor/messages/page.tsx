@@ -36,6 +36,7 @@ export default function VendorMessagesPage() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [adminInfo, setAdminInfo] = useState<{name: string, avatar: string | null} | null>(null);
   const [loading, setLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -90,6 +91,10 @@ export default function VendorMessagesPage() {
             const uniqueNew = newMessages.filter((m: Message) => !existingIds.has(m.id));
             return [...uniqueNew, ...prev];
           });
+        }
+        
+        if (data.admin_info) {
+          setAdminInfo(data.admin_info);
         }
         
         setHasMore(data.current_page < data.last_page);
@@ -177,10 +182,26 @@ export default function VendorMessagesPage() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (isTyping) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [isTyping]);
+
   const handleScroll = () => {
     if (chatContainerRef.current) {
       if (chatContainerRef.current.scrollTop < 10 && hasMore && !loadingMessages && !isLoadingRef.current) {
         fetchMessages(page + 1);
+      }
+    }
+  };
+
+  const handleImageLoad = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView();
       }
     }
   };
@@ -242,20 +263,32 @@ export default function VendorMessagesPage() {
       <div className="px-6 pt-6 lg:px-8">
         <div className="rounded-2xl border border-border bg-background px-5 py-4">
           <div className="flex items-center gap-3">
-            <Image
-              src="https://api.dicebear.com/9.x/avataaars/png?seed=RemyAdmin&size=40&backgroundColor=b6e3f4"
-              alt="Remy Admin"
-              width={40}
-              height={40}
-              className="rounded-full"
-              unoptimized
-            />
-            <div>
-              <p className="text-sm font-bold">Remy (Admin)</p>
-              <p className="text-xs text-muted-foreground">
-                SkySail Operations
-              </p>
-            </div>
+            {loading && !adminInfo ? (
+              <>
+                <div className="w-10 h-10 rounded-full bg-secondary animate-pulse shrink-0" />
+                <div className="space-y-2">
+                  <div className="h-4 w-24 bg-secondary animate-pulse rounded" />
+                  <div className="h-3 w-32 bg-secondary animate-pulse rounded" />
+                </div>
+              </>
+            ) : (
+              <>
+                <Image
+                  src={adminInfo?.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${adminInfo?.name?.replace(/ /g, '') || 'RemyAdmin'}&size=40&backgroundColor=b6e3f4`}
+                  alt={adminInfo?.name || "Admin"}
+                  width={40}
+                  height={40}
+                  className="rounded-full shrink-0"
+                  unoptimized
+                />
+                <div>
+                  <p className="text-sm font-bold">{adminInfo?.name || "Loading..."} (Admin)</p>
+                  <p className="text-xs text-muted-foreground">
+                    SkySail Operations
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -302,8 +335,8 @@ export default function VendorMessagesPage() {
               msg.sender_id !== user?.id ? (
                 <div key={msg.id} className="flex items-end gap-2 max-w-[75%]">
                   <Image
-                    src="https://api.dicebear.com/9.x/avataaars/png?seed=RemyAdmin&size=32&backgroundColor=b6e3f4"
-                    alt="Remy"
+                    src={adminInfo?.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${adminInfo?.name?.replace(/ /g, '') || 'RemyAdmin'}&size=32&backgroundColor=b6e3f4`}
+                    alt={adminInfo?.name || "Admin"}
                     width={32}
                     height={32}
                     className="rounded-full shrink-0"
@@ -311,8 +344,8 @@ export default function VendorMessagesPage() {
                   />
                   <div className="min-w-0">
                     {msg.file_url && msg.file_type?.startsWith('image/') && (
-                      <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-border">
-                        <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" />
+                      <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-border bg-secondary/20 min-h-[100px]">
+                        <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" onLoad={handleImageLoad} />
                       </div>
                     )}
                     {msg.file_url && !msg.file_type?.startsWith('image/') && (
@@ -341,8 +374,8 @@ export default function VendorMessagesPage() {
                 >
                   <div className="min-w-0">
                     {msg.file_url && msg.file_type?.startsWith('image/') && (
-                      <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-primary/20">
-                        <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" />
+                      <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-primary/20 bg-primary/5 min-h-[100px]">
+                        <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" onLoad={handleImageLoad} />
                       </div>
                     )}
                     {msg.file_url && !msg.file_type?.startsWith('image/') && (
@@ -371,9 +404,8 @@ export default function VendorMessagesPage() {
                 </div>
               ),
             )}
-            <div ref={messagesEndRef} />
             {isTyping && (
-              <div className="flex items-center gap-2 max-w-[75%] px-2 pb-2">
+              <div className="flex items-center gap-2 max-w-[75%] px-4 md:px-12 pb-2">
                  <span className="text-xs text-muted-foreground italic flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-pulse" />
                     <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-pulse delay-75" />
@@ -382,6 +414,7 @@ export default function VendorMessagesPage() {
                  </span>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </>
         )}
       </div>

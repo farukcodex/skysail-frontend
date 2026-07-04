@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { Paperclip, Smile, Send, Search, Check, CheckCheck } from "lucide-react";
+import { Paperclip, Smile, Send, Search, Check, CheckCheck, ArrowLeft } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { getEchoInstance } from "@/lib/echo";
 import { getUser } from "@/lib/auth";
@@ -245,14 +245,30 @@ export default function AdminMessagesPage() {
   }, [messages, typingUsers, page]);
 
   useLayoutEffect(() => {
-    if (scrollInfoRef.current && chatContainerRef.current) {
+    if (page > 1 && scrollInfoRef.current && chatContainerRef.current) {
       const container = chatContainerRef.current;
       const { scrollHeight: prevScrollHeight, scrollTop: prevScrollTop } = scrollInfoRef.current;
       
       container.scrollTop = prevScrollTop + (container.scrollHeight - prevScrollHeight);
-scrollInfoRef.current = null;
+      scrollInfoRef.current = null;
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (selectedVendor && typingUsers[selectedVendor.id]) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [typingUsers, selectedVendor]);
+
+  const handleImageLoad = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView();
+      }
+    }
+  };
 
   const handleSend = async () => {
     if ((!input.trim() && !selectedFile) || !selectedVendor) return;
@@ -320,9 +336,9 @@ scrollInfoRef.current = null;
   );
 
   return (
-    <div className="flex h-[calc(100dvh-73px)] bg-background">
+    <div className="flex h-[calc(100dvh-73px)] bg-background overflow-hidden">
       {/* Sidebar - Vendors List */}
-      <div className="w-80 border-r border-border flex flex-col">
+      <div className={`w-full md:w-80 shrink-0 border-r border-border flex-col h-full ${selectedVendor ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-border">
           <h2 className="font-semibold mb-4">Messages</h2>
           <div className="relative">
@@ -380,9 +396,15 @@ scrollInfoRef.current = null;
 
       {/* Main Chat Area */}
       {selectedVendor ? (
-        <div className="flex-1 flex flex-col">
+        <div className={`flex-1 flex flex-col w-full h-full ${selectedVendor ? 'flex' : 'hidden md:flex'}`}>
           {/* Header */}
-          <div className="px-6 py-4 border-b border-border flex items-center gap-3 bg-background/95 backdrop-blur z-10 sticky top-0">
+          <div className="px-4 md:px-6 py-4 border-b border-border flex items-center gap-3 bg-background/95 backdrop-blur z-10 sticky top-0">
+            <button 
+              className="md:hidden p-2 -ml-2 rounded-full hover:bg-secondary text-muted-foreground shrink-0"
+              onClick={() => setSelectedVendor(null)}
+            >
+              <ArrowLeft size={20} />
+            </button>
              <Image
               src={selectedVendor.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${selectedVendor.firstName}&size=40&backgroundColor=b6e3f4`}
               alt={`${selectedVendor.firstName} ${selectedVendor.lastName}`}
@@ -448,8 +470,8 @@ scrollInfoRef.current = null;
                         />
                         <div className="min-w-0">
                           {msg.file_url && msg.file_type?.startsWith('image/') && (
-                            <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-border">
-                              <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" />
+                            <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-border bg-secondary/20 min-h-[100px]">
+                              <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" onLoad={handleImageLoad} />
                             </div>
                           )}
                           {msg.file_url && !msg.file_type?.startsWith('image/') && (
@@ -478,8 +500,8 @@ scrollInfoRef.current = null;
                       >
                         <div className="min-w-0">
                           {msg.file_url && msg.file_type?.startsWith('image/') && (
-                            <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-primary/20">
-                              <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" />
+                            <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-primary/20 bg-primary/5 min-h-[100px]">
+                              <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" onLoad={handleImageLoad} />
                             </div>
                           )}
                           {msg.file_url && !msg.file_type?.startsWith('image/') && (
@@ -508,7 +530,6 @@ scrollInfoRef.current = null;
                       </div>
                     ),
                   )}
-                    <div ref={messagesEndRef} />
                   {typingUsers[selectedVendor.id] && (
                     <div className="flex items-center gap-2 max-w-[75%] px-6 pb-2">
                        <span className="text-xs text-muted-foreground italic flex items-center gap-1">
@@ -519,6 +540,7 @@ scrollInfoRef.current = null;
                        </span>
                     </div>
                   )}
+                  <div ref={messagesEndRef} />
                 </>)}
           </div>
 
@@ -595,7 +617,7 @@ scrollInfoRef.current = null;
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+        <div className="flex-1 hidden md:flex flex-col items-center justify-center text-muted-foreground">
           <div className="bg-secondary/50 p-4 rounded-full mb-4">
             <Search size={32} />
           </div>

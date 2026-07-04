@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "@/lib/api";
 
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 6;
@@ -18,16 +19,7 @@ interface Project {
   image: string;
 }
 
-const ALL_PROJECTS: Project[] = Array.from({ length: 32 }, (_, i) => ({
-  id: i + 1,
-  name: "The Henderson Residence",
-  phase: "Phase 3: Framing",
-  client: "Bob Henderson",
-  email: "j.@sterling.com",
-  started: "May 2025",
-  location: "Central Park West, NY",
-  image: `https://placehold.co/600x340/1a2332/ffffff?text=Project+${i + 1}`,
-}));
+
 
 function MetaField({ label, value }: { label: string; value: string }) {
   return (
@@ -76,11 +68,33 @@ function ProjectCard({ project }: { project: Project }) {
 
 export default function VendorProjectsPage() {
   const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(ALL_PROJECTS.length / PAGE_SIZE);
-  const pageProjects = ALL_PROJECTS.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE,
-  );
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  const fetchProjects = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiFetch(`/api/projects?per_page=${PAGE_SIZE}&page=${page}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data.data || []);
+        if (data.meta) {
+          setTotalPages(data.meta.last_page || 1);
+          setTotalItems(data.meta.total || 0);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch projects", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   function pageNumbers(): (number | "...")[] {
     const pages: (number | "...")[] = [];
@@ -115,26 +129,38 @@ export default function VendorProjectsPage() {
         {/* Card section */}
         <div className="rounded-2xl border border-border p-5 flex flex-col gap-5">
           <p className="text-sm font-semibold">Active projects</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pageProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
-          </div>
+          
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="animate-spin text-muted-foreground" size={32} />
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="flex flex-col justify-center items-center py-20 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+              <p className="text-sm font-medium">No active projects found.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Showing{" "}
-            <span className="font-semibold text-foreground">
-              {(page - 1) * PAGE_SIZE + 1}–
-              {Math.min(page * PAGE_SIZE, ALL_PROJECTS.length)}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-foreground">
-              {ALL_PROJECTS.length}
-            </span>
-          </p>
+        {totalItems > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Showing{" "}
+              <span className="font-semibold text-foreground">
+                {(page - 1) * PAGE_SIZE + 1}–
+                {Math.min(page * PAGE_SIZE, totalItems)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-foreground">
+                {totalItems}
+              </span>
+            </p>
 
           <div className="flex items-center gap-1">
             <button
@@ -186,6 +212,7 @@ export default function VendorProjectsPage() {
             </button>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

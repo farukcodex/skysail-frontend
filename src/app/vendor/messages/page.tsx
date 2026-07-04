@@ -1,33 +1,222 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { Paperclip, Smile, Send, AlertCircle } from "lucide-react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { Paperclip, Smile, Send, AlertCircle, Check, CheckCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { apiFetch } from "@/lib/api";
+import EmojiPicker from 'emoji-picker-react';
+import { getEchoInstance } from "@/lib/echo";
+import { getUser } from "@/lib/auth";
 
-const MESSAGES = [
-  {
-    id: 1,
-    from: "admin" as const,
-    text: "Hi Anna, can you please update the window rough openings on the second floor plans? Builder flagged a mismatch.",
-    time: "Remy · 9:00 AM",
-  },
-  {
-    id: 2,
-    from: "user" as const,
-    text: "On it — will upload revised plans by end of today.",
-    time: "9:15 AM ✓",
-  },
-  {
-    id: 3,
-    from: "admin" as const,
-    text: "Perfect. Also please include the updated roof framing section in the same upload.",
-    time: "Remy · 9:20 AM",
-  },
-];
+type Message = {
+  id: number;
+  sender_id: number;
+  receiver_id: number;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+};
 
 export default function VendorMessagesPage() {
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const lastTypingSent = useRef<number>(0);
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
+  const scrollInfoRef = useRef<{ scrollHeight: number, scrollTop: number } | null>(null);
+
+  const markAsRead = async (senderId: number) => {
+    try {
+      await apiFetch("/api/messages/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sender_id: senderId })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchMessages = async (pageNum: number = 1) => {
+    if (isLoadingRef.current && pageNum !== 1) return;
+    isLoadingRef.current = true;
+    try {
+      setLoadingMessages(true);
+      const res = await apiFetch(`/api/messages?page=${pageNum}`);
+      if (res.ok) {
+        const data = await res.json();
+        const newMessages = (data.data || data).reverse();
+        
+        if (pageNum === 1) {
+          setMessages(newMessages);
+        } else {
+          if (chatContainerRef.current) {
+            scrollInfoRef.current = {
+              scrollHeight: chatContainerRef.current.scrollHeight,
+              scrollTop: chatContainerRef.current.scrollTop,
+            };
+          }
+          
+          setMessages(prev => {
+            const existingIds = new Set(prev.map(m => m.id));
+            const uniqueNew = newMessages.filter((m: Message) => !existingIds.has(m.id));
+            return [...uniqueNew, ...prev];
+          });
+        }
+        
+        setHasMore(data.current_page < data.last_page);
+        setPage(data.current_page || 1);
+      }
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    } finally {
+      setLoading(false);
+      setLoadingMessages(false);
+      isLoadingRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    const currentUser = getUser();
+    if (currentUser) {
+      setUser(currentUser);
+      setPage(1);
+      fetchMessages(1);
+      markAsRead(1); // default admin sender is 1
+
+      const echo = getEchoInstance();
+      if (echo) {
+        echo.private(`messages.${currentUser.id}`)
+          .listen('MessageSent', (e: { message: Message }) => {
+            let isNearBottom = false;
+            if (chatContainerRef.current) {
+              const { scrollHeight, scrollTop, clientHeight } = chatContainerRef.current;
+              isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+            }
+
+            setMessages((prev) => {
+              if (prev.find(m => m.id === e.message.id)) return prev;
+              return [...prev, e.message];
+            });
+
+            if (isNearBottom) {
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+              }, 100);
+            }
+
+            if (e.message.sender_id === 1) { // 1 = Admin
+              markAsRead(1);
+            }
+          })
+          .listen('.MessagesRead', (e: { readerId: number }) => {
+            setMessages((prev) => prev.map(m => 
+              m.receiver_id === e.readerId ? { ...m, is_read: true } : m
+            ));
+          })
+          .listen('.UserTyping', (e: { senderId: number }) => {
+            setIsTyping(true);
+            setTimeout(() => {
+              setIsTyping(false);
+            }, 3000);
+          });
+      }
+    }
+
+    return () => {
+      if (currentUser) {
+        const echo = getEchoInstance();
+        if (echo) {
+          echo.leave(`messages.${currentUser.id}`);
+        }
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (page === 1 && !scrollInfoRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isTyping, page]);
+
+  useLayoutEffect(() => {
+    if (scrollInfoRef.current && chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      const { scrollHeight: prevScrollHeight, scrollTop: prevScrollTop } = scrollInfoRef.current;
+      
+      container.scrollTop = prevScrollTop + (container.scrollHeight - prevScrollHeight);
+      scrollInfoRef.current = null;
+    }
+  }, [messages]);
+
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      if (chatContainerRef.current.scrollTop < 10 && hasMore && !loadingMessages && !isLoadingRef.current) {
+        fetchMessages(page + 1);
+      }
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const tempMsg = input;
+    setInput("");
+
+    try {
+      const res = await apiFetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: tempMsg }),
+      });
+
+      if (res.ok) {
+        const newMsg = await res.json();
+        setMessages((prev) => [...prev, newMsg]);
+        setInput("");
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      } else {
+        console.error("Failed to send message");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSend();
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    
+    const now = Date.now();
+    if (now - lastTypingSent.current > 2000) {
+      lastTypingSent.current = now;
+      apiFetch("/api/messages/typing", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         // default admin receiver is 1 for vendors
+         body: JSON.stringify({ receiver_id: 1 })
+      }).catch(err => console.error("Typing emit failed", err));
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100dvh-73px)] bg-background">
@@ -53,61 +242,97 @@ export default function VendorMessagesPage() {
         </div>
       </div>
 
-      {/* Info banner */}
-      {/* <div className="px-6 pt-3 lg:px-8">
-        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 flex items-center gap-3 text-sm text-red-800 dark:text-red-200">
-          <AlertCircle size={16} className="shrink-0" />
-          <span>
-            You can only communicate with the SkySail admin team — no direct
-            client contact
-          </span>
-        </div>
-      </div> */}
-
-      {/* Chat area */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 lg:px-8 flex flex-col gap-4">
-        {/* Date pill */}
-        <div className="flex justify-center">
-          <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full">
-            Today
-          </span>
-        </div>
-
-        {MESSAGES.map((msg) =>
-          msg.from === "admin" ? (
-            <div key={msg.id} className="flex items-end gap-2 max-w-[75%]">
-              <Image
-                src="https://api.dicebear.com/9.x/avataaars/png?seed=RemyAdmin&size=32&backgroundColor=b6e3f4"
-                alt="Remy"
-                width={32}
-                height={32}
-                className="rounded-full shrink-0"
-                unoptimized
-              />
-              <div>
-                <div className="rounded-2xl rounded-tl-sm bg-background border border-border px-4 py-3 text-sm">
-                  {msg.text}
+      {/* Messages */}
+      <div 
+        className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-12 py-6 flex flex-col gap-4"
+        ref={chatContainerRef}
+        onScroll={handleScroll}
+      >
+        {loading && page === 1 ? (
+          <div className="flex justify-center items-center h-full">
+            <span className="text-sm text-muted-foreground">Loading...</span>
+          </div>
+        ) : (
+          <>
+            {loadingMessages && page > 1 && (
+              <div className="flex justify-center py-3">
+                <div className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-full border border-blue-500/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="text-xs font-medium bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent ml-1">
+                    Loading older messages...
+                  </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1 ml-1">
-                  {msg.time}
-                </p>
               </div>
-            </div>
-          ) : (
-            <div
-              key={msg.id}
-              className="flex items-end gap-2 max-w-[75%] self-end flex-row-reverse"
-            >
-              <div>
-                <div className="rounded-2xl rounded-tr-sm bg-foreground text-background px-4 py-3 text-sm">
-                  {msg.text}
+            )}
+            {messages.length === 0 ? (
+              <div className="flex justify-center">
+                <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+                  No messages yet
+                </span>
+              </div>
+            ) : !hasMore && !loading && !loadingMessages ? (
+              <div className="flex justify-center py-4">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">
+                  Start of conversation
+                </span>
+              </div>
+            ) : null}
+
+            {messages.map((msg) =>
+              msg.sender_id !== user?.id ? (
+                <div key={msg.id} className="flex items-end gap-2 max-w-[75%]">
+                  <Image
+                    src="https://api.dicebear.com/9.x/avataaars/png?seed=RemyAdmin&size=32&backgroundColor=b6e3f4"
+                    alt="Remy"
+                    width={32}
+                    height={32}
+                    className="rounded-full shrink-0"
+                    unoptimized
+                  />
+                  <div className="min-w-0">
+                    <div className="rounded-2xl rounded-tl-sm bg-background border border-border px-4 py-3 text-sm break-all whitespace-pre-wrap">
+                      {msg.message}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 ml-1">
+                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1 text-right mr-1">
-                  {msg.time}
-                </p>
+              ) : (
+                <div
+                  key={msg.id}
+                  className="flex items-end gap-2 max-w-[75%] self-end flex-row-reverse"
+                >
+                  <div className="min-w-0">
+                    <div className="rounded-2xl rounded-tr-sm bg-foreground text-background px-4 py-3 text-sm break-all whitespace-pre-wrap">
+                      {msg.message}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-1 flex items-center justify-end gap-1 mr-1">
+                      <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {msg.is_read ? (
+                        <CheckCheck size={14} className="text-blue-500" />
+                      ) : (
+                        <Check size={14} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ),
+            )}
+            <div ref={messagesEndRef} />
+            {isTyping && (
+              <div className="flex items-center gap-2 max-w-[75%] px-2 pb-2">
+                 <span className="text-xs text-muted-foreground italic flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-pulse" />
+                    <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-pulse delay-75" />
+                    <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-pulse delay-150" />
+                    <span className="ml-1">Admin is typing...</span>
+                 </span>
               </div>
-            </div>
-          ),
+            )}
+          </>
         )}
       </div>
 
@@ -123,17 +348,33 @@ export default function VendorMessagesPage() {
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             placeholder="Type your message to SkySail Admin..."
             className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
           />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Smile size={18} />
+            </button>
+            {showEmojiPicker && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowEmojiPicker(false)} 
+                />
+                <div className="absolute bottom-10 right-0 z-50">
+                  <EmojiPicker onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />
+                </div>
+              </>
+            )}
+          </div>
           <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Smile size={18} />
-          </button>
-          <button
+            onClick={handleSend}
             type="button"
             className="flex items-center justify-center size-9 rounded-xl bg-foreground text-background hover:opacity-80 transition-opacity shrink-0"
           >
@@ -143,10 +384,6 @@ export default function VendorMessagesPage() {
         <div className="flex items-center justify-between mt-2 px-1">
           <p className="text-[10px] text-muted-foreground">
             Secure channel encrypted for SkySail internal use.
-          </p>
-          <p className="text-[10px] text-amber-500 flex items-center gap-1">
-            <span className="inline-block size-1.5 rounded-full bg-amber-500" />
-            Remy is typing...
           </p>
         </div>
       </div>

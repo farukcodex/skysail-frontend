@@ -9,11 +9,25 @@ import EmojiPicker from 'emoji-picker-react';
 import { getEchoInstance } from "@/lib/echo";
 import { getUser } from "@/lib/auth";
 
+const formatBytes = (bytes: number, decimals = 2) => {
+  if (!+bytes) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+};
+
 type Message = {
   id: number;
   sender_id: number;
   receiver_id: number;
-  message: string;
+  message: string | null;
+  file_path?: string | null;
+  file_type?: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
+  file_url?: string | null;
   is_read: boolean;
   created_at: string;
 };
@@ -32,7 +46,9 @@ export default function VendorMessagesPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
   const scrollInfoRef = useRef<{ scrollHeight: number, scrollTop: number } | null>(null);
@@ -170,22 +186,24 @@ export default function VendorMessagesPage() {
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const tempMsg = input;
-    setInput("");
+    if (!input.trim() && !selectedFile) return;
 
     try {
+      const formData = new FormData();
+      formData.append("receiver_id", "1");
+      if (input.trim()) formData.append("message", input.trim());
+      if (selectedFile) formData.append("file", selectedFile);
+
       const res = await apiFetch("/api/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: tempMsg }),
+        body: formData,
       });
 
       if (res.ok) {
         const newMsg = await res.json();
         setMessages((prev) => [...prev, newMsg]);
         setInput("");
+        setSelectedFile(null);
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
@@ -292,9 +310,25 @@ export default function VendorMessagesPage() {
                     unoptimized
                   />
                   <div className="min-w-0">
-                    <div className="rounded-2xl rounded-tl-sm bg-background border border-border px-4 py-3 text-sm break-all whitespace-pre-wrap">
-                      {msg.message}
-                    </div>
+                    {msg.file_url && msg.file_type?.startsWith('image/') && (
+                      <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-border">
+                        <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" />
+                      </div>
+                    )}
+                    {msg.file_url && !msg.file_type?.startsWith('image/') && (
+                      <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mb-2 flex items-center gap-2 p-2 rounded-xl border border-border bg-secondary/50 text-xs hover:bg-secondary transition-colors max-w-[200px]">
+                        <Paperclip size={14} className="shrink-0" />
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate font-medium">{msg.file_name}</span>
+                          {msg.file_size && <span className="text-[10px] text-muted-foreground">{formatBytes(msg.file_size)}</span>}
+                        </div>
+                      </a>
+                    )}
+                    {msg.message && (
+                      <div className="rounded-2xl rounded-tl-sm bg-background border border-border px-4 py-3 text-sm break-all whitespace-pre-wrap">
+                        {msg.message}
+                      </div>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1 ml-1">
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -306,9 +340,25 @@ export default function VendorMessagesPage() {
                   className="flex items-end gap-2 max-w-[75%] self-end flex-row-reverse"
                 >
                   <div className="min-w-0">
-                    <div className="rounded-2xl rounded-tr-sm bg-foreground text-background px-4 py-3 text-sm break-all whitespace-pre-wrap">
-                      {msg.message}
-                    </div>
+                    {msg.file_url && msg.file_type?.startsWith('image/') && (
+                      <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-primary/20">
+                        <img src={msg.file_url} alt="attachment" className="w-full h-auto object-cover" />
+                      </div>
+                    )}
+                    {msg.file_url && !msg.file_type?.startsWith('image/') && (
+                      <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mb-2 flex items-center gap-2 p-2 rounded-xl border border-primary/20 bg-primary/10 text-xs hover:bg-primary/20 transition-colors max-w-[200px] text-foreground">
+                        <Paperclip size={14} className="shrink-0" />
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate font-medium">{msg.file_name}</span>
+                          {msg.file_size && <span className="text-[10px] text-primary/70">{formatBytes(msg.file_size)}</span>}
+                        </div>
+                      </a>
+                    )}
+                    {msg.message && (
+                      <div className="rounded-2xl rounded-tr-sm bg-foreground text-background px-4 py-3 text-sm break-all whitespace-pre-wrap">
+                        {msg.message}
+                      </div>
+                    )}
                     <div className="text-[10px] text-muted-foreground mt-1 flex items-center justify-end gap-1 mr-1">
                       <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       {msg.is_read ? (
@@ -336,11 +386,36 @@ export default function VendorMessagesPage() {
         )}
       </div>
 
-      {/* Input area */}
-      <div className="px-6 pb-4 lg:px-8">
+      {/* Input Area */}
+      <div className="px-4 md:px-12 pb-6">
+        {selectedFile && (
+          <div className="mb-2 flex items-center gap-2 max-w-[300px]">
+            <div className="flex items-center gap-2 p-2 rounded-xl border border-border bg-secondary/30 text-xs w-full">
+              <Paperclip size={14} className="shrink-0" />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="truncate font-medium">{selectedFile.name}</span>
+                <span className="text-[10px] text-muted-foreground">{formatBytes(selectedFile.size)}</span>
+              </div>
+              <button onClick={() => setSelectedFile(null)} className="ml-2 hover:text-destructive shrink-0">
+                &times;
+              </button>
+            </div>
+          </div>
+        )}
         <div className="rounded-2xl border border-border bg-background px-4 py-3 flex items-center gap-3">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setSelectedFile(e.target.files[0]);
+              }
+            }}
+            className="hidden" 
+          />
           <button
             type="button"
+            onClick={() => fileInputRef.current?.click()}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <Paperclip size={18} />

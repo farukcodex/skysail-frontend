@@ -3,7 +3,8 @@
 import { LogOut, MenuIcon } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getUser } from "@/lib/auth";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,13 +26,39 @@ export function MobileNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { logout, isLoggingOut } = useLogout();
-  const isAdmin = pathname.startsWith("/admin");
-  const isVendor = pathname.startsWith("/vendor");
-  const sections = isAdmin
+  const isAdminPath = pathname.startsWith("/admin");
+  const isVendorPath = pathname.startsWith("/vendor");
+  const isClientPath = pathname.startsWith("/client");
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    setUser(getUser());
+  }, []);
+
+  const isEffectiveAdmin = isAdminPath || (!isVendorPath && !isClientPath && user?.role === "admin");
+  const isEffectiveVendor = isVendorPath || (!isAdminPath && !isClientPath && user?.role && user.role !== "admin" && user.role !== "client");
+
+  const sections = isEffectiveAdmin
     ? ADMIN_NAV_SECTIONS
-    : isVendor
+    : isEffectiveVendor
       ? VENDOR_NAV_SECTIONS
       : NAV_SECTIONS;
+
+  const getAvatarUrl = (path: string | null, name: string) => {
+    const defaultName = isEffectiveAdmin ? 'Admin' : (isEffectiveVendor ? 'Vendor' : 'Client');
+    if (!path) return `https://api.dicebear.com/10.x/micah/svg?seed=${name?.replace(/ /g, '') || defaultName}&backgroundColor=b6e3f4`;
+    if (path.startsWith('http')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
+    return `${baseUrl}/storage/${path}`;
+  };
+
+  const getInitials = (name: string) => {
+    const defaultInitials = isEffectiveAdmin ? 'AD' : (isEffectiveVendor ? 'VN' : 'CL');
+    if (!name) return defaultInitials;
+    const parts = name.split(" ");
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -68,19 +95,21 @@ export function MobileNav() {
           <div className="ring-2 ring-[#C49A3C] ring-offset-2 ring-offset-foreground rounded-full">
             <Avatar size="lg" className="size-14">
               <AvatarImage
-                src="https://api.dicebear.com/10.x/micah/svg?seed=Felix"
-                alt="Bob Henderson"
+                src={getAvatarUrl(user?.profile_photo_path || user?.avatar, user?.name || user?.firstName)}
+                alt={user?.name || user?.firstName || "User"}
               />
               <AvatarFallback className="bg-white/10 text-white">
-                BH
+                {getInitials(user?.name || user?.firstName)}
               </AvatarFallback>
             </Avatar>
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-white leading-tight">
-              Bob Henderson
+              {user?.name || user?.firstName ? (user?.name || `${user.firstName} ${user.lastName || ''}`) : (isEffectiveAdmin ? "Admin User" : (isEffectiveVendor ? "Vendor User" : "Client User"))}
             </p>
-            <p className="text-xs text-white/40 mt-0.5">New York, USA</p>
+            <p className="text-xs text-white/40 mt-0.5">
+              {isEffectiveAdmin ? "SkySail Operations" : (isEffectiveVendor ? "SkySail Vendor" : "SkySail Client")}
+            </p>
           </div>
         </div>
 

@@ -208,19 +208,21 @@ export default function ProfilePage() {
         </div>
 
         {/* Avatar row */}
-        <div className="flex items-center gap-5">
-          <div className="size-16 rounded-full overflow-hidden border border-border shrink-0 bg-muted relative">
-            <Image
-              src={photoPreview || defaultAvatar}
-              alt={name || "User avatar"}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-          <div>
-            <p className="text-base font-bold">{name}</p>
-            <p className="text-sm text-muted-foreground">{email}</p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="size-16 rounded-full overflow-hidden border border-border shrink-0 bg-muted relative">
+              <Image
+                src={photoPreview || defaultAvatar}
+                alt={name || "User avatar"}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-bold truncate">{name}</p>
+              <p className="text-sm text-muted-foreground truncate">{email}</p>
+            </div>
           </div>
           
           <input 
@@ -233,7 +235,7 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="ml-auto flex items-center gap-2 bg-foreground text-background text-xs font-bold tracking-wide px-4 py-2.5 rounded-full hover:opacity-80 transition-opacity shrink-0"
+            className="sm:ml-auto w-fit flex items-center justify-center gap-2 bg-foreground text-background text-xs font-bold tracking-wide px-4 py-2.5 rounded-full hover:opacity-80 transition-opacity shrink-0"
           >
             <UploadIcon size={13} />
             Upload Image

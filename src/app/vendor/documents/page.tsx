@@ -18,6 +18,7 @@ interface VendorDoc {
   document_title: string;
   note_to_admin: string;
   document_path: string;
+  document_url: string | null;
   status: DocStatus;
   uploaded_by: number;
   uploader_name: string;
@@ -212,7 +213,7 @@ export default function VendorDocumentsPage() {
                   <div key={doc.id} className="px-5 py-4 flex items-start gap-3">
                     <div className="shrink-0 mt-0.5 size-9 rounded-lg bg-secondary flex items-center justify-center relative overflow-hidden">
                       {doc.document_path.match(/\.(jpeg|jpg|gif|png)$/) != null ? (
-                        <img src={`http://localhost:8000/storage/${doc.document_path}`} className="absolute inset-0 w-full h-full object-cover" />
+                        <img src={doc.document_url || ""} className="absolute inset-0 w-full h-full object-cover" />
                       ) : (
                         <FileText size={16} className="text-muted-foreground" />
                       )}
@@ -257,7 +258,7 @@ export default function VendorDocumentsPage() {
                       )}
                       <div className="flex items-center gap-3 mt-2">
                         <a
-                          href={`http://localhost:8000/storage/${doc.document_path}`}
+                          href={doc.document_url || ""}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs font-semibold hover:opacity-60 transition-opacity"

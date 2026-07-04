@@ -20,6 +20,13 @@ type DocFilterTab = (typeof DOC_FILTER_TABS)[number];
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 12; // Adjusted for grid layout
 
+const VENDOR_ROLES = [
+  { value: "vendor_designer", label: "Designer" },
+  { value: "vendor_architect", label: "Architect" },
+  { value: "vendor_builder", label: "Builder" },
+  { value: "vendor_general", label: "General Vendor" },
+];
+
 // --- Types ---
 interface VendorDoc {
   id: number;
@@ -29,10 +36,13 @@ interface VendorDoc {
   document_title: string;
   note_to_admin: string;
   document_path: string;
+  document_url: string | null;
   status: "pending" | "approved" | "rejected";
   uploaded_by: number;
   uploader_name: string;
+  uploader_role: string | null;
   uploader_avatar: string | null;
+  file_size?: number | null;
   created_at: string;
 }
 
@@ -47,6 +57,9 @@ interface MilestoneRow {
   target_date: string | null;
   assignee_name: string;
   assigned_to: number | null;
+  assignee_role: string | null;
+  document_url?: string | null;
+  document_title?: string | null;
 }
 
 interface Project {
@@ -61,105 +74,275 @@ interface Vendor {
   avatar?: string;
 }
 
+interface DecisionRow {
+  id: number;
+  project_id: number;
+  project_name: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  urgency: string;
+  status: "pending" | "approved" | "rejected";
+  image_path: string | null;
+  image_url: string | null;
+  created_by: number;
+  creator_name: string;
+  creator_role: string | null;
+  creator_avatar: string | null;
+  created_at: string;
+}
+
+function MiniPdfIcon() {
+  return (
+    <div className="size-7 shrink-0 relative">
+      <div className="absolute inset-0 bg-gray-100 dark:bg-muted rounded-sm border border-border" />
+      <div
+        className="absolute top-0 right-0 size-2 bg-background"
+        style={{ clipPath: "polygon(100% 0, 0 0, 100% 100%)" }}
+      />
+      <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[6px] font-bold px-0.5 rounded-sm leading-tight py-px">
+        PDF
+      </div>
+    </div>
+  );
+}
+
+function formatBytes(bytes?: number | null) {
+  if (!bytes) return null;
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 // --- Components ---
 
 function DocPreviewCard({ doc, onApprove, onReject }: { doc: VendorDoc, onApprove: (id: number) => void, onReject: (id: number) => void }) {
+  // Format role name nicely
+  const roleDisplay = doc.uploader_role 
+    ? doc.uploader_role.replace("vendor_", "").charAt(0).toUpperCase() + doc.uploader_role.replace("vendor_", "").slice(1)
+    : "Vendor";
+
   return (
-    <div className="border border-border rounded-xl overflow-hidden flex flex-col bg-card hover:border-[#C49A3C]/50 transition-colors group">
-      {doc.status === "pending" && (
-        <div className="bg-amber-50 dark:bg-amber-950/20 border-b border-amber-100 dark:border-amber-900/30 px-4 py-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span>
-            <span className="text-[10px] font-bold text-amber-600 tracking-wider uppercase">
-              Pending Review
+    <div className="flex flex-col items-start p-6 gap-2.5 w-full bg-[#F8FAFB] dark:bg-card border border-border rounded-[24px]">
+      {/* Top Header Row */}
+      <div className="flex flex-row items-start gap-[15px] w-full">
+        <a href={doc.document_url || "#"} target="_blank" rel="noreferrer" className="hover:opacity-75 transition-opacity shrink-0">
+          <MiniPdfIcon />
+        </a>
+        <div className="flex flex-col items-start gap-1 w-full">
+          <div className="flex flex-row justify-between items-center w-full">
+            <a href={doc.document_url || "#"} target="_blank" rel="noreferrer" className="hover:underline">
+              <h4 className="font-bold text-[16px] leading-[24px] text-black dark:text-white font-sans line-clamp-1">
+                {doc.document_title || "Document"}
+              </h4>
+            </a>
+            <span className="font-semibold text-[12px] leading-[16px] tracking-[0.6px] text-[#444748] dark:text-muted-foreground whitespace-nowrap">
+              {formatBytes(doc.file_size) || doc.document_type || "PDF"}
             </span>
           </div>
-          <span className="text-[10px] text-muted-foreground uppercase">{doc.project_name}</span>
-        </div>
-      )}
-      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-secondary to-background">
-          {doc.document_path.match(/\.(jpeg|jpg|gif|png)$/) != null ? (
-            <img src={`http://localhost:8000/storage/${doc.document_path}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={doc.document_title} />
-          ) : (
-            <div className="w-full h-full bg-[url('https://placehold.co/400x300/cccccc/999999?text=DOC')] bg-cover bg-center opacity-60 group-hover:scale-105 transition-transform duration-500" />
-          )}
-        </div>
-      </div>
-      <div className="p-4 flex flex-col gap-3 flex-1">
-        <div>
-          <p className="text-sm font-bold leading-snug line-clamp-1" title={doc.document_title}>
-            {doc.document_title}
-          </p>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground border border-border rounded-md px-1.5 py-0.5">
-              {doc.document_type}
-            </span>
-            {doc.status !== "pending" && (
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${doc.status === 'approved' ? 'text-green-500' : 'text-red-500'}`}>
-                {doc.status}
-              </span>
+          <div className="flex flex-row items-center gap-2 pb-2">
+            {doc.status === "pending" ? (
+              <>
+                <div className="w-2 h-2 rounded-full bg-[#D4AF37]" />
+                <span className="font-semibold text-[12px] leading-[16px] tracking-[-0.6px] uppercase text-[#D4AF37]">
+                  PENDING REVIEW
+                </span>
+              </>
+            ) : doc.status === "approved" ? (
+              <>
+                <div className="w-2 h-2 rounded-full bg-[#18B495]" />
+                <span className="font-semibold text-[12px] leading-[16px] tracking-[-0.6px] uppercase text-[#18B495]">
+                  APPROVED
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="w-2 h-2 rounded-full bg-[#970404]" />
+                <span className="font-semibold text-[12px] leading-[16px] tracking-[-0.6px] uppercase text-[#970404]">
+                  REJECTED
+                </span>
+              </>
             )}
           </div>
         </div>
-        
-        <div className="mt-auto">
-          <div className="flex items-center gap-2">
-            <div className="size-7 rounded-full overflow-hidden bg-muted shrink-0">
-              <Image
-                src={doc.uploader_avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${doc.uploader_name}&size=28&backgroundColor=b6e3f4`}
-                alt={doc.uploader_name || "User"}
-                width={28}
-                height={28}
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold leading-tight truncate">
+      </div>
+
+      {/* Uploader Section */}
+      <div className="flex flex-col items-start gap-[3px] w-full mt-1.5">
+        <span className="font-normal text-[14px] leading-[24px] text-[#5D5F5F] font-sans">
+          Uploaded by
+        </span>
+        <div className="flex flex-row items-center gap-[12px] w-full h-[50px]">
+          <Image
+            src={doc.uploader_avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${doc.uploader_name}&size=40&backgroundColor=b6e3f4`}
+            alt={doc.uploader_name || "User"}
+            width={40}
+            height={40}
+            className="rounded-[37px] border border-[#C4C7C7] object-cover bg-[#F1EDEC] shrink-0"
+            unoptimized
+          />
+          <div className="flex flex-col justify-center items-start gap-1">
+            <div className="flex flex-row items-center gap-1">
+              <span className="font-bold text-[16px] leading-[22px] tracking-[0.2px] text-black dark:text-white font-sans truncate max-w-[200px]">
                 {doc.uploader_name || "Unknown"}
-              </p>
-              <p className="text-[10px] text-muted-foreground truncate">
-                Vendor
-              </p>
+              </span>
+              <div className="w-1 h-1 rounded-full bg-[#C4C7C7] mx-1" />
             </div>
-            <a
-              href={`http://localhost:8000/storage/${doc.document_path}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-[10px] font-bold bg-secondary hover:bg-secondary/70 text-foreground px-2 py-1 rounded transition-colors"
-            >
-              VIEW
-            </a>
+            <span className="font-normal text-[16px] leading-[24px] text-[#5D5F5F] font-sans">
+              {roleDisplay}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Note Block */}
+      <div className="flex flex-col items-start p-3 w-full bg-[#F7F3F2] dark:bg-secondary/30 border-l-[2px] border-[#C4C7C7] mt-2">
+        <p className="font-normal italic text-[14px] leading-[20px] text-[#444748] dark:text-muted-foreground font-sans line-clamp-3">
+          "{doc.note_to_admin || "No notes provided"}"
+        </p>
+      </div>
+
+      {/* Actions */}
+      {doc.status === "pending" && (
+        <div className="flex flex-row items-start gap-[9px] w-full mt-3">
+          <button
+            onClick={() => onApprove(doc.id)}
+            className="flex flex-row items-center justify-center py-[12px] px-[32px] gap-[8px] bg-[#086935] hover:bg-[#07592d] transition-colors rounded-[8px] text-white font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase font-sans shadow-sm"
+          >
+            <CheckCircle2 size={16} />
+            APPROVE
+          </button>
+          <button
+            onClick={() => onReject(doc.id)}
+            className="flex flex-col justify-center items-center py-[11px] px-[32px] border border-[#970404] hover:bg-[#970404]/5 transition-colors rounded-[8px] text-[#970404] font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase font-sans bg-transparent"
+          >
+            REJECT
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DecisionCard({ decision, onApprove, onReject }: { decision: DecisionRow, onApprove: (id: number) => void, onReject: (id: number) => void }) {
+  const roleDisplay = decision.creator_role 
+    ? decision.creator_role.replace("vendor_", "").charAt(0).toUpperCase() + decision.creator_role.replace("vendor_", "").slice(1)
+    : "Vendor";
+
+  return (
+    <div className="flex flex-row items-start py-[17px] px-[26px] gap-[10px] w-full lg:w-[679px] bg-white dark:bg-card border border-[rgba(196,199,199,0.5)] rounded-[32px] overflow-hidden hover:border-[#C49A3C]/50 transition-colors group box-border">
+      {/* Left Image block */}
+      <div className="w-[264px] h-[198px] shrink-0 rounded-[23px] overflow-hidden relative bg-muted flex items-center justify-center flex-col">
+        {decision.image_url ? (
+          <img src={decision.image_url} alt={decision.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="text-muted-foreground font-medium">No Image</div>
+        )}
+      </div>
+
+      {/* Right Content block */}
+      <div className="flex flex-col items-start gap-[14px] w-[294px]">
+        
+        {/* Container for everything above buttons */}
+        <div className="flex flex-col items-start pb-[24px] gap-[12px] w-full">
+          {/* Status Bar */}
+          <div className="flex flex-row justify-between items-center w-full h-[28px]">
+            {decision.status === "pending" ? (
+              <div className="flex flex-row items-center px-[12px] py-[6px] gap-[3.99px] bg-[#FFDAD6] rounded-[20px] h-[28px]">
+                <div className="w-[11.82px] h-[10.21px] bg-[#93000A]" style={{ clipPath: "circle(50% at 50% 50%)" }} />
+                <span className="text-[#93000A] font-inter font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase">
+                  PENDING REVIEW
+                </span>
+              </div>
+            ) : decision.status === "approved" ? (
+              <div className="flex flex-row items-center px-[12px] py-[6px] gap-[3.99px] bg-[#18B495]/20 rounded-[20px] h-[28px]">
+                <div className="w-[11.82px] h-[10.21px] bg-[#18B495]" style={{ clipPath: "circle(50% at 50% 50%)" }} />
+                <span className="text-[#18B495] font-inter font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase">
+                  APPROVED
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-row items-center px-[12px] py-[6px] gap-[3.99px] bg-[#970404]/20 rounded-[20px] h-[28px]">
+                <div className="w-[11.82px] h-[10.21px] bg-[#970404]" style={{ clipPath: "circle(50% at 50% 50%)" }} />
+                <span className="text-[#970404] font-inter font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase">
+                  REJECTED
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Title and details block */}
+          <div className="flex flex-col items-start gap-[10px] w-full">
+            <div className="flex flex-col items-start pt-[4px] w-full min-h-[68px]">
+              <h3 className="font-['Plus_Jakarta_Sans'] font-medium text-[24px] leading-[32px] text-[#000000] dark:text-white line-clamp-2">
+                {decision.title}
+              </h3>
+            </div>
+
+            <div className="flex flex-col items-start gap-[3px] w-full">
+              <span className="font-['Plus_Jakarta_Sans'] font-normal text-[16px] leading-[24px] text-[#5D5F5F] flex items-center h-[24px]">
+                Uploaded by
+              </span>
+              <div className="flex flex-row items-center gap-[12px] w-full h-[50px]">
+                <Image
+                  src={decision.creator_avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${decision.creator_name}&size=40&backgroundColor=b6e3f4`}
+                  alt={decision.creator_name || "User"}
+                  width={40}
+                  height={40}
+                  className="box-border w-[40px] h-[40px] rounded-[37px] border border-[#C4C7C7] object-cover bg-[#F1EDEC] shrink-0"
+                  unoptimized
+                />
+                <div className="flex flex-col items-start gap-[4px] flex-1 justify-center h-[50px]">
+                  <span className="font-['Manrope'] font-bold text-[16px] leading-[22px] tracking-[0.2px] text-[#000000] dark:text-white truncate max-w-[200px] flex items-center h-[22px]">
+                    {decision.creator_name || "Unknown"}
+                  </span>
+                  <span className="font-['Plus_Jakarta_Sans'] font-normal text-[16px] leading-[24px] text-[#5D5F5F] flex items-center h-[24px]">
+                    {roleDisplay}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {decision.description && (
+              <div className="flex flex-col items-start w-full min-h-[52px]">
+                <p className="font-['Plus_Jakarta_Sans'] font-normal text-[16px] leading-[26px] text-[#5D5F5F] line-clamp-2">
+                  {decision.description}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {doc.status === "pending" && (
-          <div className="flex gap-2 mt-2 pt-3 border-t border-border">
-            <button
-              type="button"
-              onClick={() => onApprove(doc.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-green-600 text-white text-[11px] font-bold hover:bg-green-700 transition-colors"
-            >
-              <CheckCircle2 size={12} />
-              Approve
-            </button>
-            <button
-              type="button"
-              onClick={() => onReject(doc.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-red-200 text-red-500 text-[11px] font-bold hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-            >
-              <X size={12} />
-              Reject
-            </button>
+        {/* Buttons */}
+        {decision.status === "pending" && (
+          <div className="flex flex-col items-start gap-[10px] w-[279.99px] h-[43px]">
+            <div className="flex flex-row items-start gap-[9px] w-full h-[43px]">
+              <button
+                onClick={() => onApprove(decision.id)}
+                className="flex flex-row items-center px-[32px] py-[12px] gap-[7.99px] w-[155.99px] h-[43px] bg-[#086935] rounded-[8px] hover:bg-[#07592d] transition-colors"
+              >
+                <div className="w-[19px] h-[19px] flex items-center justify-center">
+                  <CheckCircle2 size={19} color="white" />
+                </div>
+                <span className="font-['Plus_Jakarta_Sans'] font-semibold text-[12px] leading-[16px] text-center tracking-[1.2px] uppercase text-[#FFFFFF]">
+                  APPROVE
+                </span>
+              </button>
+              <button
+                onClick={() => onReject(decision.id)}
+                className="box-border flex flex-col justify-center items-center py-[14.5px] px-[32px] w-[115px] h-[43px] border border-[#970404] rounded-[8px] hover:bg-[#970404]/5 transition-colors bg-transparent"
+              >
+                <span className="font-['Plus_Jakarta_Sans'] font-semibold text-[12px] leading-[16px] text-center tracking-[1.2px] uppercase text-[#970404]">
+                  REJECT
+                </span>
+              </button>
+            </div>
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }
 
 function MilestoneTable({ milestones, onApprove, onReject }: { milestones: MilestoneRow[], onApprove: (id: number) => void, onReject: (id: number) => void }) {
@@ -184,6 +367,7 @@ function MilestoneTable({ milestones, onApprove, onReject }: { milestones: Miles
                 "Phase Name",
                 "Completion %",
                 "Status",
+                "Document",
                 "Assigned vendor",
                 "Actions",
               ].map((h) => (
@@ -209,7 +393,7 @@ function MilestoneTable({ milestones, onApprove, onReject }: { milestones: Miles
                   {String(m.phase).padStart(2, "0")}
                 </td>
                 <td className="px-5 py-4 font-semibold whitespace-nowrap text-xs">
-                  {m.name}
+                  <p>{m.name}</p>
                 </td>
                 <td className="px-5 py-4 font-bold text-xs">{m.completion_percent}%</td>
                 <td className="px-5 py-4">
@@ -225,6 +409,18 @@ function MilestoneTable({ milestones, onApprove, onReject }: { milestones: Miles
                     <span className="px-2.5 py-1 rounded-md bg-secondary text-muted-foreground text-[10px] font-bold whitespace-nowrap uppercase tracking-wider">
                       {m.status.replace("-", " ")}
                     </span>
+                  )}
+                </td>
+                <td className="px-5 py-4 whitespace-nowrap">
+                  {m.document_url ? (
+                    <a href={m.document_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:opacity-70 transition-opacity" style={{ color: GOLD }}>
+                      <MiniPdfIcon />
+                      <span className="text-[10px] uppercase font-bold tracking-wider truncate max-w-[120px]" title={m.document_title || "Attached Document"}>
+                        {m.document_title || "Document"}
+                      </span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </td>
                 <td className="px-5 py-4 whitespace-nowrap">
@@ -259,7 +455,7 @@ function MilestoneTable({ milestones, onApprove, onReject }: { milestones: Miles
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="px-5 py-8 text-center text-sm text-muted-foreground">
                   No milestones found.
                 </td>
               </tr>
@@ -311,10 +507,11 @@ export default function VendorUploadPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   
   const [selectedProjectId, setSelectedProjectId] = useState<number | "all">("all");
-  const [selectedVendorId, setSelectedVendorId] = useState<number | "all">("all");
+  const [selectedVendorRole, setSelectedVendorRole] = useState<string>("all");
   
   const [documents, setDocuments] = useState<VendorDoc[]>([]);
   const [milestones, setMilestones] = useState<MilestoneRow[]>([]);
+  const [decisions, setDecisions] = useState<DecisionRow[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
   const [docPage, setDocPage] = useState(1);
@@ -345,15 +542,18 @@ export default function VendorUploadPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [docsRes, msRes] = await Promise.all([
+      const [docsRes, msRes, decRes] = await Promise.all([
         apiFetch(`/api/documents`),
-        apiFetch(`/api/milestones`)
+        apiFetch(`/api/milestones`),
+        apiFetch(`/api/decisions`)
       ]);
       const docsData = await docsRes.json();
       const msData = await msRes.json();
+      const decData = await decRes.json();
       
       if (docsRes.ok) setDocuments(docsData.data || []);
       if (msRes.ok) setMilestones(msData.data || []);
+      if (decRes.ok) setDecisions(decData.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -368,7 +568,7 @@ export default function VendorUploadPage() {
   // Handlers
   const handleApproveDoc = async (id: number) => {
     try {
-      const res = await apiFetch(`/api/documents/${id}/approve`, { method: "POST" });
+      const res = await apiFetch(`/api/admin/documents/${id}/approve`, { method: "POST" });
       if (res.ok) {
         toast.success("Document approved!");
         fetchData();
@@ -382,7 +582,7 @@ export default function VendorUploadPage() {
 
   const handleRejectDoc = async (id: number) => {
     try {
-      const res = await apiFetch(`/api/documents/${id}/reject`, { method: "POST" });
+      const res = await apiFetch(`/api/admin/documents/${id}/reject`, { method: "POST" });
       if (res.ok) {
         toast.success("Document rejected.");
         fetchData();
@@ -422,25 +622,60 @@ export default function VendorUploadPage() {
     }
   };
 
+  const handleApproveDecision = async (id: number) => {
+    try {
+      const res = await apiFetch(`/api/admin/decisions/${id}/approve`, { method: "POST" });
+      if (res.ok) {
+        toast.success("Decision approved!");
+        fetchData();
+      } else {
+        toast.error("Failed to approve decision.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRejectDecision = async (id: number) => {
+    try {
+      const res = await apiFetch(`/api/admin/decisions/${id}/reject`, { method: "POST" });
+      if (res.ok) {
+        toast.success("Decision rejected.");
+        fetchData();
+      } else {
+        toast.error("Failed to reject decision.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Filter Data
   const filteredDocs = documents.filter((d) => {
     // Filter by Tab
     if (activeDocTab !== "All" && d.status !== activeDocTab.toLowerCase()) return false;
     // Filter by Project
     if (selectedProjectId !== "all" && d.project_id !== selectedProjectId) return false;
-    // Filter by Vendor
-    if (selectedVendorId !== "all" && d.uploaded_by !== selectedVendorId) return false;
+    // Filter by Vendor Role
+    if (selectedVendorRole !== "all" && d.uploader_role !== selectedVendorRole) return false;
     return true;
   });
   
   const filteredMilestones = milestones.filter((m) => {
     // Filter by Project
     if (selectedProjectId !== "all" && m.project_id !== selectedProjectId) return false;
-    // Filter by Vendor
-    if (selectedVendorId !== "all" && m.assigned_to !== selectedVendorId) return false;
+    // Filter by Vendor Role
+    if (selectedVendorRole !== "all" && m.assignee_role !== selectedVendorRole) return false;
     // Maybe default milestones to pending as well? 
     // The user didn't explicitly say for milestones, but usually "approvals hub" implies seeing pending first.
-    // Let's just use the Project & Vendor filters.
+    // Let's just use the Project & Role filters.
+    return true;
+  });
+
+  const filteredDecisions = decisions.filter((d) => {
+    if (activeDocTab !== "All" && d.status !== activeDocTab.toLowerCase()) return false;
+    if (selectedProjectId !== "all" && d.project_id !== selectedProjectId) return false;
+    if (selectedVendorRole !== "all" && d.creator_role !== selectedVendorRole) return false;
     return true;
   });
 
@@ -487,16 +722,16 @@ export default function VendorUploadPage() {
 
             <div className="relative">
               <select
-                value={selectedVendorId}
+                value={selectedVendorRole}
                 onChange={(e) => {
-                  setSelectedVendorId(e.target.value === "all" ? "all" : parseInt(e.target.value));
+                  setSelectedVendorRole(e.target.value);
                   setDocPage(1);
                 }}
                 className="appearance-none bg-background border border-border rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition min-w-[160px]"
               >
-                <option value="all">All Vendors</option>
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
+                <option value="all">All Vendor Roles</option>
+                {VENDOR_ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -533,85 +768,115 @@ export default function VendorUploadPage() {
           ))}
         </div>
 
-        {/* Documents Grid */}
-        <div className="flex flex-col gap-4">
-          {isLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
-          ) : pageDocs.length === 0 ? (
-            <div className="border border-border border-dashed rounded-2xl py-20 flex flex-col items-center justify-center text-muted-foreground">
-              <p className="text-sm font-medium">No documents found.</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {pageDocs.map((doc) => (
-                  <DocPreviewCard 
-                    key={doc.id} 
-                    doc={doc} 
-                    onApprove={handleApproveDoc} 
-                    onReject={handleRejectDoc} 
+        {/* 2-Column Layout */}
+        <div className="flex flex-col xl:flex-row gap-8">
+          
+          {/* Left Column: Documents */}
+          <div className="flex flex-col w-full xl:w-[475px] shrink-0 gap-4">
+            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">All Documents</h2>
+            
+            {isLoading ? (
+              <div className="flex justify-center py-20"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
+            ) : pageDocs.length === 0 ? (
+              <div className="border border-border border-dashed rounded-2xl py-20 flex flex-col items-center justify-center text-muted-foreground">
+                <p className="text-sm font-medium">No documents found.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-5">
+                  {pageDocs.map((doc) => (
+                    <DocPreviewCard 
+                      key={doc.id} 
+                      doc={doc} 
+                      onApprove={handleApproveDoc} 
+                      onReject={handleRejectDoc} 
+                    />
+                  ))}
+                </div>
+
+                {/* Doc pagination */}
+                {filteredDocs.length > PAGE_SIZE && (
+                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                      Showing{" "}
+                      <span className="font-semibold text-foreground">
+                        {(docPage - 1) * PAGE_SIZE + 1}
+                        –{Math.min(docPage * PAGE_SIZE, filteredDocs.length)}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-foreground">
+                        {filteredDocs.length}
+                      </span>
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        disabled={docPage === 1}
+                        onClick={() => setDocPage((p) => p - 1)}
+                        className="size-8 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      {Array.from(
+                        { length: Math.min(docTotalPages, 4) },
+                        (_, i) => i + 1,
+                      ).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setDocPage(p)}
+                          className="size-8 flex items-center justify-center rounded-lg text-xs font-bold border transition-colors"
+                          style={
+                            docPage === p
+                              ? {
+                                  backgroundColor: GOLD,
+                                  color: "#fff",
+                                  borderColor: GOLD,
+                                }
+                              : {}
+                          }
+                        >
+                          {p}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        disabled={docPage === docTotalPages}
+                        onClick={() => setDocPage((p) => p + 1)}
+                        className="size-8 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Right Column: Decisions */}
+          <div className="flex flex-col flex-1 gap-4 overflow-hidden">
+            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Decisions</h2>
+
+            {isLoading ? (
+              <div className="flex justify-center py-20"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
+            ) : filteredDecisions.length === 0 ? (
+              <div className="border border-border border-dashed rounded-2xl py-20 flex flex-col items-center justify-center text-muted-foreground h-[355px]">
+                <p className="text-sm font-medium">No pending decisions.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-[10px] w-full">
+                {filteredDecisions.map((decision) => (
+                  <DecisionCard 
+                    key={decision.id}
+                    decision={decision}
+                    onApprove={handleApproveDecision}
+                    onReject={handleRejectDecision}
                   />
                 ))}
               </div>
-
-              {/* Doc pagination */}
-              {filteredDocs.length > PAGE_SIZE && (
-                <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Showing{" "}
-                    <span className="font-semibold text-foreground">
-                      {(docPage - 1) * PAGE_SIZE + 1}
-                      –{Math.min(docPage * PAGE_SIZE, filteredDocs.length)}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-semibold text-foreground">
-                      {filteredDocs.length}
-                    </span>
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      disabled={docPage === 1}
-                      onClick={() => setDocPage((p) => p - 1)}
-                      className="size-8 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronLeft size={14} />
-                    </button>
-                    {Array.from(
-                      { length: Math.min(docTotalPages, 4) },
-                      (_, i) => i + 1,
-                    ).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setDocPage(p)}
-                        className="size-8 flex items-center justify-center rounded-lg text-xs font-bold border transition-colors"
-                        style={
-                          docPage === p
-                            ? {
-                                backgroundColor: GOLD,
-                                color: "#fff",
-                                borderColor: GOLD,
-                              }
-                            : {}
-                        }
-                      >
-                        {p}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      disabled={docPage === docTotalPages}
-                      onClick={() => setDocPage((p) => p + 1)}
-                      className="size-8 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Milestones table */}

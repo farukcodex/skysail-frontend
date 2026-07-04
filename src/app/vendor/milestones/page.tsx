@@ -19,6 +19,8 @@ interface Milestone {
   completion_percent: number;
   status: Status;
   target_date: string | null;
+  document_url?: string | null;
+  document_title?: string | null;
 }
 
 function MiniPdfIcon() {
@@ -221,6 +223,14 @@ export default function VendorMilestonesPage() {
                         </td>
                         <td className="px-5 py-5">
                           <p className="text-sm font-bold">{m.name}</p>
+                          {m.document_url && (
+                            <a href={m.document_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-2 group">
+                              <MiniPdfIcon />
+                              <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate max-w-[150px]" title={m.document_title || "Attached Document"}>
+                                {m.document_title || "Attached Document"}
+                              </span>
+                            </a>
+                          )}
                         </td>
                         <td className="px-5 py-5">
                           <p className="text-xs font-semibold">{m.target_date || "TBD"}</p>
@@ -325,7 +335,7 @@ export default function VendorMilestonesPage() {
             <div className="flex flex-col gap-4 border-t border-border pt-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-                  Attach Document (Optional)
+                  {customPercent === 100 ? "Attach Document (Required for 100%)" : "Attach Document (Optional)"}
                 </label>
                 <input 
                   type="file" 
@@ -349,7 +359,7 @@ export default function VendorMilestonesPage() {
             
             <button
               type="submit"
-              disabled={isSubmitting || customPercent <= updatingMilestone.completion_percent}
+              disabled={isSubmitting || customPercent <= updatingMilestone.completion_percent || (customPercent === 100 && !documentFile)}
               className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-foreground text-background text-sm font-bold tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}

@@ -69,7 +69,7 @@ const AnimatedUnderlineTabsDemo = ({
 
         {tabs.map((tab) => (
           <TabsContent key={tab.value} value={tab.value}>
-            <p className="text-muted-foreground text-sm">{tab.content}</p>
+            <div className="text-muted-foreground text-sm">{tab.content}</div>
           </TabsContent>
         ))}
       </Tabs>

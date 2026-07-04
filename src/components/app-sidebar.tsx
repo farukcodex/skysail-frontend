@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useLogout } from "@/hooks/useLogout";
 import { NAV_SECTIONS } from "./user-sidebar";
+import { useState, useEffect } from "react";
+import { getUser } from "@/lib/auth";
 
 type NavItem = {
   label: string;
@@ -45,6 +47,25 @@ export function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 export function AppSidebar() {
   const pathname = usePathname();
   const { logout, isLoggingOut } = useLogout();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    setUser(getUser());
+  }, []);
+
+  const getAvatarUrl = (path: string | null, name: string) => {
+    if (!path) return `https://api.dicebear.com/10.x/micah/svg?seed=${name?.replace(/ /g, '') || 'Client'}&backgroundColor=b6e3f4`;
+    if (path.startsWith('http')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
+    return `${baseUrl}/storage/${path}`;
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return "CL";
+    const parts = name.split(" ");
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
 
   return (
     <aside className="flex flex-col h-full w-full bg-foreground overflow-hidden">
@@ -65,19 +86,19 @@ export function AppSidebar() {
         <div className="ring-2 ring-[#C49A3C] ring-offset-2 ring-offset-foreground rounded-full">
           <Avatar size="lg" className="size-14">
             <AvatarImage
-              src="https://api.dicebear.com/10.x/micah/svg?seed=Felix"
-              alt="Bob Henderson"
+              src={getAvatarUrl(user?.profile_photo_path || user?.avatar, user?.name || user?.firstName)}
+              alt={user?.name || user?.firstName || "Client"}
             />
             <AvatarFallback className="bg-white/10 text-white">
-              BH
+              {getInitials(user?.name || user?.firstName)}
             </AvatarFallback>
           </Avatar>
         </div>
         <div className="text-center">
           <p className="text-sm font-semibold text-white leading-tight">
-            Bob Henderson
+            {user?.name || user?.firstName ? (user?.name || `${user.firstName} ${user.lastName || ''}`) : "Client User"}
           </p>
-          <p className="text-xs text-white/40 mt-0.5">New York, USA</p>
+          <p className="text-xs text-white/40 mt-0.5">SkySail Client</p>
         </div>
       </div>
 

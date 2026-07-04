@@ -258,7 +258,7 @@ export default function VendorMessagesPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-73px)] bg-background">
+    <div className="flex flex-col h-[calc(100dvh-135px)] bg-background">
       {/* Admin info card */}
       <div className="px-6 pt-6 lg:px-8">
         <div className="rounded-2xl border border-border bg-background px-5 py-4">
@@ -475,7 +475,7 @@ export default function VendorMessagesPage() {
                   className="fixed inset-0 z-40" 
                   onClick={() => setShowEmojiPicker(false)} 
                 />
-                <div className="absolute bottom-10 right-0 z-50">
+                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:absolute sm:top-auto sm:left-auto sm:bottom-12 sm:right-0 sm:translate-x-0 sm:translate-y-0 z-50 origin-center sm:origin-bottom-right scale-90 sm:scale-100">
                   <EmojiPicker onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />
                 </div>
               </>

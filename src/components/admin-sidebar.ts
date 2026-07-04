@@ -13,6 +13,7 @@ import {
   Calendar,
   Users,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 
 type NavItem = {

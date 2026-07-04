@@ -82,6 +82,42 @@ export default function AdminMessagesPage() {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const scrollInfoRef = useRef<{ scrollHeight: number, scrollTop: number } | null>(null);
 
+  const [vendorPage, setVendorPage] = useState(1);
+  const [vendorSearch, setVendorSearch] = useState("");
+  const [hasMoreVendors, setHasMoreVendors] = useState(false);
+  const [loadingVendors, setLoadingVendors] = useState(false);
+  const vendorListRef = useRef<HTMLDivElement>(null);
+
+  const fetchVendors = async (pageNum: number = 1, searchQuery: string = vendorSearch) => {
+    try {
+      setLoadingVendors(true);
+      const res = await apiFetch(`/api/admin/vendors?page=${pageNum}&search=${encodeURIComponent(searchQuery)}`);
+      if (res.ok) {
+        const data = await res.json();
+        const newVendors = data.data || data;
+        
+        if (pageNum === 1) {
+          setVendors(newVendors);
+        } else {
+          setVendors((prev) => {
+            const existingIds = new Set(prev.map(v => v.id));
+            const uniqueNew = newVendors.filter((v: Vendor) => !existingIds.has(v.id));
+            return [...prev, ...uniqueNew];
+          });
+        }
+        
+        if (data.current_page !== undefined) {
+          setHasMoreVendors(data.current_page < data.last_page);
+          setVendorPage(data.current_page);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch vendors", e);
+    } finally {
+      setLoadingVendors(false);
+    }
+  };
+
   const markAsRead = async (senderId: number) => {
     try {
       await apiFetch("/api/messages/read", {
@@ -95,21 +131,14 @@ export default function AdminMessagesPage() {
   };
 
   useEffect(() => {
-    const fetchVendors = async () => {
-      try {
-        const res = await apiFetch("/api/admin/vendors");
-        if (res.ok) {
-          const data = await res.json();
-          // Adjust based on the actual paginated/unpaginated structure
-          setVendors(data.data || data);
-        }
-      } catch (e) {
-        console.error("Failed to fetch vendors", e);
-      }
-    };
+    const delayDebounceFn = setTimeout(() => {
+      fetchVendors(1, vendorSearch);
+    }, 300);
 
-    fetchVendors();
+    return () => clearTimeout(delayDebounceFn);
+  }, [vendorSearch]);
 
+  useEffect(() => {
     const currentUser = getUser();
     if (currentUser) {
       setUser(currentUser);
@@ -136,12 +165,12 @@ export default function AdminMessagesPage() {
               }, 100);
             }
 
-            if (e.message.sender_id === selectedVendorIdRef.current) {
+            if (Number(e.message.sender_id) === selectedVendorIdRef.current) {
                markAsRead(e.message.sender_id);
             }
 
             setVendors((prevVendors) => {
-              const vId = e.message.sender_id === currentUser.id ? e.message.receiver_id : e.message.sender_id;
+              const vId = Number(e.message.sender_id) === currentUser.id ? Number(e.message.receiver_id) : Number(e.message.sender_id);
               return prevVendors.map(v => v.id === vId ? {
                 ...v,
                 lastMessage: {
@@ -234,6 +263,15 @@ export default function AdminMessagesPage() {
     if (chatContainerRef.current) {
       if (chatContainerRef.current.scrollTop < 10 && hasMore && !loadingMessages && selectedVendor) {
         fetchMessages(selectedVendor.id, page + 1);
+      }
+    }
+  };
+
+  const handleVendorScroll = () => {
+    if (vendorListRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = vendorListRef.current;
+      if (scrollHeight - scrollTop - clientHeight < 50 && hasMoreVendors && !loadingVendors) {
+        fetchVendors(vendorPage + 1);
       }
     }
   };
@@ -332,11 +370,11 @@ export default function AdminMessagesPage() {
 
   // Filter messages to show only the ones relevant to the selected vendor
   const displayedMessages = messages.filter(
-    (m) => (m.sender_id === selectedVendor?.id || m.receiver_id === selectedVendor?.id)
+    (m) => (Number(m.sender_id) === selectedVendor?.id || Number(m.receiver_id) === selectedVendor?.id)
   );
 
   return (
-    <div className="flex h-[calc(100dvh-73px)] bg-background overflow-hidden">
+    <div className="flex h-[calc(100dvh-135px)] bg-background overflow-hidden">
       {/* Sidebar - Vendors List */}
       <div className={`w-full md:w-80 shrink-0 border-r border-border flex-col h-full ${selectedVendor ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-border">
@@ -346,11 +384,17 @@ export default function AdminMessagesPage() {
             <input 
               type="text" 
               placeholder="Search vendors..." 
+              value={vendorSearch}
+              onChange={(e) => setVendorSearch(e.target.value)}
               className="w-full bg-secondary/50 border-none rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none"
             />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div 
+          className="flex-1 overflow-y-auto"
+          ref={vendorListRef}
+          onScroll={handleVendorScroll}
+        >
           {vendors.map((vendor) => (
             <button
               key={vendor.id}
@@ -379,6 +423,7 @@ export default function AdminMessagesPage() {
                     </span>
                   )}
                 </div>
+                <p className="text-[10px] text-muted-foreground truncate mb-1">{vendor.email}</p>
                 {typingUsers[vendor.id] ? (
                   <p className="text-xs text-blue-500 italic font-medium animate-pulse">Typing...</p>
                 ) : vendor.lastMessage ? (
@@ -386,11 +431,16 @@ export default function AdminMessagesPage() {
                     {vendor.lastMessage.sender_id === user?.id && 'You: '}{vendor.lastMessage.message}
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground truncate">{vendor.email}</p>
+                  <p className="text-xs text-muted-foreground italic">No messages yet</p>
                 )}
               </div>
             </button>
           ))}
+          {loadingVendors && (
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              Loading...
+            </div>
+          )}
         </div>
       </div>
 
@@ -600,7 +650,7 @@ export default function AdminMessagesPage() {
                       className="fixed inset-0 z-40" 
                       onClick={() => setShowEmojiPicker(false)} 
                     />
-                    <div className="absolute bottom-10 right-0 z-50">
+                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:absolute sm:top-auto sm:left-auto sm:bottom-12 sm:right-0 sm:translate-x-0 sm:translate-y-0 z-50 origin-center sm:origin-bottom-right scale-90 sm:scale-100">
                       <EmojiPicker onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />
                     </div>
                   </>

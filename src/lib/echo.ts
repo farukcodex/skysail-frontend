@@ -6,7 +6,7 @@ if (typeof window !== 'undefined') {
   (window as any).Pusher = Pusher;
 }
 
-let echoInstance: Echo | null = null;
+let echoInstance: Echo<any> | null = null;
 
 export const getEchoInstance = () => {
   if (typeof window === 'undefined') {
@@ -24,8 +24,8 @@ export const getEchoInstance = () => {
     broadcaster: 'reverb',
     key: process.env.NEXT_PUBLIC_REVERB_APP_KEY || 'tyw1bjwzmkuepoiq6sa4',
     wsHost: process.env.NEXT_PUBLIC_REVERB_HOST || 'localhost',
-    wsPort: process.env.NEXT_PUBLIC_REVERB_PORT ?? 8080,
-    wssPort: process.env.NEXT_PUBLIC_REVERB_PORT ?? 8080,
+    wsPort: process.env.NEXT_PUBLIC_REVERB_PORT ? Number(process.env.NEXT_PUBLIC_REVERB_PORT) : 8080,
+    wssPort: process.env.NEXT_PUBLIC_REVERB_PORT ? Number(process.env.NEXT_PUBLIC_REVERB_PORT) : 8080,
     forceTLS: (process.env.NEXT_PUBLIC_REVERB_SCHEME ?? 'http') === 'https',
     enabledTransports: ['ws', 'wss'],
     authEndpoint: `${baseUrl}/broadcasting/auth`,

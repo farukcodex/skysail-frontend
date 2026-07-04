@@ -30,7 +30,7 @@ type Vendor = {
   avatar: string;
   designation: string;
   lastMessage?: {
-    message: string;
+    message: string | null;
     created_at: string;
     is_read: boolean;
     sender_id: number;

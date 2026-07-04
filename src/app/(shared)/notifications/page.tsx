@@ -1,78 +1,28 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
+import { format, isToday, isYesterday, parseISO } from "date-fns";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const GOLD = "#C49A3C";
-const PAGE_SIZE = 10;
 
-type NotifType = "risk" | "decision" | "event" | "general";
+type NotifType = "risk" | "decision" | "event" | "general" | string;
 
-interface Notif {
-  id: number;
-  group: string;
-  type: NotifType;
-  badge?: string;
-  age?: string;
-  title: string;
-  body: string;
-  action?: { label: string };
+interface DatabaseNotification {
+  id: string;
+  data: {
+    type?: NotifType;
+    title?: string;
+    body?: string;
+    action?: { label: string; url?: string };
+    badge?: string;
+  };
+  read_at: string | null;
+  created_at: string;
 }
-
-const ALL_NOTIFS: Notif[] = [
-  {
-    id: 1,
-    group: "Today",
-    type: "risk",
-    title: "Lumber delivery delayed — Henderson Residence.",
-    body: "8-day delay flagged due to supply chain logistics. Impacts framing phase.",
-    action: { label: "View Risk" },
-  },
-  {
-    id: 2,
-    group: "Today",
-    type: "decision",
-    badge: "PENDING DECISION",
-    age: "1d ago",
-    title: "Client Decision Overdue: Kitchen tile selection",
-    body: "Bob Henderson. 2 days past due. Potential impact on tiling schedule.",
-    action: { label: "Send Reminder" },
-  },
-  {
-    id: 3,
-    group: "Today",
-    type: "event",
-    title: "Upcoming Site Walkthrough: Henderson Site",
-    body: "Scheduled for May 27, 10:00 AM. Stakeholders notified.",
-  },
-  ...Array.from({ length: 29 }, (_, i) => ({
-    id: i + 4,
-    group: i < 5 ? "Today" : i < 12 ? "Yesterday" : "Earlier",
-    type: (["risk", "decision", "event", "general"] as NotifType[])[i % 4],
-    badge: i % 4 === 1 ? "PENDING DECISION" : undefined,
-    age: i % 4 === 1 ? `${i + 1}d ago` : undefined,
-    title:
-      i % 3 === 0
-        ? "Lumber delivery delayed — Henderson Residence."
-        : i % 3 === 1
-          ? "Client Decision Overdue: Kitchen tile selection"
-          : "Upcoming Site Walkthrough: Henderson Site",
-    body:
-      i % 3 === 0
-        ? "8-day delay flagged due to supply chain logistics. Impacts framing phase."
-        : i % 3 === 1
-          ? "Bob Henderson. 2 days past due. Potential impact on tiling schedule."
-          : "Scheduled for May 27, 10:00 AM. Stakeholders notified.",
-    action:
-      i % 3 === 0
-        ? { label: "View Risk" }
-        : i % 3 === 1
-          ? { label: "Send Reminder" }
-          : undefined,
-  })),
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -91,11 +41,21 @@ function pageNumbers(page: number, totalPages: number): (number | "...")[] {
   return pages;
 }
 
-function groupItems(items: Notif[]): { label: string; items: Notif[] }[] {
-  const map = new Map<string, Notif[]>();
+function groupItems(items: DatabaseNotification[]): { label: string; items: DatabaseNotification[] }[] {
+  const map = new Map<string, DatabaseNotification[]>();
   for (const n of items) {
-    if (!map.has(n.group)) map.set(n.group, []);
-    map.get(n.group)!.push(n);
+    const date = parseISO(n.created_at);
+    let group = "Earlier";
+    if (isToday(date)) {
+      group = "Today";
+    } else if (isYesterday(date)) {
+      group = "Yesterday";
+    } else {
+      group = format(date, "MMMM d, yyyy");
+    }
+
+    if (!map.has(group)) map.set(group, []);
+    map.get(group)!.push(n);
   }
   return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
 }
@@ -110,130 +70,227 @@ function actionStyle(type: NotifType) {
 
 export default function NotificationsPage() {
   const [page, setPage] = useState(1);
+  const [notifications, setNotifications] = useState<DatabaseNotification[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const totalPages = Math.ceil(ALL_NOTIFS.length / PAGE_SIZE);
-  const pageNotifs = ALL_NOTIFS.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const groups = groupItems(pageNotifs);
+  const fetchNotifications = async (p: number) => {
+    setIsLoading(true);
+    try {
+      const res = await apiFetch(`/api/notifications?page=${p}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.data || []);
+        setTotalPages(data.last_page || 1);
+        setTotalItems(data.total || 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications(page);
+  }, [page]);
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/notifications/${id}/read`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const res = await apiFetch("/api/notifications/read-all", {
+        method: "POST",
+      });
+      if (res.ok) {
+        setNotifications((prev) =>
+          prev.map((n) => ({ ...n, read_at: new Date().toISOString() }))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to mark all as read", err);
+    }
+  };
+
+  const groups = groupItems(notifications);
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-      <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
+      <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6 max-w-5xl mx-auto w-full">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Notification Center</h1>
-          <p className="text-sm text-muted-foreground mt-1">All notifications</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Notification Center</h1>
+            <p className="text-sm text-muted-foreground mt-1">All notifications</p>
+          </div>
+          <button
+            onClick={handleMarkAllAsRead}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <CheckCircle2 size={16} />
+            <span>Mark all as read</span>
+          </button>
         </div>
 
         {/* Grouped notifications */}
-        <div className="flex flex-col gap-6">
-          {groups.map((group) => (
-            <div key={group.label} className="flex flex-col gap-3">
-              <p className="text-sm font-semibold text-muted-foreground px-1">
-                {group.label}
-              </p>
-              <div className="rounded-2xl border border-border overflow-hidden flex flex-col divide-y divide-border">
-                {group.items.map((n) => (
-                  <div
-                    key={n.id}
-                    className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/20 transition-colors"
-                  >
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 flex flex-col gap-1">
-                      {/* Badge + age row */}
-                      {n.badge && (
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span
-                            className="text-[9px] font-bold tracking-widest uppercase border px-2 py-0.5 rounded"
-                            style={{ borderColor: GOLD, color: GOLD }}
-                          >
-                            {n.badge}
-                          </span>
-                          {n.age && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {n.age}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      <p className="text-sm font-bold leading-snug">{n.title}</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {n.body}
-                      </p>
-                    </div>
-
-                    {/* Action */}
-                    {n.action && (
-                      <button
-                        type="button"
-                        className={`shrink-0 ${actionStyle(n.type)}`}
-                      >
-                        {n.action.label}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+        <div className="flex flex-col gap-6 min-h-[400px]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <p className="text-sm text-muted-foreground animate-pulse">Loading notifications...</p>
             </div>
-          ))}
+          ) : groups.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="size-12 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
+                <CheckCircle2 className="text-muted-foreground" size={24} />
+              </div>
+              <p className="font-medium">You're all caught up!</p>
+              <p className="text-sm text-muted-foreground mt-1">No new notifications right now.</p>
+            </div>
+          ) : (
+            groups.map((group) => (
+              <div key={group.label} className="flex flex-col gap-3">
+                <p className="text-sm font-semibold text-muted-foreground px-1">
+                  {group.label}
+                </p>
+                <div className="rounded-2xl border border-border overflow-hidden flex flex-col divide-y divide-border">
+                  {group.items.map((n) => {
+                    const isUnread = !n.read_at;
+                    const type = n.data.type || "general";
+                    return (
+                      <div
+                        key={n.id}
+                        className={`flex items-center gap-4 px-5 py-4 hover:bg-secondary/20 transition-colors ${
+                          isUnread ? "bg-secondary/10" : ""
+                        }`}
+                        onClick={() => {
+                          if (isUnread) handleMarkAsRead(n.id);
+                        }}
+                      >
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                          {/* Badge + age row */}
+                          {n.data.badge && (
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span
+                                className="text-[9px] font-bold tracking-widest uppercase border px-2 py-0.5 rounded"
+                                style={{ borderColor: GOLD, color: GOLD }}
+                              >
+                                {n.data.badge}
+                              </span>
+                            </div>
+                          )}
+                          <p className={`text-sm leading-snug ${isUnread ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>
+                            {n.data.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                            {n.data.body}
+                          </p>
+                        </div>
+
+                        {/* Action */}
+                        {n.data.action && (
+                          <button
+                            type="button"
+                            className={`shrink-0 ${actionStyle(type)}`}
+                            onClick={(e) => {
+                              // If there's a URL we could route to it here
+                              // e.preventDefault();
+                              // router.push(n.data.action.url)
+                              if (isUnread) {
+                                handleMarkAsRead(n.id);
+                              }
+                            }}
+                          >
+                            {n.data.action.label}
+                          </button>
+                        )}
+                        
+                        {/* Unread dot indicator */}
+                        {isUnread && (
+                          <div className="shrink-0 size-2 rounded-full bg-red-500 ml-2" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Showing{" "}
-            <span className="font-semibold text-foreground">
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, ALL_NOTIFS.length)}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-foreground">{ALL_NOTIFS.length}</span>
-          </p>
+        {!isLoading && totalItems > 0 && (
+          <div className="flex items-center justify-between border-t border-border pt-6 mt-auto">
+            <p className="text-xs text-muted-foreground">
+              Showing{" "}
+              <span className="font-semibold text-foreground">
+                {(page - 1) * 10 + 1}–{Math.min(page * 10, totalItems)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-foreground">{totalItems}</span>
+            </p>
 
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft size={13} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={13} />
+              </button>
 
-            {pageNumbers(page, totalPages).map((p, i) =>
-              p === "..." ? (
-                <span
-                  // biome-ignore lint/suspicious/noArrayIndexKey: ellipsis separator
-                  key={`ellipsis-${i}`}
-                  className="px-1 text-xs text-muted-foreground"
-                >
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPage(p as number)}
-                  className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
-                  style={
-                    page === p
-                      ? { backgroundColor: GOLD, color: "#fff", borderColor: GOLD }
-                      : {}
-                  }
-                >
-                  {p}
-                </button>
-              ),
-            )}
+              {pageNumbers(page, totalPages).map((p, i) =>
+                p === "..." ? (
+                  <span
+                    // biome-ignore lint/suspicious/noArrayIndexKey: ellipsis separator
+                    key={`ellipsis-${i}`}
+                    className="px-1 text-xs text-muted-foreground"
+                  >
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p as number)}
+                    className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
+                    style={
+                      page === p
+                        ? { backgroundColor: GOLD, color: "#fff", borderColor: GOLD }
+                        : {}
+                    }
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
 
-            <button
-              type="button"
-              disabled={page === totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight size={13} />
-            </button>
+              <button
+                type="button"
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={13} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

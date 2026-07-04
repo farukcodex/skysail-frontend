@@ -9,7 +9,8 @@ import { getEchoInstance } from "@/lib/echo";
 
 export function TopNavProfile({ defaultRole, messagesLink, hideMessages }: { defaultRole: string, messagesLink: string, hideMessages?: boolean }) {
   const [user, setUser] = useState<any>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   useEffect(() => {
     const currentUser = getUser();
@@ -20,10 +21,16 @@ export function TopNavProfile({ defaultRole, messagesLink, hideMessages }: { def
         const res = await apiFetch("/api/messages/unread-count");
         if (res.ok) {
           const data = await res.json();
-          setUnreadCount(data.count || 0);
+          setUnreadMsgCount(data.count || 0);
+        }
+        
+        const notifRes = await apiFetch("/api/notifications/unread-count");
+        if (notifRes.ok) {
+          const data = await notifRes.json();
+          setUnreadNotifCount(data.count || 0);
         }
       } catch (err) {
-        console.error("Failed to fetch unread count", err);
+        console.error("Failed to fetch unread counts", err);
       }
     };
     
@@ -33,10 +40,17 @@ export function TopNavProfile({ defaultRole, messagesLink, hideMessages }: { def
     if (currentUser && echo) {
       const channel = echo.private(`messages.${currentUser.id}`);
       channel.listen("MessageSent", (e: any) => {
-        setUnreadCount((prev) => prev + 1);
+        setUnreadMsgCount((prev) => prev + 1);
       });
+      
+      const notifChannel = echo.private(`App.Models.User.${currentUser.id}`);
+      notifChannel.notification((notification: any) => {
+        setUnreadNotifCount((prev) => prev + 1);
+      });
+
       return () => {
         channel.stopListening("MessageSent");
+        echo.leave(`App.Models.User.${currentUser.id}`);
       };
     }
   }, []);
@@ -61,9 +75,9 @@ export function TopNavProfile({ defaultRole, messagesLink, hideMessages }: { def
             <Link href={messagesLink}>
               <MessageSquare size={18} />
             </Link>
-            {unreadCount > 0 && (
+            {unreadMsgCount > 0 && (
               <span className="absolute -top-1 -right-1.5 flex items-center justify-center size-3.5 rounded-full bg-red-500 text-[8px] font-bold text-white ring-2 ring-background">
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
               </span>
             )}
           </div>
@@ -73,7 +87,9 @@ export function TopNavProfile({ defaultRole, messagesLink, hideMessages }: { def
           <Link href="/notifications">
             <BellIcon size={18} />
           </Link>
-          <span className="absolute top-0 right-0 size-2 rounded-full bg-red-500 ring-2 ring-background" />
+          {unreadNotifCount > 0 && (
+            <span className="absolute top-0 right-0 size-2 rounded-full bg-red-500 ring-2 ring-background" />
+          )}
         </div>
       </div>
     </div>

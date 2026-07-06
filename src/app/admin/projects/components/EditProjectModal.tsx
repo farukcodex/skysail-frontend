@@ -13,6 +13,7 @@ export function EditProjectModal({ project, onClose, onSuccess }: { project: Pro
   const [projectAddress, setProjectAddress] = useState(project.location);
   const [startDate, setStartDate] = useState(project.started || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(project.image || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,8 +104,19 @@ export function EditProjectModal({ project, onClose, onSuccess }: { project: Pro
           <div className="sm:col-span-2 mt-2">
             <Field label="Update Cover Image (Optional)" type="file" id="edit-project-image" accept="image/*" onChange={e => {
               const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) setImageFile(file);
+              if (file) {
+                setImageFile(file);
+                setPreviewUrl(URL.createObjectURL(file));
+              } else {
+                setImageFile(null);
+                setPreviewUrl(project.image || null);
+              }
             }} />
+            {previewUrl && (
+              <div className="mt-3 relative w-full h-40 rounded-xl overflow-hidden border border-border bg-muted">
+                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
           </div>
         </div>
 

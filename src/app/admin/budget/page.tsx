@@ -22,6 +22,7 @@ interface PhaseBudget {
   phase: string | number;
   title: string;
   amount: number;
+  spent_amount: number | null;
   status: PhaseStatus;
 }
 
@@ -69,6 +70,7 @@ export default function BudgetPage() {
   // Phase budget form
   const [phaseSelected, setPhaseSelected] = useState<number | null>(null);
   const [phaseAmount, setPhaseAmount] = useState("");
+  const [phaseSpent, setPhaseSpent] = useState("");
   const [phaseStatus, setPhaseStatus] = useState("Upcoming");
   const [isUpdatingPhase, setIsUpdatingPhase] = useState(false);
 
@@ -97,7 +99,7 @@ export default function BudgetPage() {
     if (!selectedProjectId) return;
     setIsLoading(true);
     try {
-      const res = await apiFetch(`/api/admin/projects/${selectedProjectId}/finances`);
+      const res = await apiFetch(`/api/projects/${selectedProjectId}/finances`);
       const data = await res.json();
       if (res.ok) {
         const mappedBudgets = data.data.budgets.map((m: any) => ({
@@ -105,6 +107,7 @@ export default function BudgetPage() {
           phase: m.phase,
           title: m.name,
           amount: m.budget_amount,
+          spent_amount: m.spent_amount,
           status: m.status
         }));
         setPhases(mappedBudgets);
@@ -115,6 +118,7 @@ export default function BudgetPage() {
           const first = mappedBudgets[0];
           setPhaseSelected(first.id);
           setPhaseAmount(String(first.amount));
+          setPhaseSpent(first.spent_amount ? String(first.spent_amount) : "");
           setPhaseStatus(
             first.status === "completed" ? "Completed" : (first.status === "in-progress" || first.status === "pending_review" ? "In progress" : "Upcoming")
           );
@@ -137,6 +141,7 @@ export default function BudgetPage() {
     setIsUpdatingPhase(true);
     
     const amt = Number.parseFloat(phaseAmount.replace(/[^0-9.]/g, ""));
+    const spentAmt = Number.parseFloat(phaseSpent.replace(/[^0-9.]/g, ""));
     const statusVal = phaseStatus === "Completed" ? "completed" : (phaseStatus === "In progress" ? "in-progress" : "upcoming");
 
     try {
@@ -145,6 +150,7 @@ export default function BudgetPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: isNaN(amt) ? 0 : amt,
+          spent_amount: isNaN(spentAmt) ? null : spentAmt,
           status: statusVal
         })
       });
@@ -241,8 +247,8 @@ export default function BudgetPage() {
             </div>
 
             {/* Column headers */}
-            <div className="grid grid-cols-[48px_1fr_120px_120px_56px] px-5 py-2 border-y border-border bg-secondary/30">
-              {["PH", "PHASE NAME", "BUDGET", "STATUS", "ACTIONS"].map((h) => (
+            <div className="grid grid-cols-[48px_1fr_100px_100px_110px_56px] px-5 py-2 border-y border-border bg-secondary/30">
+              {["PH", "PHASE NAME", "BUDGET", "SPENT", "STATUS", "ACTIONS"].map((h) => (
                 <p key={h} className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">
                   {h}
                 </p>
@@ -261,11 +267,12 @@ export default function BudgetPage() {
               ) : phases.map((p) => (
                 <div
                   key={p.id}
-                  className="grid grid-cols-[48px_1fr_120px_120px_56px] px-5 py-4 items-center hover:bg-secondary/20 transition-colors"
+                  className="grid grid-cols-[48px_1fr_100px_100px_110px_56px] px-5 py-4 items-center hover:bg-secondary/20 transition-colors gap-2"
                 >
                   <p className="text-sm text-muted-foreground font-medium">{String(p.phase).padStart(2, "0")}</p>
-                  <p className="text-sm font-semibold pr-2">{p.title}</p>
+                  <p className="text-sm font-semibold pr-2 truncate">{p.title}</p>
                   <p className="text-sm font-semibold">{fmt(p.amount)}</p>
+                  <p className="text-sm font-semibold text-muted-foreground">{p.spent_amount != null ? fmt(p.spent_amount) : "—"}</p>
                   <div><PhaseStatusPill status={p.status} /></div>
                   <button
                     type="button"
@@ -273,6 +280,7 @@ export default function BudgetPage() {
                     onClick={() => {
                       setPhaseSelected(p.id);
                       setPhaseAmount(String(p.amount));
+                      setPhaseSpent(p.spent_amount != null ? String(p.spent_amount) : "");
                       setPhaseStatus(
                         p.status === "completed" ? "Completed" : p.status === "in-progress" || p.status === "pending_review" ? "In progress" : "Upcoming"
                       );
@@ -305,6 +313,7 @@ export default function BudgetPage() {
                       const m = phases.find((p) => p.id === id);
                       if (m) {
                         setPhaseAmount(String(m.amount));
+                        setPhaseSpent(m.spent_amount != null ? String(m.spent_amount) : "");
                         setPhaseStatus(
                           m.status === "completed" ? "Completed" : m.status === "in-progress" || m.status === "pending_review" ? "In progress" : "Upcoming"
                         );
@@ -328,6 +337,18 @@ export default function BudgetPage() {
                   type="number"
                   value={phaseAmount}
                   onChange={(e) => setPhaseAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full border-b border-border pb-3 bg-transparent text-sm font-medium focus:outline-none placeholder:text-muted-foreground/50"
+                />
+              </div>
+
+              {/* Spent Amount */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">Spent ($)</p>
+                <input
+                  type="number"
+                  value={phaseSpent}
+                  onChange={(e) => setPhaseSpent(e.target.value)}
                   placeholder="0.00"
                   className="w-full border-b border-border pb-3 bg-transparent text-sm font-medium focus:outline-none placeholder:text-muted-foreground/50"
                 />

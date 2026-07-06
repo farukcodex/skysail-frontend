@@ -14,6 +14,7 @@ export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, o
   const [startDate, setStartDate] = useState("");
   const [vendorIds, setVendorIds] = useState<string[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,8 +71,19 @@ export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, o
           <div className="sm:col-span-2">
             <Field label="Cover Image" type="file" id="add-project-image" accept="image/*" onChange={e => {
               const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) setImageFile(file);
+              if (file) {
+                setImageFile(file);
+                setPreviewUrl(URL.createObjectURL(file));
+              } else {
+                setImageFile(null);
+                setPreviewUrl(null);
+              }
             }} />
+            {previewUrl && (
+              <div className="mt-3 relative w-full h-40 rounded-xl overflow-hidden border border-border bg-muted">
+                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
           </div>
         </div>
 

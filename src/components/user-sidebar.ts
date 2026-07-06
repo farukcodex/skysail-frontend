@@ -24,7 +24,8 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     items: [
       { label: "Dashboard", href: "/client", icon: LayoutDashboard },
-      { label: "News Feed", href: "/client/feed", icon: Rss, badge: 4 },
+      // { label: "News Feed", href: "/client/feed", icon: Rss, badge: 4 },
+      { label: "News Feed", href: "/client/feed", icon: Rss },
     ],
   },
   {

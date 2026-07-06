@@ -293,6 +293,12 @@ export default function AdminMessagesPage() {
   }, [messages]);
 
   useEffect(() => {
+    if (loadingMessages && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = 0;
+    }
+  }, [loadingMessages]);
+
+  useEffect(() => {
     if (selectedVendor && typingUsers[selectedVendor.id]) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -483,11 +489,11 @@ export default function AdminMessagesPage() {
               <>
                 {loadingMessages && page > 1 && (
                   <div className="flex justify-center py-3">
-                    <div className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-full border border-blue-500/20">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                      <span className="text-xs font-medium bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent ml-1">
+                    <div className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-[#C49A3C]/10 to-[#A46909]/10 rounded-full border border-[#C49A3C]/20">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#C49A3C] animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#B48122] animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#A46909] animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span className="text-xs font-medium bg-gradient-to-r from-[#C49A3C] to-[#A46909] bg-clip-text text-transparent ml-1">
                         Loading older messages...
                       </span>
                     </div>

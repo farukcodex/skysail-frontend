@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { Paperclip, Smile, Send, AlertCircle, Check, CheckCheck } from "lucide-react";
+import { Paperclip, Smile, Send, AlertCircle, Check, CheckCheck, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { apiFetch } from "@/lib/api";
 import EmojiPicker from 'emoji-picker-react';
@@ -482,7 +482,17 @@ export default function VendorMessagesPage() {
                   onClick={() => setShowEmojiPicker(false)} 
                 />
                 <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:absolute sm:top-auto sm:left-auto sm:bottom-12 sm:right-0 sm:translate-x-0 sm:translate-y-0 z-50 origin-center sm:origin-bottom-right scale-90 sm:scale-100">
-                  <EmojiPicker onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(false)}
+                      className="absolute -top-3 -right-2 h-7 px-3 flex items-center gap-1 bg-background hover:bg-secondary border border-border rounded-full text-foreground shadow-sm z-10 transition-colors"
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Close</span>
+                      <X size={14} strokeWidth={3} />
+                    </button>
+                    <EmojiPicker onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />
+                  </div>
                 </div>
               </>
             )}

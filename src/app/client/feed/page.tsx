@@ -8,7 +8,10 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { format } from "date-fns";
-
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 // ---- types ----
 interface Post {
   id: number;
@@ -24,154 +27,136 @@ interface Post {
   };
 }
 
-// ---- sub-components ----
-function PostAuthor({
-  author,
-  avatar,
-  time,
-}: {
-  author: string;
-  avatar: string;
-  time: string;
-}) {
+import Link from "next/link";
+
+function FeedPostCard({ post }: { post: Post }) {
+  const authorName = post.author?.name || "Unknown";
+  const avatar = post.author?.profile_photo_path 
+    ? (post.author.profile_photo_path.startsWith('http') ? post.author.profile_photo_path : `${process.env.NEXT_PUBLIC_BACKEND_URL}/storage/${post.author.profile_photo_path}`)
+    : `https://api.dicebear.com/10.x/micah/svg?seed=${authorName}`;
+  const time = format(new Date(post.created_at), "MMM d, yyyy");
+
+  const hasImage = post.images && post.images.length > 0;
+  const isVideo = !!post.video_path;
+  const isMedia = hasImage || isVideo;
+
   return (
-    <div className="flex items-center gap-3 mb-3">
-      <Avatar className="size-9">
-        <AvatarImage src={avatar} alt={author} />
-        <AvatarFallback>{author[0]}</AvatarFallback>
-      </Avatar>
-      <div>
-        <p className="text-sm font-semibold leading-tight">
-          Posted by {author}
-        </p>
-        <p className="text-xs text-muted-foreground">{time}</p>
+    <Link href={`/client/feed/${post.id}`} className="block group w-full">
+      <div className="bg-white border border-[#C4C7C7]/50 rounded-[32px] p-6 hover:border-primary/50 transition-colors flex flex-col gap-4">
+        {/* Header */}
+        {!isMedia ? (
+          <div className="flex items-center gap-2">
+            <Calendar size={18} className="text-[#C5A059]" />
+            <span className="text-xs font-semibold uppercase tracking-[1.2px] text-black">
+              {post.update_type}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Avatar className="size-10 border border-border">
+              <AvatarImage src={avatar} alt={authorName} />
+              <AvatarFallback>{authorName[0]}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-base font-semibold leading-tight text-black">
+                Posted by {authorName}
+              </p>
+              <p className="text-xs text-[#5D5F5F] mt-1">{time}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Title and Description */}
+        <div className="flex flex-col gap-2">
+          <h3 className="text-[20px] font-semibold text-[#1C1B1B] leading-[28px] line-clamp-2">
+            {post.title}
+          </h3>
+          {!isMedia && post.description && (
+            <div 
+              className="text-sm text-[#5D5F5F] leading-[23px] line-clamp-3 [&>p]:inline [&_ul]:hidden [&_ol]:hidden"
+              dangerouslySetInnerHTML={{ __html: post.description }}
+            />
+          )}
+        </div>
+
+        {/* Media Grid */}
+        {hasImage && !isVideo && (
+          <CompactPhotoGrid images={post.images || []} />
+        )}
+        {isVideo && (
+          <div className="w-full h-[250px] sm:h-[350px] bg-black rounded-2xl relative overflow-hidden flex items-center justify-center mt-2">
+            {post.images && post.images.length > 0 && (
+               <Image src={post.images[0]} alt="video" fill className="object-cover opacity-50" />
+            )}
+            <div className="size-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm z-10">
+               <Play size={24} className="text-white fill-white ml-1" />
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2 flex justify-end mt-2">
+           <span className="inline-flex items-center justify-center rounded-full text-sm font-medium border border-input bg-background h-10 px-6 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shadow-sm cursor-pointer">
+             View Full Post
+           </span>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
-function PhotoGrid({
-  images,
-}: {
-  images: string[];
-}) {
+function CompactPhotoGrid({ images }: { images: string[] }) {
   if (images.length === 0) return null;
   
   if (images.length === 1) {
     return (
-      <div className="mt-3 rounded-xl overflow-hidden aspect-video w-full min-h-60 relative ">
-        <Image
-          src={images[0]}
-          alt=""
-          fill
-          className="object-cover"
-          unoptimized
-        />
+      <div className="w-full h-[300px] sm:h-[400px] relative rounded-[16px] overflow-hidden mt-2">
+        <Image src={images[0]} alt="" fill className="object-cover" />
       </div>
     );
   }
 
   if (images.length === 2) {
     return (
-      <div className="mt-3 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden">
-        {images.map((src) => (
-          <div key={src} className="relative aspect-video">
-            <Image src={src} alt="" fill className="object-cover" unoptimized />
-          </div>
-        ))}
+      <div className="w-full h-[250px] sm:h-[300px] grid grid-cols-2 gap-2 mt-2">
+        <div className="relative rounded-[16px] overflow-hidden">
+          <Image src={images[0]} alt="" fill className="object-cover" />
+        </div>
+        <div className="relative rounded-[16px] overflow-hidden">
+          <Image src={images[1]} alt="" fill className="object-cover" />
+        </div>
       </div>
     );
   }
 
-  const [main, tr1, tr2, br] = images;
-  const bottomSrc = br ?? tr2;
-  const extraCount = images.length > 4 ? images.length - 4 : null;
-  const showOverlay = extraCount != null;
+  // 3 or more images: layout from the Figma first post
+  const extraCount = images.length > 3 ? images.length - 3 : null;
 
   return (
-    <div className="mt-3 relative w-full h-[40dvh] sm:h-[50dvh] md:h-[55dvh] lg:h-[60dvh] rounded-xl overflow-hidden">
-      <div
-        className="absolute inset-0 grid gap-1"
-        style={{
-          gridTemplateColumns: "3fr 2fr",
-          gridTemplateRows: "1fr 1fr",
-        }}
-      >
-        <div className="relative" style={{ gridRow: "1 / 3" }}>
-          <Image src={main} alt="" fill className="object-cover" unoptimized />
+    <div className="w-full h-[300px] sm:h-[400px] rounded-[16px] overflow-hidden mt-2">
+      <div className="w-full h-full grid grid-cols-[1fr_0.6fr] gap-2">
+        <div className="relative h-full">
+          <Image src={images[0]} alt="" fill className="object-cover" />
         </div>
-
-        <div className="grid grid-cols-2 gap-1">
-          {tr1 && (
-            <div className="relative">
-              <Image src={tr1} alt="" fill className="object-cover" unoptimized />
-            </div>
-          )}
-          {tr2 && (
-            <div className="relative">
-              <Image src={tr2} alt="" fill className="object-cover" unoptimized />
-            </div>
-          )}
-        </div>
-
-        {bottomSrc && (
-          <div className="relative">
-            <Image src={bottomSrc} alt="" fill className="object-cover" unoptimized />
-            {showOverlay && (
-              <div className="absolute inset-0 bg-black/55 flex items-center justify-center cursor-pointer hover:bg-black/65 transition-colors">
-                <span className="text-white text-base font-semibold">
-                  +{extraCount} more
-                </span>
+        <div className="grid grid-rows-2 gap-2 h-full">
+          <div className="relative h-full">
+            <Image src={images[1]} alt="" fill className="object-cover" />
+          </div>
+          <div className="relative h-full">
+            <Image src={images[2]} alt="" fill className="object-cover" />
+            {extraCount !== null && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="text-white text-lg font-semibold">+{extraCount} more</span>
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 }
 
-function PhotoPostCard({ post }: { post: Post }) {
-  const authorName = post.author?.name || "Unknown";
-  const avatar = post.author?.profile_photo_path 
-    ? (post.author.profile_photo_path.startsWith('http') ? post.author.profile_photo_path : `${process.env.NEXT_PUBLIC_BACKEND_URL}/storage/${post.author.profile_photo_path}`)
-    : `https://api.dicebear.com/10.x/micah/svg?seed=${authorName}`;
-  const time = format(new Date(post.created_at), "MMM d, yyyy h:mm a");
-
-  return (
-    <div className="bg-card border border-border rounded-2xl p-5">
-      <PostAuthor author={authorName} avatar={avatar} time={time} />
-      <p className="text-base font-semibold mb-1">{post.title}</p>
-      {post.description && <p className="text-sm text-muted-foreground leading-relaxed mb-3">{post.description}</p>}
-      <PhotoGrid images={post.images || []} />
-    </div>
-  );
-}
-
-function StatusCard({ post }: { post: Post }) {
-  const time = format(new Date(post.created_at), "MMM d, yyyy");
-  return (
-    <div className="bg-card border border-border rounded-2xl p-5">
-      <div className="flex items-center gap-2 mb-2">
-        <Calendar size={15} className="text-[#C49A3C]" />
-        <Badge
-          variant="outline"
-          className="text-[10px] tracking-widest uppercase border-border text-muted-foreground"
-        >
-          {post.update_type}
-        </Badge>
-        <span className="text-xs text-muted-foreground ml-auto">{time}</span>
-      </div>
-      <p className="text-base font-semibold mb-1">{post.title}</p>
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        {post.description}
-      </p>
-    </div>
-  );
-}
-
-function FeaturedVideo({ video }: { video: Post }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+function FeaturedVideo({ video, playingVideoId, onPlay }: { video: Post; playingVideoId: number | null; onPlay: (id: number) => void }) {
+  const isPlaying = playingVideoId === video.id;
   const time = format(new Date(video.created_at), "MMM d, yyyy");
   
   if (isPlaying && video.video_path) {
@@ -200,16 +185,15 @@ function FeaturedVideo({ video }: { video: Post }) {
 
   return (
     <div 
-      className="relative w-full aspect-video rounded-2xl overflow-hidden cursor-pointer group"
-      onClick={() => setIsPlaying(true)}
+      className="relative w-full aspect-video rounded-2xl overflow-hidden cursor-pointer group bg-black"
+      onClick={() => onPlay(video.id)}
     >
-      {/* Video Thumbnail (using the first image if any, else generic placeholder) */}
-      <Image
-        src={video.images && video.images.length > 0 ? video.images[0] : "https://placehold.co/1200x600/1a1a1a/fff?text=Video+Thumbnail"}
-        alt={video.title}
-        fill
-        className="object-cover group-hover:scale-[1.02] transition-transform duration-300"
-        unoptimized
+      <video
+        src={video.video_path ? `${video.video_path}#t=0.001` : ""}
+        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+        preload="metadata"
+        muted
+        playsInline
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
       <div className="absolute inset-0 flex items-center justify-center">
@@ -217,23 +201,23 @@ function FeaturedVideo({ video }: { video: Post }) {
           <Play size={28} className="text-white fill-white ml-1" />
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 p-5">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="absolute bottom-0 left-0 p-3 sm:p-5 lg:p-6 w-full bg-gradient-to-t from-black/90 via-black/40 to-transparent">
+        <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
           <span className="text-[10px] font-bold tracking-widest uppercase bg-[#C49A3C] text-black px-2 py-0.5 rounded">
             Latest Walkthrough
           </span>
         </div>
-        <p className="text-white text-xl font-bold leading-tight">
+        <p className="text-white text-base sm:text-xl lg:text-2xl font-bold leading-tight line-clamp-2">
           {video.title}
         </p>
-        <p className="text-white/60 text-xs mt-1">{time}</p>
+        <p className="text-white/70 text-[10px] sm:text-xs mt-1 sm:mt-1.5">{time}</p>
       </div>
     </div>
   );
 }
 
-function ThumbVideoCard({ video }: { video: Post }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+function ThumbVideoCard({ video, playingVideoId, onPlay }: { video: Post; playingVideoId: number | null; onPlay: (id: number) => void }) {
+  const isPlaying = playingVideoId === video.id;
   const time = format(new Date(video.created_at), "MMM d, yyyy");
 
   if (isPlaying && video.video_path) {
@@ -260,15 +244,15 @@ function ThumbVideoCard({ video }: { video: Post }) {
   return (
     <div 
       className="cursor-pointer group"
-      onClick={() => setIsPlaying(true)}
+      onClick={() => onPlay(video.id)}
     >
-      <div className="relative aspect-video rounded-xl overflow-hidden border border-border">
-        <Image
-          src={video.images && video.images.length > 0 ? video.images[0] : "https://placehold.co/400x260/2a2a2a/fff?text=Video"}
-          alt={video.title}
-          fill
-          className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
-          unoptimized
+      <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-black">
+        <video
+          src={video.video_path ? `${video.video_path}#t=0.001` : ""}
+          className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+          preload="metadata"
+          muted
+          playsInline
         />
         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
         <div className="absolute inset-0 flex items-center justify-center">
@@ -287,21 +271,51 @@ function ThumbVideoCard({ video }: { video: Post }) {
   );
 }
 
-// ---- page ----
+interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  total: number;
+}
+
 export default function NewsFeedPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(""); 
+  const [type, setType] = useState("all");
+  const [mediaType, setMediaType] = useState("posts");
+  const [page, setPage] = useState(1);
+  const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (search !== searchInput) {
+        setSearch(searchInput);
+        setPage(1);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchInput, search]);
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [search, type, page, mediaType]);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch("/api/posts");
+      setPlayingVideoId(null);
+      const res = await apiFetch(`/api/posts?page=${page}&search=${search}&type=${type}&media_type=${mediaType}`);
       if (res.ok) {
-        setPosts(await res.json());
+        const data = await res.json();
+        setPosts(data.data || []);
+        setPagination({
+          current_page: data.current_page,
+          last_page: data.last_page,
+          total: data.total
+        });
       }
     } catch (error) {
       console.error(error);
@@ -310,39 +324,101 @@ export default function NewsFeedPage() {
     }
   };
 
-  const imagePosts = posts.filter(p => !p.video_path);
-  const videoPosts = posts.filter(p => !!p.video_path);
+  const handleTypeChange = (val: string) => {
+    setPage(1);
+    setType(val);
+  };
 
-  const featuredVideo = videoPosts.length > 0 ? videoPosts[0] : null;
-  const thumbVideos = videoPosts.slice(1);
+  const renderPageNumbers = () => {
+    if (!pagination || pagination.last_page <= 1) return null;
+    const pages = [];
+    let startPage = Math.max(1, pagination.current_page - 2);
+    let endPage = Math.min(pagination.last_page, pagination.current_page + 2);
+
+    if (endPage - startPage < 4) {
+      if (startPage === 1) {
+        endPage = Math.min(pagination.last_page, 5);
+      } else if (endPage === pagination.last_page) {
+        startPage = Math.max(1, pagination.last_page - 4);
+      }
+    }
+
+    if (startPage > 1) {
+      pages.push(
+        <Button key="first" variant="ghost" size="sm" onClick={() => { setPage(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>1</Button>
+      );
+      if (startPage > 2) pages.push(<span key="ellipsis1" className="px-2 text-muted-foreground">...</span>);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <Button 
+          key={i} 
+          variant={pagination.current_page === i ? "outline" : "ghost"} 
+          size="sm" 
+          onClick={() => { setPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+        >
+          {i}
+        </Button>
+      );
+    }
+
+    if (endPage < pagination.last_page) {
+      if (endPage < pagination.last_page - 1) pages.push(<span key="ellipsis2" className="px-2 text-muted-foreground">...</span>);
+      pages.push(
+        <Button key="last" variant="ghost" size="sm" onClick={() => { setPage(pagination.last_page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{pagination.last_page}</Button>
+      );
+    }
+
+    return pages;
+  };
+
+  const featuredVideo = posts.length > 0 ? posts[0] : null;
+  const thumbVideos = posts.slice(1);
 
   const PostsContent = (
     <div className="flex flex-col gap-4 w-full">
-      {imagePosts.length === 0 ? (
-        <p className="text-muted-foreground text-sm py-4">No recent posts.</p>
+      {posts.length === 0 ? (
+        <div className="py-12 text-center flex flex-col items-center border border-dashed rounded-xl bg-muted/20">
+          <Search className="text-muted-foreground mb-4 opacity-50" size={48} />
+          <p className="text-lg font-medium">
+            {search ? `No posts found matching "${search}"` : "No recent posts."}
+          </p>
+          {search && (
+            <Button variant="link" onClick={() => setSearchInput("")} className="mt-2 text-muted-foreground">
+              Clear search
+            </Button>
+          )}
+        </div>
       ) : (
-        imagePosts.map((post) =>
-          post.images && post.images.length > 0 ? (
-            <PhotoPostCard key={post.id} post={post} />
-          ) : (
-            <StatusCard key={post.id} post={post} />
-          )
-        )
+        posts.map((post) => (
+          <FeedPostCard key={post.id} post={post} />
+        ))
       )}
     </div>
   );
 
   const VideosContent = (
     <div className="flex flex-col gap-5">
-      {videoPosts.length === 0 ? (
-        <p className="text-muted-foreground text-sm py-4">No recent videos.</p>
+      {posts.length === 0 ? (
+        <div className="py-12 text-center flex flex-col items-center border border-dashed rounded-xl bg-muted/20">
+          <Search className="text-muted-foreground mb-4 opacity-50" size={48} />
+          <p className="text-lg font-medium">
+            {search ? `No videos found matching "${search}"` : "No recent videos."}
+          </p>
+          {search && (
+            <Button variant="link" onClick={() => setSearchInput("")} className="mt-2 text-muted-foreground">
+              Clear search
+            </Button>
+          )}
+        </div>
       ) : (
         <>
-          {featuredVideo && <FeaturedVideo video={featuredVideo} />}
+          {featuredVideo && <FeaturedVideo video={featuredVideo} playingVideoId={playingVideoId} onPlay={setPlayingVideoId} />}
           {thumbVideos.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-2">
               {thumbVideos.map((v) => (
-                <ThumbVideoCard key={v.id} video={v} />
+                <ThumbVideoCard key={v.id} video={v} playingVideoId={playingVideoId} onPlay={setPlayingVideoId} />
               ))}
             </div>
           )}
@@ -359,9 +435,45 @@ export default function NewsFeedPage() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold tracking-tight">News Feed</h1>
-      <p className="text-sm text-muted-foreground mt-1">
+      <p className="text-sm text-muted-foreground mt-1 mb-6">
         All project updates from your team
       </p>
+
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <form onSubmit={(e) => e.preventDefault()} className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+          <Input 
+            type="text" 
+            placeholder="Search updates..." 
+            className="pl-10 pr-10 w-full bg-background"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          {searchInput && (
+            <button 
+              type="button"
+              onClick={() => setSearchInput("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </form>
+        {mediaType !== "videos" && (
+          <Select value={type} onValueChange={handleTypeChange}>
+            <SelectTrigger className="w-full sm:w-[200px] bg-background">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Updates</SelectItem>
+              <SelectItem value="Photo update">Photo update</SelectItem>
+              <SelectItem value="Farming photos">Farming photos</SelectItem>
+              <SelectItem value="Status update">Status update</SelectItem>
+              <SelectItem value="Milestone update">Milestone update</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+      </div>
       
       {loading ? (
         <div className="mt-12 flex justify-center">
@@ -369,7 +481,51 @@ export default function NewsFeedPage() {
         </div>
       ) : (
         <div className="mt-4">
-          <AnimatedUnderlineTabsDemo tabs={TABS} />
+          <AnimatedUnderlineTabsDemo 
+            tabs={TABS} 
+            activeTab={mediaType} 
+            onTabChange={(val) => {
+              setPage(1);
+              setMediaType(val);
+            }} 
+          />
+          
+          {pagination && pagination.last_page > 1 && (
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between border-t border-border pt-4 gap-4">
+              <p className="text-sm text-muted-foreground">
+                Showing page {pagination.current_page} of {pagination.last_page} ({pagination.total} total updates)
+              </p>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={pagination.current_page === 1}
+                  onClick={() => {
+                    setPage(p => p - 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  <ChevronLeft size={16} className="mr-1" /> Prev
+                </Button>
+                
+                <div className="hidden sm:flex items-center gap-1 mx-2">
+                  {renderPageNumbers()}
+                </div>
+
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={pagination.current_page === pagination.last_page}
+                  onClick={() => {
+                    setPage(p => p + 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  Next <ChevronRight size={16} className="ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -8,14 +8,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AnimatedUnderlineTabsDemo = ({
   tabs,
+  activeTab: externalActiveTab,
+  onTabChange,
 }: {
   tabs: {
     name: string;
     value: string;
     content: React.ReactNode;
   }[];
+  activeTab?: string;
+  onTabChange?: (val: string) => void;
 }) => {
-  const [activeTab, setActiveTab] = useState("posts");
+  const [internalActiveTab, setInternalActiveTab] = useState("posts");
+  const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
+  const setActiveTab = onTabChange || setInternalActiveTab;
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
 

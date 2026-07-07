@@ -249,14 +249,17 @@ export default function BudgetPage() {
                     <WalletIcon className="size-4 text-white/80" />
                   </div>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-1">
+                <CardContent className="flex flex-col gap-1 relative z-10">
                   <p className="text-[10px] tracking-widest uppercase font-semibold text-white/50">
                     Contract Budget
                   </p>
                   <p className="text-3xl font-bold text-white">
                     {fmt(contractBudget)}
                   </p>
-                  <p className="text-sm text-white/50">Base project value</p>
+                  <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-xs text-white/60">Total Budget</span>
+                    <span className="text-sm font-semibold text-white">{fmt(totalApprovedBudget)}</span>
+                  </div>
                 </CardContent>
                 {/* Decorative circles */}
                 <div className="size-28 rounded-full bg-white/10 flex items-center justify-center absolute -right-14 top-1/2 -translate-y-1/2" />

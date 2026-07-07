@@ -337,9 +337,11 @@ export default function BudgetPage() {
                     Budget by phase
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  {/* Table header */}
-                  <div className="grid grid-cols-[2fr_1fr_1.5fr_1fr_1fr_1fr] gap-2 py-3 border-b border-border px-2">
+                <CardContent className="pt-0 px-0 sm:px-6 overflow-hidden">
+                  <div className="w-full overflow-x-auto pb-4">
+                    <div className="min-w-[750px]">
+                      {/* Table header */}
+                      <div className="grid grid-cols-[2fr_1fr_1.5fr_1fr_1fr_1fr] gap-2 py-3 border-b border-border px-4 sm:px-2">
                     <span className="text-xs font-semibold text-muted-foreground">
                       Phase
                     </span>
@@ -370,7 +372,7 @@ export default function BudgetPage() {
                       <div key={phase.id} className="flex flex-col border-b border-border last:border-0">
                         {/* Main Row */}
                         <div
-                          className="grid grid-cols-[2fr_1fr_1.5fr_1fr_1fr_1fr] gap-2 py-4 items-center px-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                          className="grid grid-cols-[2fr_1fr_1.5fr_1fr_1fr_1fr] gap-2 py-4 items-center px-4 sm:px-2 cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => togglePhase(phase.id)}
                         >
                           <div className="flex items-center gap-2">
@@ -400,9 +402,9 @@ export default function BudgetPage() {
 
                         {/* Expanded Content */}
                         {isExpanded && (
-                          <div className="bg-secondary/30 px-6 py-4 flex flex-col gap-4 border-t border-border/50">
+                          <div className="bg-secondary/30 px-4 sm:px-6 py-4 flex flex-col gap-4 border-t border-border/50">
                             {/* Toggles */}
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
                               <Button
                                 size="sm"
                                 variant={expandedPhaseView[phase.id] === 'expenses' ? 'default' : 'outline'}
@@ -504,6 +506,8 @@ export default function BudgetPage() {
                       No budget phases available.
                     </div>
                   )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>

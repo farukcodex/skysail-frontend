@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ImageViewer } from "@/components/shared/ImageViewer";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -56,6 +57,7 @@ function UrgencyBadge({ urgency, label }: { urgency: Urgency; label: string }) {
 export default function DecisionsPage() {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   const fetchDecisions = useCallback(async () => {
     setIsLoading(true);
@@ -138,13 +140,23 @@ export default function DecisionsPage() {
                   {/* Thumbnail */}
                   <div className="w-full sm:w-60 bg-muted flex justify-center items-center shrink-0">
                     {d.image_url ? (
-                      <Image
-                        src={d.image_url}
-                        alt={d.title}
-                        height={240}
-                        width={240}
-                        className="object-cover w-full h-full sm:aspect-square"
-                      />
+                      <div 
+                        className="w-full h-full sm:aspect-square cursor-pointer overflow-hidden relative group"
+                        onClick={() => setViewingImage(d.image_url)}
+                      >
+                        <Image
+                          src={d.image_url}
+                          alt={d.title}
+                          height={240}
+                          width={240}
+                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <span className="text-white opacity-0 group-hover:opacity-100 font-medium text-sm backdrop-blur-sm bg-black/40 px-3 py-1.5 rounded-full transition-opacity">
+                            Click to enlarge
+                          </span>
+                        </div>
+                      </div>
                     ) : (
                       <div className="w-full h-full aspect-square flex items-center justify-center text-muted-foreground">
                         No Image
@@ -197,6 +209,12 @@ export default function DecisionsPage() {
           )}
         </div>
       </div>
+
+      <ImageViewer 
+        images={viewingImage ? [viewingImage] : []}
+        currentIndex={viewingImage ? 0 : null}
+        onClose={() => setViewingImage(null)}
+      />
     </div>
   );
 }

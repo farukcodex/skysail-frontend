@@ -8,91 +8,38 @@ import {
   UploadCloud,
 } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { apiFetch } from "@/lib/api";
+import { ProjectCombobox } from "../updates/ProjectCombobox";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 10;
 
-const CLIENT_PROJECTS = [
-  "Bob Henderson — The Henderson Residence",
-  "Alice Mercer — The Mercer Custom Build",
-  "Tom Larsen — The Larsen Pool & Addition",
-];
-
 interface Member {
   id: number;
-  name: string;
+  firstName: string;
+  lastName: string;
   designation: string;
   email: string;
   avatar: string;
-  meetLink?: string;
+  status: string;
 }
 
-const SEED_MEMBERS: Member[] = [
-  {
-    id: 1,
-    name: "Remy DiAngelo",
-    designation: "Owner's Representative",
-    email: "remy@remyco.com",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=RemyDiAngelo&size=48&backgroundColor=b6e3f4",
-  },
-  {
-    id: 2,
-    name: "James Sullivan",
-    designation: "Lead Builder",
-    email: "james@sullivanbuilds.com",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=JamesSullivan&size=48&backgroundColor=c0aede",
-  },
-  {
-    id: 3,
-    name: "Anna Keller",
-    designation: "Architect",
-    email: "anna@kellerarch.com",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=AnnaKeller&size=48&backgroundColor=d1d4f9",
-  },
-  {
-    id: 4,
-    name: "Marco Torres",
-    designation: "Interior Designer",
-    email: "marco@torresdesign.com",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=MarcoTorres&size=48&backgroundColor=ffd5dc",
-  },
-  {
-    id: 5,
-    name: "Priya Lam",
-    designation: "Structural Engineer",
-    email: "priya@lameng.com",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=PriyaLam&size=48&backgroundColor=b6e3f4",
-  },
-  {
-    id: 6,
-    name: "Carlos Reyes",
-    designation: "MEP Consultant",
-    email: "carlos@reyesmep.com",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=CarlosReyes&size=48&backgroundColor=c0aede",
-  },
-];
-
-const ALL_MEMBERS: Member[] = [
-  ...SEED_MEMBERS,
-  ...Array.from({ length: 26 }, (_, i) => ({
-    ...SEED_MEMBERS[i % SEED_MEMBERS.length],
-    id: i + 7,
-    email: `member${i + 7}@example.com`,
-  })),
-];
+interface Project {
+  id: number;
+  name: string;
+  client: string;
+  email?: string;
+  clientAvatar?: string;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function pageNumbers(page: number, totalPages: number): (number | "...")[] {
+  if (totalPages <= 0) return [];
   const pages: (number | "...")[] = [];
   if (totalPages <= 5) {
     for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -117,45 +64,120 @@ const PREVIEW_AVATAR =
   "https://api.dicebear.com/9.x/avataaars/png?seed=WadeWarren&size=64&backgroundColor=1a2332";
 
 export default function TeamPage() {
-  const [client, setClient] = useState(CLIENT_PROJECTS[0]);
-  const [members, setMembers] = useState(ALL_MEMBERS);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+
+  const [members, setMembers] = useState<Member[]>([]);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // form
-  const [name, setName] = useState("Remy DiAngelo");
-  const [designation, setDesignation] = useState("Owner's Representative");
-  const [email, setEmail] = useState("james@sullivanbuilds.com");
-  const [meetLink, setMeetLink] = useState("");
+  const [name, setName] = useState("");
+  const [designation, setDesignation] = useState("General Vendor");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [previewAvatar, setPreviewAvatar] = useState(PREVIEW_AVATAR);
+  const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const totalPages = Math.ceil(members.length / PAGE_SIZE);
-  const pageMembers = members.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Fetch projects on mount
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        const res = await apiFetch("/api/admin/projects?all=1");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch projects", err);
+      }
+    }
+    loadProjects();
+  }, []);
+
+  const fetchVendors = async (pageNumber: number, projectId: string) => {
+    setIsLoading(true);
+    try {
+      let url = `/api/admin/vendors?page=${pageNumber}&per_page=${PAGE_SIZE}`;
+      if (projectId && projectId !== "all") {
+        url += `&project_id=${projectId}`;
+      }
+      const res = await apiFetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setMembers(data.data);
+        setTotalPages(data.meta.last_page);
+        setTotalItems(data.meta.total);
+      }
+    } catch (error) {
+      console.error("Failed to fetch vendors", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVendors(page, selectedProjectId);
+  }, [page, selectedProjectId]);
+
+
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) setPreviewAvatar(URL.createObjectURL(file));
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreviewAvatar(URL.createObjectURL(selectedFile));
+    }
   }
 
-  function handleAdd() {
-    if (!name.trim()) return;
-    setMembers((prev) => [
-      {
-        id: Date.now(),
-        name,
-        designation,
-        email,
-        avatar: previewAvatar,
-        meetLink: meetLink || undefined,
-      },
-      ...prev,
-    ]);
-    setName("");
-    setDesignation("");
-    setEmail("");
-    setMeetLink("");
-    setPreviewAvatar(PREVIEW_AVATAR);
-    setPage(1);
+  async function handleAdd() {
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      alert("Name, email, and password are required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("designation", designation);
+      if (file) {
+        formData.append("profile_photo", file);
+      }
+
+      const res = await apiFetch("/api/admin/vendors", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        // Reset form
+        setName("");
+        setEmail("");
+        setPassword("");
+        setDesignation("General Vendor");
+        setPreviewAvatar(PREVIEW_AVATAR);
+        setFile(null);
+        if (fileRef.current) fileRef.current.value = "";
+        
+        // Reload current page
+        fetchVendors(page, selectedProjectId);
+      } else {
+        const errData = await res.json();
+        alert(errData.message || "Failed to create vendor");
+      }
+    } catch (error) {
+      console.error("Failed to add vendor", error);
+      alert("An error occurred.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -173,123 +195,127 @@ export default function TeamPage() {
             Client / Project
           </p>
           <div className="relative">
-            <select
-              value={client}
-              onChange={(e) => setClient(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
-            >
-              {CLIENT_PROJECTS.map((cp) => (
-                <option key={cp} value={cp}>
-                  {cp}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={16}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            <ProjectCombobox
+              projects={projects as any}
+              value={selectedProjectId}
+              onChange={(val) => {
+                setSelectedProjectId(val);
+                setPage(1);
+              }}
             />
           </div>
         </div>
 
         {/* Two-column grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-start mt-4">
           {/* LEFT — Member list */}
-          <div className="rounded-2xl border border-border overflow-hidden flex flex-col">
+          <div className="rounded-2xl border border-border overflow-hidden flex flex-col min-h-[400px]">
             <div className="px-5 py-4 border-b border-border">
               <p className="text-sm font-semibold">Member list</p>
             </div>
 
             <div className="flex flex-col divide-y divide-border">
-              {pageMembers.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/30 transition-colors"
-                >
-                  <div className="size-11 rounded-full overflow-hidden bg-muted shrink-0">
-                    <Image
-                      src={m.avatar}
-                      alt={m.name}
-                      width={44}
-                      height={44}
-                      className="object-cover size-11"
-                      unoptimized
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold">{m.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {m.designation}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{m.email}</p>
-                  </div>
+              {isLoading ? (
+                <div className="p-8 flex justify-center">
+                  <div className="animate-spin size-6 border-2 border-primary border-t-transparent rounded-full" />
                 </div>
-              ))}
+              ) : members.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  No members found.
+                </div>
+              ) : (
+                members.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/30 transition-colors"
+                  >
+                    <div className="size-11 rounded-full overflow-hidden bg-muted shrink-0">
+                      <Image
+                        src={m.avatar}
+                        alt={`${m.firstName} ${m.lastName}`}
+                        width={44}
+                        height={44}
+                        className="object-cover size-11"
+                        unoptimized
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold">{m.firstName} {m.lastName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {m.designation}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{m.email}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between px-5 py-4 border-t border-border mt-auto">
-              <p className="text-xs text-muted-foreground">
-                Showing{" "}
-                <span className="font-semibold text-foreground">
-                  {(page - 1) * PAGE_SIZE + 1}–
-                  {Math.min(page * PAGE_SIZE, members.length)}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-foreground">
-                  {members.length}
-                </span>
-              </p>
+            {!isLoading && members.length > 0 && (
+              <div className="flex items-center justify-between px-5 py-4 border-t border-border mt-auto">
+                <p className="text-xs text-muted-foreground">
+                  Showing{" "}
+                  <span className="font-semibold text-foreground">
+                    {(page - 1) * PAGE_SIZE + 1}–
+                    {Math.min(page * PAGE_SIZE, totalItems)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-foreground">
+                    {totalItems}
+                  </span>
+                </p>
 
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft size={13} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                    className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
 
-                {pageNumbers(page, totalPages).map((p, i) =>
-                  p === "..." ? (
-                    <span
-                      // biome-ignore lint/suspicious/noArrayIndexKey: ellipsis separator
-                      key={`ellipsis-${i}`}
-                      className="px-1 text-xs text-muted-foreground"
-                    >
-                      ...
-                    </span>
-                  ) : (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPage(p as number)}
-                      className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
-                      style={
-                        page === p
-                          ? {
-                              backgroundColor: GOLD,
-                              color: "#fff",
-                              borderColor: GOLD,
-                            }
-                          : {}
-                      }
-                    >
-                      {p}
-                    </button>
-                  ),
-                )}
+                  {pageNumbers(page, totalPages).map((p, i) =>
+                    p === "..." ? (
+                      <span
+                        key={`ellipsis-${i}`}
+                        className="px-1 text-xs text-muted-foreground"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPage(p as number)}
+                        className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
+                        style={
+                          page === p
+                            ? {
+                                backgroundColor: GOLD,
+                                color: "#fff",
+                                borderColor: GOLD,
+                              }
+                            : {}
+                        }
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
 
-                <button
-                  type="button"
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight size={13} />
-                </button>
+                  <button
+                    type="button"
+                    disabled={page === totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* RIGHT — Add member form */}
@@ -301,7 +327,7 @@ export default function TeamPage() {
             <div className="p-5 flex flex-col gap-5">
               {/* Avatar preview + upload */}
               <div className="flex items-center gap-4">
-                <div className="size-16 rounded-full overflow-hidden bg-muted shrink-0">
+                <div className="size-16 rounded-full overflow-hidden bg-muted shrink-0 border border-border">
                   <Image
                     src={previewAvatar}
                     alt="Preview"
@@ -345,60 +371,66 @@ export default function TeamPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Remy DiAngelo"
+                  placeholder="e.g. Remy DiAngelo"
                   className="w-full border-b border-border pb-3 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/40"
                 />
               </div>
 
-              {/* Member designation */}
+              {/* Member designation (Select) */}
               <div className="flex flex-col gap-1.5">
                 <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
                   Member Designation
                 </p>
-                <input
-                  type="text"
-                  value={designation}
-                  onChange={(e) => setDesignation(e.target.value)}
-                  placeholder="Owner's Representative"
-                  className="w-full border-b border-border pb-3 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/40"
-                />
+                <div className="relative border-b border-border pb-3">
+                  <select
+                    value={designation}
+                    onChange={(e) => setDesignation(e.target.value)}
+                    className="w-full appearance-none bg-transparent text-sm focus:outline-none"
+                  >
+                    <option value="General Vendor">General Vendor</option>
+                    <option value="Architect">Architect</option>
+                    <option value="Designer">Designer</option>
+                    <option value="Builder">Builder</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Member mail */}
+              {/* Member email */}
               <div className="flex flex-col gap-1.5">
                 <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-                  Member Mail
+                  Member Email
                 </p>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="james@sullivanbuilds.com"
+                  placeholder="e.g. email@example.com"
                   className="w-full border-b border-border pb-3 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/40"
                 />
               </div>
 
-              {/* Meeting link */}
-              {/* <div className="flex flex-col gap-1.5">
+              {/* Member password */}
+              <div className="flex flex-col gap-1.5">
                 <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-                  Meeting Link
+                  Temporary Password
                 </p>
                 <input
-                  type="text"
-                  value={meetLink}
-                  onChange={(e) => setMeetLink(e.target.value)}
-                  placeholder="Link"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 6 characters"
                   className="w-full border-b border-border pb-3 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/40"
                 />
-              </div> */}
+              </div>
 
               {/* Add button */}
               <button
                 type="button"
                 onClick={handleAdd}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-foreground text-background text-sm font-bold tracking-wide hover:opacity-90 transition-opacity"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 py-4 mt-2 rounded-2xl bg-foreground text-background text-sm font-bold tracking-wide hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
-                ADD MEMBER
+                {isSubmitting ? "ADDING..." : "ADD MEMBER"}
                 <Send size={14} />
               </button>
             </div>

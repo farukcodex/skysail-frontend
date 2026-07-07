@@ -15,7 +15,7 @@ type MilestoneUI = {
   dateLabel: string;
   date: string;
   completionPercent: number;
-  completedBy?: { name: string; role: string; avatar: string };
+  assignedVendor?: { name: string; role: string; avatar: string };
 };
 
 function DotIcon({ status }: { status: MilestoneStatus }) {
@@ -86,17 +86,17 @@ function MilestoneRow({ m, isLast }: { m: MilestoneUI; isLast: boolean }) {
           >
             {m.title}
           </p>
-          {isCompleted && m.completedBy ? (
+          {m.assignedVendor ? (
             <div className="mt-2">
               <p className="text-xs text-muted-foreground mb-1.5">
-                Completed by
+                {isCompleted ? "Completed by" : "Assigned to"}
               </p>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <div className="size-9 rounded-full overflow-hidden bg-muted shrink-0">
                     <Image
-                      src={m.completedBy.avatar}
-                      alt={m.completedBy.name}
+                      src={m.assignedVendor.avatar}
+                      alt={m.assignedVendor.name}
                       width={36}
                       height={36}
                       className="object-cover"
@@ -105,10 +105,10 @@ function MilestoneRow({ m, isLast }: { m: MilestoneUI; isLast: boolean }) {
                   </div>
                   <div>
                     <p className="text-sm font-bold leading-tight">
-                      {m.completedBy.name}
+                      {m.assignedVendor.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {m.completedBy.role}
+                      {m.assignedVendor.role}
                     </p>
                   </div>
                 </div>
@@ -164,7 +164,7 @@ export default function MilestonesPage() {
               dateLabel: status === "active" ? "Est. Completion:" : "",
               date: m.target_date || "TBD",
               completionPercent: m.completion_percent,
-              completedBy: (status === "completed" && m.assignee_name) ? {
+              assignedVendor: m.assignee_name ? {
                 name: m.assignee_name,
                 role: "Assigned Vendor",
                 avatar: `https://api.dicebear.com/9.x/avataaars/png?seed=${m.assigned_to}&size=40&backgroundColor=b6e3f4`
@@ -186,7 +186,8 @@ export default function MilestonesPage() {
     );
   }
 
-  const activeMilestone = milestones.find((m) => m.status === "active") ?? milestones[0];
+  const allCompleted = milestones.length > 0 && milestones.every(m => m.status === "completed");
+  const activeMilestone = milestones.find((m) => m.status === "active") ?? (!allCompleted ? milestones.find(m => m.status === "upcoming") : null);
   const progress = activeMilestone?.completionPercent || 0;
 
   return (
@@ -210,7 +211,27 @@ export default function MilestonesPage() {
       ) : (
         <>
           {/* Active phase progress bar */}
-          {activeMilestone && (
+          {allCompleted ? (
+            <div className="bg-card border border-green-500/30 rounded-xl px-5 py-4 mb-6 flex items-center gap-4 shadow-sm">
+              <CheckCircle2 size={16} className="text-green-500" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-semibold">
+                    Project Fully Completed
+                  </span>
+                  <span className="text-xs font-semibold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full">
+                    Completed &middot; 100%
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-green-500 transition-all duration-500"
+                    style={{ width: `100%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : activeMilestone ? (
             <div className="bg-card border border-border rounded-xl px-5 py-4 mb-6 flex items-center gap-4 shadow-sm">
               <CircleEllipsisIcon size={16} className="text-[#C49A3C]" />
               <div className="flex-1 min-w-0">
@@ -230,7 +251,7 @@ export default function MilestonesPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* Timeline */}
           <div>

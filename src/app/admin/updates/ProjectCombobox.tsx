@@ -22,11 +22,12 @@ export function ProjectCombobox({
   projects,
   value,
   onChange,
+  label,
 }: {
   projects: ProjectType[];
   value: string;
   onChange: (val: string) => void;
-  initialLabel?: string;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -34,9 +35,11 @@ export function ProjectCombobox({
 
   return (
     <div className="flex flex-col gap-1.5 w-full relative">
-      <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-        Client / Project
-      </label>
+      {label && (
+        <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+          {label}
+        </label>
+      )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
@@ -47,24 +50,26 @@ export function ProjectCombobox({
             )}
           >
             {selectedProject ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <Avatar className="size-8 shrink-0">
                   <AvatarImage src={selectedProject.clientAvatar} alt={selectedProject.client} />
                   <AvatarFallback className="text-xs">
                     {selectedProject.client?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col items-start min-w-0">
-                  <span className="text-sm font-semibold leading-none truncate text-foreground">
+                <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                  <span className="text-sm font-semibold leading-none truncate text-foreground w-full text-left">
                     {selectedProject.client} - {selectedProject.name}
                   </span>
                   {selectedProject.email && (
-                    <span className="text-[10px] text-muted-foreground mt-1 truncate">
+                    <span className="text-[10px] text-muted-foreground mt-1 truncate w-full text-left">
                       {selectedProject.email}
                     </span>
                   )}
                 </div>
               </div>
+            ) : value === "all" ? (
+              <span className="font-semibold text-foreground">All Projects</span>
             ) : (
               <span>Select a project...</span>
             )}
@@ -77,6 +82,22 @@ export function ProjectCombobox({
             <CommandList>
               <CommandEmpty>No projects found.</CommandEmpty>
               <CommandGroup>
+                <CommandItem
+                  value="All Projects"
+                  onSelect={() => {
+                    onChange("all");
+                    setOpen(false);
+                  }}
+                  className="flex items-center gap-3 py-2 cursor-pointer font-medium"
+                >
+                  All Projects
+                  <Check
+                    className={cn(
+                      "ml-auto h-4 w-4 shrink-0 text-[#C49A3C]",
+                      value === "all" ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
                 {projects.map((project) => (
                   <CommandItem
                     key={project.id}

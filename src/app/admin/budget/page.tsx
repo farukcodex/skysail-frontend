@@ -33,6 +33,13 @@ interface ChangeOrder {
   status: ChangeStatus;
 }
 
+interface Spend {
+  id: number;
+  title: string;
+  amount: number;
+  status: string;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
@@ -65,19 +72,28 @@ export default function BudgetPage() {
 
   const [phases, setPhases] = useState<PhaseBudget[]>([]);
   const [changes, setChanges] = useState<ChangeOrder[]>([]);
+  const [spends, setSpends] = useState<Spend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Phase budget form
   const [phaseSelected, setPhaseSelected] = useState<number | null>(null);
   const [phaseAmount, setPhaseAmount] = useState("");
-  const [phaseSpent, setPhaseSpent] = useState("");
   const [phaseStatus, setPhaseStatus] = useState("Upcoming");
   const [isUpdatingPhase, setIsUpdatingPhase] = useState(false);
 
   // Change order form
   const [changeTitle, setChangeTitle] = useState("");
   const [changeAmount, setChangeAmount] = useState("");
+  const [changePhaseId, setChangePhaseId] = useState<number | null>(null);
+  const [changeFile, setChangeFile] = useState<File | null>(null);
   const [isAddingChange, setIsAddingChange] = useState(false);
+
+  // Spend form
+  const [spendTitle, setSpendTitle] = useState("");
+  const [spendAmount, setSpendAmount] = useState("");
+  const [spendPhaseId, setSpendPhaseId] = useState<number | null>(null);
+  const [spendFile, setSpendFile] = useState<File | null>(null);
+  const [isAddingSpend, setIsAddingSpend] = useState(false);
 
   // Fetch projects list
   useEffect(() => {
@@ -107,18 +123,18 @@ export default function BudgetPage() {
           phase: m.phase,
           title: m.name,
           amount: m.budget_amount,
-          spent_amount: m.spent_amount,
+          spent_amount: m.total_spent,
           status: m.status
         }));
         setPhases(mappedBudgets);
         setChanges(data.data.change_orders);
+        setSpends(data.data.budgets.flatMap((m: any) => m.spends || []));
         
         // Default selected phase
         if (mappedBudgets.length > 0 && !phaseSelected) {
           const first = mappedBudgets[0];
           setPhaseSelected(first.id);
           setPhaseAmount(String(first.amount));
-          setPhaseSpent(first.spent_amount ? String(first.spent_amount) : "");
           setPhaseStatus(
             first.status === "completed" ? "Completed" : (first.status === "in-progress" || first.status === "pending_review" ? "In progress" : "Upcoming")
           );
@@ -141,7 +157,6 @@ export default function BudgetPage() {
     setIsUpdatingPhase(true);
     
     const amt = Number.parseFloat(phaseAmount.replace(/[^0-9.]/g, ""));
-    const spentAmt = Number.parseFloat(phaseSpent.replace(/[^0-9.]/g, ""));
     const statusVal = phaseStatus === "Completed" ? "completed" : (phaseStatus === "In progress" ? "in-progress" : "upcoming");
 
     try {
@@ -150,7 +165,6 @@ export default function BudgetPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: isNaN(amt) ? 0 : amt,
-          spent_amount: isNaN(spentAmt) ? null : spentAmt,
           status: statusVal
         })
       });
@@ -175,24 +189,34 @@ export default function BudgetPage() {
       toast.error("Please enter a title for the change order.");
       return;
     }
+    if (!changePhaseId) {
+      toast.error("Please select a Linked Phase.");
+      return;
+    }
     
     setIsAddingChange(true);
     const amt = Number.parseFloat(changeAmount.replace(/[^0-9.]/g, "")) || 0;
 
     try {
+      const formData = new FormData();
+      formData.append("title", changeTitle);
+      formData.append("amount", String(amt));
+      formData.append("status", "pending"); // default to pending as discussed
+      formData.append("milestone_id", String(changePhaseId));
+      if (changeFile) {
+        formData.append("file", changeFile);
+      }
+
       const res = await apiFetch(`/api/admin/projects/${selectedProjectId}/change-orders`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: changeTitle,
-          amount: amt,
-          status: "pending" // default to pending as discussed
-        })
+        body: formData,
       });
       if (res.ok) {
         toast.success("Change order added!");
         setChangeTitle("");
         setChangeAmount("");
+        setChangePhaseId(null);
+        setChangeFile(null);
         fetchFinances();
       } else {
         const err = await res.json();
@@ -203,6 +227,52 @@ export default function BudgetPage() {
       toast.error("Error adding change order.");
     } finally {
       setIsAddingChange(false);
+    }
+  }
+
+  async function handleSpendSubmit() {
+    if (!selectedProjectId) return;
+    if (!spendTitle.trim()) {
+      toast.error("Please enter a title for the expense.");
+      return;
+    }
+    if (!spendPhaseId) {
+      toast.error("Please select a Linked Phase.");
+      return;
+    }
+    
+    setIsAddingSpend(true);
+    const amt = Number.parseFloat(spendAmount.replace(/[^0-9.]/g, "")) || 0;
+
+    try {
+      const formData = new FormData();
+      formData.append("title", spendTitle);
+      formData.append("amount", String(amt));
+      formData.append("milestone_id", String(spendPhaseId));
+      if (spendFile) {
+        formData.append("file", spendFile);
+      }
+
+      const res = await apiFetch(`/api/admin/projects/${selectedProjectId}/spends`, {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        toast.success("Expense recorded!");
+        setSpendTitle("");
+        setSpendAmount("");
+        setSpendPhaseId(null);
+        setSpendFile(null);
+        fetchFinances();
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to record expense.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error recording expense.");
+    } finally {
+      setIsAddingSpend(false);
     }
   }
 
@@ -280,7 +350,6 @@ export default function BudgetPage() {
                     onClick={() => {
                       setPhaseSelected(p.id);
                       setPhaseAmount(String(p.amount));
-                      setPhaseSpent(p.spent_amount != null ? String(p.spent_amount) : "");
                       setPhaseStatus(
                         p.status === "completed" ? "Completed" : p.status === "in-progress" || p.status === "pending_review" ? "In progress" : "Upcoming"
                       );
@@ -313,7 +382,6 @@ export default function BudgetPage() {
                       const m = phases.find((p) => p.id === id);
                       if (m) {
                         setPhaseAmount(String(m.amount));
-                        setPhaseSpent(m.spent_amount != null ? String(m.spent_amount) : "");
                         setPhaseStatus(
                           m.status === "completed" ? "Completed" : m.status === "in-progress" || m.status === "pending_review" ? "In progress" : "Upcoming"
                         );
@@ -337,18 +405,6 @@ export default function BudgetPage() {
                   type="number"
                   value={phaseAmount}
                   onChange={(e) => setPhaseAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full border-b border-border pb-3 bg-transparent text-sm font-medium focus:outline-none placeholder:text-muted-foreground/50"
-                />
-              </div>
-
-              {/* Spent Amount */}
-              <div className="flex flex-col gap-1.5">
-                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">Spent ($)</p>
-                <input
-                  type="number"
-                  value={phaseSpent}
-                  onChange={(e) => setPhaseSpent(e.target.value)}
                   placeholder="0.00"
                   className="w-full border-b border-border pb-3 bg-transparent text-sm font-medium focus:outline-none placeholder:text-muted-foreground/50"
                 />
@@ -440,6 +496,34 @@ export default function BudgetPage() {
                 />
               </div>
 
+              {/* Linked Phase */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">Linked Phase</p>
+                <div className="relative">
+                  <select
+                    value={changePhaseId || ""}
+                    onChange={(e) => setChangePhaseId(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
+                  >
+                    <option value="" disabled>Select a phase</option>
+                    {phaseOptions.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+
+              {/* File Upload */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">Attachment (Optional)</p>
+                <input
+                  type="file"
+                  onChange={(e) => setChangeFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-secondary file:text-foreground hover:file:bg-secondary/80 focus:outline-none"
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={handleChangeSubmit}
@@ -448,6 +532,102 @@ export default function BudgetPage() {
               >
                 {isAddingChange ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 SUBMIT ORDER
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bottom row 2: Spends list + Spends form ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-start mt-4">
+          {/* LEFT — Spends list */}
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold px-1">Recorded Expenses</p>
+            <div className="flex flex-col gap-3 min-h-[150px]">
+              {isLoading ? (
+                <div className="py-4 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" size={20} /></div>
+              ) : spends.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic px-1">No expenses recorded yet.</p>
+              ) : spends.map((s) => (
+                <div
+                  key={s.id}
+                  className="rounded-2xl border border-border px-5 py-4 flex items-center justify-between gap-4 bg-card"
+                >
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium text-muted-foreground">{s.title}</p>
+                  </div>
+                  <p className="text-sm font-bold shrink-0">+{fmt(s.amount)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT — Spends form */}
+          <div className="rounded-2xl border border-border overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <p className="text-sm font-semibold">Record New Expense</p>
+            </div>
+
+            <div className="p-5 flex flex-col gap-5">
+              {/* Title */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">Title</p>
+                <input
+                  type="text"
+                  value={spendTitle}
+                  onChange={(e) => setSpendTitle(e.target.value)}
+                  placeholder="e.g. Concrete pouring"
+                  className="w-full border-b border-border pb-3 bg-transparent text-sm font-medium focus:outline-none placeholder:text-muted-foreground/50"
+                />
+              </div>
+
+              {/* Amount */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">Amount ($)</p>
+                <input
+                  type="number"
+                  value={spendAmount}
+                  onChange={(e) => setSpendAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full border-b border-border pb-3 bg-transparent text-sm font-medium focus:outline-none placeholder:text-muted-foreground/50"
+                />
+              </div>
+
+              {/* Linked Phase */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">Linked Phase</p>
+                <div className="relative">
+                  <select
+                    value={spendPhaseId || ""}
+                    onChange={(e) => setSpendPhaseId(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
+                  >
+                    <option value="" disabled>Select a phase</option>
+                    {phaseOptions.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+
+              {/* File Upload */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">Attachment / Invoice (Optional)</p>
+                <input
+                  type="file"
+                  onChange={(e) => setSpendFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-secondary file:text-foreground hover:file:bg-secondary/80 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSpendSubmit}
+                disabled={isAddingSpend || !selectedProjectId}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-foreground text-background text-sm font-bold tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isAddingSpend ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                RECORD EXPENSE
               </button>
             </div>
           </div>

@@ -241,9 +241,9 @@ export default function BudgetPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Hero stat cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:col-span-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:col-span-5">
               {/* Contract Budget — dark card */}
-              <Card className="bg-foreground text-background rounded-2xl relative overflow-hidden">
+              <Card className="bg-foreground text-background rounded-2xl relative overflow-hidden col-span-2 md:col-span-1">
                 <CardHeader className="pb-2">
                   <div className="p-3 bg-white/10 rounded-full w-min">
                     <WalletIcon className="size-4 text-white/80" />
@@ -338,7 +338,7 @@ export default function BudgetPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 px-0 sm:px-6 overflow-hidden">
-                  <div className="w-full overflow-x-auto pb-4">
+                  <div className="w-full overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-secondary/50">
                     <div className="min-w-[750px]">
                       {/* Table header */}
                       <div className="grid grid-cols-[2fr_1fr_1.5fr_1fr_1fr_1fr] gap-2 py-3 border-b border-border px-4 sm:px-2">

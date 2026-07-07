@@ -1,54 +1,36 @@
 "use client";
 
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Send } from "lucide-react";
-import { useState } from "react";
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Send, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProjectCombobox } from "../updates/ProjectCombobox";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
+const GOLD = "#C49A3C";
 
-const CLIENT_PROJECTS = [
-  "Bob Henderson — The Henderson Residence",
-  "Alice Mercer — The Mercer Custom Build",
-  "Tom Larsen — The Larsen Pool & Addition",
-];
-
-const BODY =
-  "The primary lumber supplier has notified us of an 8-day delay due to transport issues. This may push the framing completion from June 12 to June 20. We are monitoring closely and exploring alternative suppliers. No budget impact expected at this stage.";
-
-type RiskStatus = "active" | "monitor" | "resolved";
+type RiskStatus = "active" | "monitoring" | "resolved";
 
 interface Risk {
   id: number;
+  project_id: number;
+  project_name: string;
   title: string;
   date: string;
   body: string;
   status: RiskStatus;
 }
 
-const INITIAL_RISKS: Risk[] = [
-  { id: 1, title: "Lumber delivery delayed — Henderson Residence", date: "May 22", body: BODY, status: "active" },
-  { id: 2, title: "Lumber delivery delayed — Henderson Residence", date: "May 22", body: BODY, status: "monitor" },
-  { id: 3, title: "Lumber delivery delayed — Henderson Residence", date: "May 22", body: BODY, status: "monitor" },
-  ...Array.from({ length: 7 }, (_, i) => ({
-    id: i + 4,
-    title: "Foundation survey discrepancy",
-    date: "May 22",
-    body: BODY,
-    status: "resolved" as RiskStatus,
-  })),
-  ...Array.from({ length: 22 }, (_, i) => ({
-    id: i + 11,
-    title: "Foundation survey discrepancy",
-    date: "May 22",
-    body: BODY,
-    status: "resolved" as RiskStatus,
-  })),
-];
+interface Project {
+  id: number;
+  name: string;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const GOLD = "#C49A3C";
 
 function pageNumbers(page: number, totalPages: number): (number | "...")[] {
   const pages: (number | "...")[] = [];
@@ -65,54 +47,62 @@ function pageNumbers(page: number, totalPages: number): (number | "...")[] {
   return pages;
 }
 
-function ResolveButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="shrink-0 px-3 py-1.5 rounded-full bg-foreground text-background text-[11px] font-bold tracking-wide hover:opacity-80 transition-opacity"
-    >
-      RESOLVE
-    </button>
-  );
-}
-
-function StatusBadge({ status }: { status: RiskStatus }) {
-  if (status === "active")
-    return (
-      <span className="shrink-0 px-3 py-1.5 rounded-full border border-border text-[11px] font-bold tracking-wide text-muted-foreground">
-        ACTIVE
-      </span>
-    );
-  if (status === "monitor")
-    return (
-      <span className="shrink-0 px-3 py-1.5 rounded-full border border-border text-[11px] font-bold tracking-wide text-muted-foreground">
-        MONITOR
-      </span>
-    );
-  return null;
-}
-
 function RiskCard({
   risk,
-  onResolve,
+  onStatusChange,
 }: {
   risk: Risk;
-  onResolve: (id: number) => void;
+  onStatusChange: (id: number, status: RiskStatus) => void;
 }) {
+  const getStatusColor = (status: RiskStatus) => {
+    if (status === "active") return "text-red-600 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/50";
+    if (status === "monitoring") return "text-[#C49A3C] bg-[#C49A3C]/10 border border-[#C49A3C]/20";
+    return "text-green-600 bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-900/50";
+  };
+
   return (
     <div className="rounded-2xl border border-border p-5 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1 min-w-0">
           <p className="text-sm font-bold leading-snug">{risk.title}</p>
           <div className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="text-[10px] uppercase font-semibold text-[#C49A3C]">{risk.project_name}</span>
+            <span>&bull;</span>
             <Calendar size={11} />
             <span className="text-[11px]">{risk.date}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ResolveButton onClick={() => onResolve(risk.id)} />
-          <StatusBadge status={risk.status} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`flex items-center gap-1.5 shrink-0 pl-3 pr-2.5 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase cursor-pointer focus:outline-none transition-opacity hover:opacity-80 ${getStatusColor(risk.status)}`}
+              >
+                {risk.status}
+                <ChevronDown size={14} className="opacity-80" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40 rounded-xl">
+              <DropdownMenuItem 
+                onClick={() => onStatusChange(risk.id, "active")}
+                className="text-[11px] font-bold tracking-widest uppercase cursor-pointer"
+              >
+                Active
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => onStatusChange(risk.id, "monitoring")}
+                className="text-[11px] font-bold tracking-widest uppercase cursor-pointer"
+              >
+                Monitoring
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => onStatusChange(risk.id, "resolved")}
+                className="text-[11px] font-bold tracking-widest uppercase cursor-pointer"
+              >
+                Resolved
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed">{risk.body}</p>
@@ -123,36 +113,109 @@ function RiskCard({
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function RisksPage() {
-  const [client, setClient] = useState(CLIENT_PROJECTS[0]);
-  const [risks, setRisks] = useState(INITIAL_RISKS);
+  const [clientProjectId, setClientProjectId] = useState<string>("");
+  const [formProjectId, setFormProjectId] = useState<string>("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [risks, setRisks] = useState<Risk[]>([]);
   const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // form
   const [riskTitle, setRiskTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [status, setStatus] = useState<RiskStatus>("active");
   const [notify, setNotify] = useState(true);
 
-  function handleResolve(id: number) {
-    setRisks((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "resolved" } : r)),
-    );
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [risksRes, projRes] = await Promise.all([
+        apiFetch("/api/risks" + (clientProjectId ? `?project_id=${clientProjectId}` : "")),
+        apiFetch("/api/projects?all=1")
+      ]);
+      if (risksRes.ok) {
+        const data = await risksRes.json();
+        setRisks(data.data || []);
+      }
+      if (projRes.ok) {
+        const data = await projRes.json();
+        setProjects(data.data || []);
+      }
+    } catch (err) {
+      toast.error("Failed to fetch data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clientProjectId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  async function handleStatusChange(id: number, newStatus: RiskStatus) {
+    try {
+      const res = await apiFetch(`/api/admin/risks/${id}/status`, { 
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        toast.success("Risk status updated");
+        fetchData();
+      } else {
+        toast.error("Failed to update risk status");
+      }
+    } catch {
+      toast.error("Error updating risk status");
+    }
   }
 
-  function handleAdd() {
-    if (!riskTitle.trim()) return;
-    setRisks((prev) => [
-      { id: Date.now(), title: riskTitle, date: "Today", body: description, status: "active" },
-      ...prev,
-    ]);
-    setRiskTitle("");
-    setDescription("");
-    setPage(1);
+  async function handleAdd() {
+    if (!riskTitle.trim()) {
+      toast.error("Risk title is required");
+      return;
+    }
+    if (!formProjectId) {
+      toast.error("Please select a project");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await apiFetch("/api/admin/risks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_id: formProjectId,
+          title: riskTitle,
+          description: description,
+          status: status,
+        })
+      });
+      if (res.ok) {
+        toast.success("Risk added successfully");
+        setRiskTitle("");
+        setDescription("");
+        setStatus("active");
+        setFormProjectId("");
+        setPage(1);
+        fetchData();
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to add risk");
+      }
+    } catch {
+      toast.error("Error adding risk");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const active = risks.filter((r) => r.status !== "resolved");
   const resolved = risks.filter((r) => r.status === "resolved");
   const allPageable = [...active, ...resolved];
-  const totalPages = Math.ceil(allPageable.length / PAGE_SIZE);
+  const totalPages = Math.ceil(allPageable.length / PAGE_SIZE) || 1;
   const pageItems = allPageable.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageActive = pageItems.filter((r) => r.status !== "resolved");
   const pageResolved = pageItems.filter((r) => r.status === "resolved");
@@ -173,17 +236,12 @@ export default function RisksPage() {
           <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
             Client / Project
           </p>
-          <div className="relative">
-            <select
-              value={client}
-              onChange={(e) => setClient(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
-            >
-              {CLIENT_PROJECTS.map((cp) => (
-                <option key={cp} value={cp}>{cp}</option>
-              ))}
-            </select>
-            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <div className="relative max-w-md w-full">
+            <ProjectCombobox
+              projects={projects as any}
+              value={clientProjectId || "all"}
+              onChange={(val) => { setClientProjectId(val === "all" ? "" : val); setPage(1); }}
+            />
           </div>
         </div>
 
@@ -191,91 +249,102 @@ export default function RisksPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-start">
           {/* LEFT — risk list */}
           <div className="flex flex-col gap-6">
-            {/* Active risks */}
-            {pageActive.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground px-1">
-                  Active Risks
-                </p>
-                <div className="rounded-2xl border border-border p-4 flex flex-col gap-3">
-                  {pageActive.map((r) => (
-                    <RiskCard key={r.id} risk={r} onResolve={handleResolve} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Resolved risks */}
-            {pageResolved.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground px-1">
-                  Resolved Risks
-                </p>
-                <div className="rounded-2xl border border-border p-4 flex flex-col gap-3">
-                  {pageResolved.map((r) => (
-                    <RiskCard key={r.id} risk={r} onResolve={handleResolve} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                Showing{" "}
-                <span className="font-semibold text-foreground">
-                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, allPageable.length)}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-foreground">{allPageable.length}</span>
-              </p>
-
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft size={13} />
-                </button>
-
-                {pageNumbers(page, totalPages).map((p, i) =>
-                  p === "..." ? (
-                    <span
-                      // biome-ignore lint/suspicious/noArrayIndexKey: ellipsis separator
-                      key={`ellipsis-${i}`}
-                      className="px-1 text-xs text-muted-foreground"
-                    >
-                      ...
-                    </span>
-                  ) : (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPage(p as number)}
-                      className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
-                      style={
-                        page === p
-                          ? { backgroundColor: GOLD, color: "#fff", borderColor: GOLD }
-                          : {}
-                      }
-                    >
-                      {p}
-                    </button>
-                  ),
+            {isLoading ? (
+               <div className="flex justify-center py-10"><Loader2 className="animate-spin text-muted-foreground" size={24} /></div>
+            ) : risks.length === 0 ? (
+               <div className="border border-border border-dashed rounded-2xl py-20 flex flex-col items-center justify-center text-muted-foreground">
+                 <p className="text-sm font-medium">No risks found.</p>
+               </div>
+            ) : (
+              <>
+                {/* Active risks */}
+                {pageActive.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground px-1">
+                      Active Risks
+                    </p>
+                    <div className="rounded-2xl border border-border p-4 flex flex-col gap-3">
+                      {pageActive.map((r) => (
+                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChange} />
+                      ))}
+                    </div>
+                  </div>
                 )}
 
-                <button
-                  type="button"
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight size={13} />
-                </button>
-              </div>
-            </div>
+                {/* Resolved risks */}
+                {pageResolved.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground px-1">
+                      Resolved Risks
+                    </p>
+                    <div className="rounded-2xl border border-border p-4 flex flex-col gap-3">
+                      {pageResolved.map((r) => (
+                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChange} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {allPageable.length > PAGE_SIZE && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Showing{" "}
+                      <span className="font-semibold text-foreground">
+                        {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, allPageable.length)}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-foreground">{allPageable.length}</span>
+                    </p>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        disabled={page === 1}
+                        onClick={() => setPage((p) => p - 1)}
+                        className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft size={13} />
+                      </button>
+
+                      {pageNumbers(page, totalPages).map((p, i) =>
+                        p === "..." ? (
+                          <span
+                            key={`ellipsis-${i}`}
+                            className="px-1 text-xs text-muted-foreground"
+                          >
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setPage(p as number)}
+                            className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
+                            style={
+                              page === p
+                                ? { backgroundColor: GOLD, color: "#fff", borderColor: GOLD }
+                                : {}
+                            }
+                          >
+                            {p}
+                          </button>
+                        ),
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={page === totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                        className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* RIGHT — Flag new risk form */}
@@ -285,6 +354,15 @@ export default function RisksPage() {
             </div>
 
             <div className="p-5 flex flex-col gap-5">
+              <div className="flex flex-col gap-1.5 w-full">
+                <ProjectCombobox
+                  projects={projects as any}
+                  value={formProjectId}
+                  onChange={(val) => setFormProjectId(val === "all" ? "" : val)}
+                  label="Project"
+                />
+              </div>
+
               {/* Risk title */}
               <div className="flex flex-col gap-1.5">
                 <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
@@ -313,6 +391,23 @@ export default function RisksPage() {
                 />
               </div>
 
+              {/* Status */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+                  Initial Status
+                </p>
+                <Select value={status} onValueChange={(val) => setStatus(val as RiskStatus)}>
+                  <SelectTrigger className="w-full border-0 border-b border-border bg-transparent rounded-none px-0 pb-3 h-auto focus-visible:ring-0 focus-visible:border-[#C49A3C]/40 text-sm">
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="monitoring">Monitoring</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Push notification toggle */}
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">Send push notification?</p>
@@ -335,10 +430,11 @@ export default function RisksPage() {
               <button
                 type="button"
                 onClick={handleAdd}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-foreground text-background text-sm font-bold tracking-wide hover:opacity-90 transition-opacity"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-foreground text-background text-sm font-bold tracking-wide hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
-                ADD
-                <Send size={14} />
+                {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : "ADD"}
+                {!isSubmitting && <Send size={14} />}
               </button>
             </div>
           </div>

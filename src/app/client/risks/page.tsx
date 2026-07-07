@@ -1,52 +1,21 @@
+"use client";
+
 import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type RiskStatus = "active" | "monitoring" | "resolved";
+type RiskStatus = "active" | "monitoring" | "resolved" | "monitor";
 
 interface Risk {
   id: number;
   title: string;
   body: string;
   status: RiskStatus;
-  closedDate?: string;
+  date: string;
 }
-
-// ─── Data ────────────────────────────────────────────────────────────────────
-
-const RISKS: Risk[] = [
-  {
-    id: 1,
-    title: "Lumber delivery delayed 8 days",
-    body: "The primary lumber supplier has notified us of an 8-day delay due to transport issues. This may push the framing completion from June 12 to June 20. We are monitoring closely and exploring alternative suppliers. No budget impact expected at this stage.",
-    status: "active",
-  },
-  {
-    id: 2,
-    title: "Electrical permit under city review",
-    body: "The electrical permit is currently under review by the city planning office. Standard review periods are 10–15 business days. We submitted on May 10 and expect approval by May 30. MEP work cannot begin until this is approved.",
-    status: "monitoring",
-  },
-  {
-    id: 3,
-    title: "Electrical permit under city review",
-    body: "The electrical permit is currently under review by the city planning office. Standard review periods are 10–15 business days. We submitted on May 10 and expect approval by May 30. MEP work cannot begin until this is approved.",
-    status: "monitoring",
-  },
-  {
-    id: 4,
-    title: "Electrical permit under city review",
-    body: "The electrical permit is currently under review by the city planning office. Standard review periods are 10–15 business days. We submitted on May 10 and expect approval by May 30. MEP work cannot begin until this is approved.",
-    status: "monitoring",
-  },
-  {
-    id: 5,
-    title: "Lumber delivery delayed 8 days",
-    body: "A minor survey discrepancy identified in March has been fully resolved. The surveyor re-certified the lot boundaries and the builder has confirmed no structural impact.",
-    status: "resolved",
-    closedDate: "Apr 5, 2025",
-  },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -57,7 +26,7 @@ function StatusBadge({ status }: { status: RiskStatus }) {
         Active
       </span>
     );
-  if (status === "monitoring")
+  if (status === "monitoring" || status === "monitor")
     return (
       <span className="shrink-0 text-[10px] font-bold tracking-widest uppercase text-[#C49A3C] bg-[#C49A3C]/10 border border-[#C49A3C]/20 px-2.5 py-1 rounded-full">
         Monitoring
@@ -73,6 +42,27 @@ function StatusBadge({ status }: { status: RiskStatus }) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function RisksPage() {
+  const [risks, setRisks] = useState<Risk[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRisks() {
+      setIsLoading(true);
+      try {
+        const res = await apiFetch("/api/risks");
+        if (res.ok) {
+          const data = await res.json();
+          setRisks(data.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch risks", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchRisks();
+  }, []);
+
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-4">
@@ -85,32 +75,42 @@ export default function RisksPage() {
 
         {/* Risk cards */}
         <div className="flex flex-col gap-4 ">
-          {RISKS.map((r) => (
-            <Card key={r.id} className="rounded-2xl">
-              <CardContent className="pt-5 pb-5">
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <h2 className="text-sm font-bold leading-snug">{r.title}</h2>
-                  <StatusBadge status={r.status} />
-                </div>
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="animate-spin text-muted-foreground" size={24} />
+            </div>
+          ) : risks.length === 0 ? (
+            <div className="border border-border border-dashed rounded-2xl py-20 flex flex-col items-center justify-center text-muted-foreground">
+              <p className="text-sm font-medium">No active risks logged.</p>
+            </div>
+          ) : (
+            risks.map((r) => (
+              <Card key={r.id} className="rounded-2xl">
+                <CardContent className="pt-5 pb-5">
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <h2 className="text-sm font-bold leading-snug">{r.title}</h2>
+                    <StatusBadge status={r.status} />
+                  </div>
 
-                <p
-                  className={`text-sm leading-relaxed ${
-                    r.status === "resolved"
-                      ? "text-muted-foreground italic"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {r.body}
-                </p>
-
-                {r.closedDate && (
-                  <p className="text-sm text-muted-foreground italic mt-1">
-                    Closed {r.closedDate}.
+                  <p
+                    className={`text-sm leading-relaxed ${
+                      r.status === "resolved"
+                        ? "text-muted-foreground italic"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {r.body}
                   </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+
+                  {r.status === "resolved" && r.date && (
+                    <p className="text-sm text-muted-foreground italic mt-1">
+                      Closed {r.date}.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </div>

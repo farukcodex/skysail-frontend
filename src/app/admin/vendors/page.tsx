@@ -1,13 +1,15 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, PlusIcon, Loader2, Search, MessageSquare } from "lucide-react";
+import { PlusIcon, Loader2, Search, MessageSquare, Bell } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
+import { Pagination } from "@/components/shared/Pagination";
 import { AddVendorModal } from "./components/AddVendorModal";
 import { EditVendorModal } from "./components/EditVendorModal";
 import { VendorDetailsModal } from "./components/VendorDetailsModal";
+import { NotifyUsersModal } from "@/components/shared/NotifyUsersModal";
 
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 10;
@@ -39,6 +41,7 @@ export default function VendorsPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [showAdd, setShowAdd] = useState(false);
+  const [showNotify, setShowNotify] = useState(false);
   const [viewVendor, setViewVendor] = useState<Vendor | null>(null);
   const [editVendor, setEditVendor] = useState<Vendor | null>(null);
 
@@ -85,20 +88,6 @@ export default function VendorsPage() {
     setPage(1);
   }
 
-  function pageNumbers(): (number | "...")[] {
-    const pages: (number | "...")[] = [];
-    if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      if (page > 3) pages.push("...");
-      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
-      if (page < totalPages - 2) pages.push("...");
-      pages.push(totalPages);
-    }
-    return pages;
-  }
-
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       {showAdd && <AddVendorModal onClose={() => setShowAdd(false)} onSuccess={fetchVendors} />}
@@ -137,6 +126,16 @@ export default function VendorsPage() {
             </div>
             <button
               type="button"
+              onClick={() => setShowNotify(true)}
+              className="flex items-center justify-center gap-6 w-full sm:w-fit bg-secondary border border-border text-foreground rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all shrink-0"
+            >
+              Notify Vendors
+              <span className="flex items-center justify-center bg-background border border-border rounded-full w-9 h-9">
+                <Bell size={16} className="text-foreground" />
+              </span>
+            </button>
+            <button
+              type="button"
               onClick={() => setShowAdd(true)}
               className="flex items-center justify-center gap-6 w-full sm:w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all shrink-0"
             >
@@ -148,96 +147,100 @@ export default function VendorsPage() {
           </div>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl border border-border bg-background overflow-hidden">
-          {/* Animated tabs */}
-          <div className="relative flex gap-0 border-b border-border px-5 overflow-x-auto scrollbar-hide">
-            {VENDOR_TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => handleTabChange(tab)}
-                className="relative px-4 py-3 text-sm font-medium transition-colors z-10 whitespace-nowrap"
+        {/* Animated tabs */}
+        <div className="relative flex gap-0 border-b border-border overflow-x-auto scrollbar-hide mb-6">
+          {VENDOR_TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => handleTabChange(tab)}
+              className="relative px-6 py-4 text-sm font-medium transition-colors z-10 whitespace-nowrap"
+              style={{
+                color: activeTab === tab ? "var(--foreground)" : "var(--muted-foreground)",
+              }}
+            >
+              {tab}
+              <span
+                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300 origin-left"
                 style={{
-                  color: activeTab === tab ? "var(--foreground)" : "var(--muted-foreground)",
+                  backgroundColor: "var(--foreground)",
+                  transform: activeTab === tab ? "scaleX(1)" : "scaleX(0)",
                 }}
-              >
-                {tab}
-                <span
-                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300 origin-left"
-                  style={{
-                    backgroundColor: "var(--foreground)",
-                    transform: activeTab === tab ? "scaleX(1)" : "scaleX(0)",
-                  }}
-                />
-              </button>
-            ))}
-          </div>
+              />
+            </button>
+          ))}
+        </div>
 
-          {/* List */}
-          <div className="px-5">
-            {isLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="animate-spin text-muted-foreground" size={40} />
-              </div>
-            ) : vendors.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">No vendors found.</p>
+        {/* List */}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="animate-spin text-muted-foreground" size={40} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 xl:gap-6">
+            {vendors.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground md:col-span-2 lg:col-span-3">No vendors found.</p>
             ) : (
               vendors.map((vendor) => (
-                <div key={vendor.id} className="flex items-center gap-4 py-4 border-b border-border last:border-0">
-                  <div className="size-10 rounded-full overflow-hidden bg-muted shrink-0 flex items-center justify-center text-sm font-bold text-muted-foreground">
-                    {vendor.avatar ? (
-                      <Image
-                        src={vendor.avatar}
-                        alt={`${vendor.firstName} ${vendor.lastName}`}
-                        width={40}
-                        height={40}
-                        className="object-cover size-full"
-                        unoptimized
-                      />
-                    ) : (
-                      vendor.firstName?.[0] || 'V'
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold leading-tight flex items-center gap-2 truncate">
-                      {vendor.firstName} {vendor.lastName}
-                      {vendor.status === 'blocked' && (
-                        <span className="text-[9px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">Blocked</span>
+                <div
+                  key={vendor.id}
+                  className="flex flex-col h-full w-full gap-4 p-5 rounded-2xl border border-border bg-background shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start gap-4 w-full">
+                    <div className="size-14 rounded-full overflow-hidden bg-muted shrink-0 flex items-center justify-center text-lg font-bold text-muted-foreground">
+                      {vendor.avatar ? (
+                        <Image
+                          src={vendor.avatar}
+                          alt={`${vendor.firstName} ${vendor.lastName}`}
+                          width={56}
+                          height={56}
+                          className="object-cover size-full"
+                          unoptimized
+                        />
+                      ) : (
+                        vendor.firstName?.[0] || 'V'
                       )}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {vendor.email}
-                    </p>
-                    <p className="text-[11px] font-medium text-muted-foreground/80 truncate mt-0.5">
-                      {vendor.designation}
-                    </p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-base font-bold leading-tight flex items-center gap-2 truncate">
+                        {vendor.firstName} {vendor.lastName}
+                        {vendor.status === 'blocked' && (
+                          <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Blocked</span>
+                        )}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate mt-0.5">
+                        {vendor.email}
+                      </p>
+                      <p className="text-xs font-medium text-muted-foreground/80 truncate mt-1">
+                        {vendor.designation}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 w-full pt-4 border-t border-border mt-auto">
                     <button
                       type="button"
                       onClick={() => setViewVendor(vendor)}
-                      className="px-4 py-1.5 rounded-full text-xs font-bold text-background bg-linear-to-b from-[#865B15] to-[#E1C283]"
+                      className="text-xs font-bold px-4 py-2 rounded-full text-background bg-linear-to-b from-[#865B15] to-[#E1C283] hover:opacity-90 transition-opacity"
                     >
-                      View Details
+                      View
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditVendor(vendor)}
-                      className="px-4 py-1.5 rounded-full border border-border text-xs font-semibold hover:bg-secondary transition-colors"
+                      className="text-xs font-bold px-4 py-2 rounded-full border border-border text-foreground hover:bg-secondary transition-colors"
                     >
                       Edit
                     </button>
                     <Link
                       href={`/admin/messages?vendor_id=${vendor.id}`}
-                      className="px-4 py-1.5 rounded-full border border-border text-xs font-semibold hover:bg-secondary transition-colors"
+                      className="px-4 py-2 rounded-full border border-border text-xs font-semibold hover:bg-secondary transition-colors"
                     >
                       Message
                     </Link>
                     <button
                       type="button"
                       onClick={() => handleBlockToggle(vendor.id)}
-                      className="px-3 py-1.5 text-xs font-semibold text-red-500 hover:text-red-600 transition-colors ml-auto"
+                      className="text-xs font-bold px-4 py-2 text-red-500 hover:opacity-70 transition-opacity ml-auto"
                     >
                       {vendor.status === 'blocked' ? 'Unblock' : 'Block'}
                     </button>
@@ -246,67 +249,26 @@ export default function VendorsPage() {
               ))
             )}
           </div>
+        )}
 
-          {/* Pagination */}
-          {!isLoading && totalItems > 0 && (
-            <div className="flex items-center justify-between px-5 py-4 border-t border-border">
-              <p className="text-xs text-muted-foreground">
-                Showing{" "}
-                <span className="font-semibold text-foreground">
-                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalItems)}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-foreground">{totalItems}</span>
-              </p>
-
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="size-8 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-
-                {pageNumbers().map((p, i) =>
-                  p === "..." ? (
-                    <span
-                      key={`ellipsis-${i}`}
-                      className="px-1 text-xs text-muted-foreground"
-                    >
-                      ...
-                    </span>
-                  ) : (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPage(p as number)}
-                      className="size-8 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
-                      style={
-                        page === p
-                          ? { backgroundColor: GOLD, color: "#fff", borderColor: GOLD }
-                          : {}
-                      }
-                    >
-                      {p}
-                    </button>
-                  ),
-                )}
-
-                <button
-                  type="button"
-                  disabled={page === totalPages || totalPages === 0}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="size-8 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Pagination */}
+        {!isLoading && totalItems > 0 && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            setPage={setPage}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+          />
+        )}
       </div>
+
+      <NotifyUsersModal
+        isOpen={showNotify}
+        onClose={() => setShowNotify(false)}
+        users={vendors.map(v => ({ id: v.id, firstName: v.firstName, lastName: v.lastName, email: v.email }))}
+        userType="vendor"
+      />
     </div>
   );
 }

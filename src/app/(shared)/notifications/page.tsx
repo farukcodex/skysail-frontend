@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
+import { ViewNotificationModal } from "@/components/shared/ViewNotificationModal";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ interface DatabaseNotification {
     type?: NotifType;
     title?: string;
     body?: string;
+    message?: string;
     action?: { label: string; url?: string };
     badge?: string;
   };
@@ -74,6 +76,7 @@ export default function NotificationsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewNotification, setViewNotification] = useState<DatabaseNotification | null>(null);
 
   const fetchNotifications = async (p: number) => {
     setIsLoading(true);
@@ -173,11 +176,11 @@ export default function NotificationsPage() {
                     return (
                       <div
                         key={n.id}
-                        className={`flex items-center gap-4 px-5 py-4 hover:bg-secondary/20 transition-colors ${
+                        className={`flex items-center gap-4 px-5 py-4 hover:bg-secondary/20 transition-colors cursor-pointer ${
                           isUnread ? "bg-secondary/10" : ""
                         }`}
                         onClick={() => {
-                          if (isUnread) handleMarkAsRead(n.id);
+                          setViewNotification(n);
                         }}
                       >
                         {/* Content */}
@@ -197,32 +200,54 @@ export default function NotificationsPage() {
                             {n.data.title}
                           </p>
                           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                            {n.data.body}
+                            {n.data.body || n.data.message}
                           </p>
                         </div>
 
-                        {/* Action */}
-                        {n.data.action && (
+                        {/* Actions */}
+                        <div className="flex items-center gap-3">
                           <button
                             type="button"
-                            className={`shrink-0 ${actionStyle(type)}`}
+                            className="shrink-0 px-3 py-1.5 rounded-full border border-border text-foreground text-xs font-semibold hover:bg-secondary transition-colors"
                             onClick={(e) => {
-                              // If there's a URL we could route to it here
-                              // e.preventDefault();
-                              // router.push(n.data.action.url)
-                              if (isUnread) {
-                                handleMarkAsRead(n.id);
-                              }
+                              e.stopPropagation();
+                              setViewNotification(n);
                             }}
                           >
-                            {n.data.action.label}
+                            View
                           </button>
-                        )}
-                        
-                        {/* Unread dot indicator */}
-                        {isUnread && (
-                          <div className="shrink-0 size-2 rounded-full bg-red-500 ml-2" />
-                        )}
+                          {isUnread && (
+                            <button
+                              type="button"
+                              className="shrink-0 px-3 py-1.5 rounded-full bg-secondary text-foreground text-xs font-semibold hover:bg-secondary/80 transition-colors flex items-center gap-1.5 border border-border"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(n.id);
+                              }}
+                            >
+                              <CheckCircle2 size={14} />
+                              Mark as read
+                            </button>
+                          )}
+                          {n.data.action && (
+                            <button
+                              type="button"
+                              className={`shrink-0 ${actionStyle(type)}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isUnread) {
+                                  handleMarkAsRead(n.id);
+                                }
+                              }}
+                            >
+                              {n.data.action.label}
+                            </button>
+                          )}
+                          {/* Unread dot indicator */}
+                          {isUnread && (
+                            <div className="shrink-0 size-2 rounded-full bg-red-500 ml-1" />
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -292,6 +317,16 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
+
+      <ViewNotificationModal
+        isOpen={!!viewNotification}
+        onClose={() => setViewNotification(null)}
+        notification={viewNotification}
+        onMarkAsRead={(id) => {
+          handleMarkAsRead(id);
+          setViewNotification((prev) => prev ? { ...prev, read_at: new Date().toISOString() } : null);
+        }}
+      />
     </div>
   );
 }

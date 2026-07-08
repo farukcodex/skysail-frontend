@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon, Loader2, Search, MessageSquare } from "lucide-react";
+import { PlusIcon, Loader2, Search, MessageSquare, Bell } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/api";
 import { AddClientModal } from "./components/AddClientModal";
 import { EditClientModal } from "./components/EditClientModal";
 import { ClientDetailsModal } from "./components/ClientDetailsModal";
+import { NotifyUsersModal } from "@/components/shared/NotifyUsersModal";
 
 export interface Client {
   id: number;
@@ -32,6 +33,7 @@ export default function ClientManagementPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [showNotify, setShowNotify] = useState(false);
   const [viewClient, setViewClient] = useState<Client | null>(null);
   const [editClient, setEditClient] = useState<Client | null>(null);
 
@@ -111,6 +113,16 @@ export default function ClientManagementPage() {
             </div>
             <button
               type="button"
+              onClick={() => setShowNotify(true)}
+              className="flex items-center justify-center gap-6 w-full sm:w-fit bg-secondary border border-border text-foreground rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all shrink-0"
+            >
+              Notify Clients
+              <span className="flex items-center justify-center bg-background border border-border rounded-full w-9 h-9">
+                <Bell size={16} className="text-foreground" />
+              </span>
+            </button>
+            <button
+              type="button"
               onClick={() => setShowAdd(true)}
               className="flex items-center justify-center gap-6 w-full sm:w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all shrink-0"
             >
@@ -128,18 +140,18 @@ export default function ClientManagementPage() {
             <Loader2 className="animate-spin text-muted-foreground" size={40} />
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 xl:gap-6">
             {clients.length === 0 ? (
-              <p className="text-center text-muted-foreground py-10">No clients found.</p>
+              <p className="text-center text-muted-foreground py-10 md:col-span-2 lg:col-span-3">No clients found.</p>
             ) : (
               clients.map((client) => (
                 <div
                   key={client.id}
-                  className="flex flex-col w-full gap-4 p-4 rounded-2xl border border-border bg-background"
+                  className="flex flex-col h-full w-full gap-4 p-5 rounded-2xl border border-border bg-background shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* Avatar + Info */}
-                  <div className="flex items-center gap-3 w-full">
-                    <Avatar className="size-12 shrink-0">
+                  <div className="flex items-start gap-4 w-full">
+                    <Avatar className="size-14 shrink-0">
                       <AvatarImage
                         src={client.avatar}
                         alt={`${client.firstName} ${client.lastName}`}
@@ -149,47 +161,47 @@ export default function ClientManagementPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate">
+                      <p className="text-base font-bold truncate">
                         {client.firstName} {client.lastName}
                         {client.status === 'blocked' && (
                           <span className="ml-2 text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Blocked</span>
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      <p className="text-sm text-muted-foreground truncate mt-0.5">
                         {client.email}
                       </p>
-                      <p className="text-[11px] font-medium text-muted-foreground/80 truncate mt-0.5">
+                      <p className="text-xs font-medium text-muted-foreground/80 truncate mt-1">
                         {client.projects_count} Active Projects
                       </p>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 w-full pt-2 border-t">
+                  <div className="flex flex-wrap items-center gap-2 w-full pt-4 border-t border-border mt-auto">
                     <button
                       type="button"
                       onClick={() => setViewClient(client)}
-                      className="text-xs font-bold px-4 py-1.5 rounded-full text-background bg-linear-to-b from-[#865B15] to-[#E1C283]"
+                      className="text-xs font-bold px-4 py-2 rounded-full text-background bg-linear-to-b from-[#865B15] to-[#E1C283] hover:opacity-90 transition-opacity"
                     >
-                      View Details
+                      View
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditClient(client)}
-                      className="text-xs font-bold px-4 py-1.5 rounded-full border border-border text-foreground hover:bg-secondary transition-colors"
+                      className="text-xs font-bold px-4 py-2 rounded-full border border-border text-foreground hover:bg-secondary transition-colors"
                     >
                       Edit
                     </button>
                     <Link
                       href={`/admin/messages?client_id=${client.id}`}
-                      className="px-4 py-1.5 rounded-full border border-border text-xs font-semibold hover:bg-secondary transition-colors"
+                      className="px-4 py-2 rounded-full border border-border text-xs font-semibold hover:bg-secondary transition-colors"
                     >
                       Message
                     </Link>
                     <button
                       type="button"
                       onClick={() => handleBlockToggle(client.id)}
-                      className="text-xs ml-auto font-bold px-4 py-1.5 text-red-500 hover:opacity-70 transition-opacity"
+                      className="text-xs font-bold px-4 py-2 text-red-500 hover:opacity-70 transition-opacity ml-auto"
                     >
                       {client.status === 'blocked' ? 'Unblock' : 'Block'}
                     </button>
@@ -211,6 +223,13 @@ export default function ClientManagementPage() {
           />
         )}
       </div>
+
+      <NotifyUsersModal
+        isOpen={showNotify}
+        onClose={() => setShowNotify(false)}
+        users={clients.map(c => ({ id: c.id, firstName: c.firstName, lastName: c.lastName, email: c.email }))}
+        userType="client"
+      />
     </div>
   );
 }

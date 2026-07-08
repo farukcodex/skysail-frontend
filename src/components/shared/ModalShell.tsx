@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import React from "react";
+import React, { useEffect } from "react";
 
 export function ModalShell({
   id,
@@ -12,6 +12,13 @@ export function ModalShell({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
@@ -24,9 +31,9 @@ export function ModalShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={id}
-        className="bg-background rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 relative z-10 max-h-[90dvh] overflow-y-auto"
+        className="bg-background rounded-3xl shadow-2xl w-full max-w-lg relative z-10 flex flex-col max-h-[calc(100dvh-2rem)]"
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between p-6 sm:p-8 pb-2 sm:pb-4 shrink-0">
           <h2 id={id} className="text-lg font-bold">
             {title}
           </h2>
@@ -38,7 +45,9 @@ export function ModalShell({
             <X size={16} />
           </button>
         </div>
-        {children}
+        <div className="p-6 sm:p-8 pt-2 sm:pt-2 overflow-y-auto flex-1">
+          {children}
+        </div>
       </div>
     </div>
   );

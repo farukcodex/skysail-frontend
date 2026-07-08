@@ -45,7 +45,7 @@ export function ProjectCombobox({
           <button
             type="button"
             className={cn(
-              "flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40",
+              "flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 h-[56px] text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40",
               !selectedProject && "text-muted-foreground"
             )}
           >

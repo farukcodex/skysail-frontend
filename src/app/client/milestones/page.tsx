@@ -141,7 +141,7 @@ export default function MilestonesPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch("/api/milestones")
+    apiFetch("/api/client/milestones")
       .then(res => res.json())
       .then(data => {
         if (data.data) {

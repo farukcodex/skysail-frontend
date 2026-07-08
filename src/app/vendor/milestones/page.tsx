@@ -52,7 +52,7 @@ export default function VendorMilestonesPage() {
 
   const fetchMilestones = async () => {
     try {
-      const res = await apiFetch(`/api/milestones`);
+      const res = await apiFetch(`/api/vendor/milestones`);
       const data = await res.json();
       if (res.ok) {
         setMilestones(data.data);
@@ -101,7 +101,7 @@ export default function VendorMilestonesPage() {
       // Laravel handles PUT with file via POST + _method=PUT
       formData.append("_method", "PUT");
 
-      const res = await apiFetch(`/api/milestones/${updatingMilestone.id}/progress`, {
+      const res = await apiFetch(`/api/vendor/milestones/${updatingMilestone.id}/progress`, {
         method: "POST",
         body: formData
       });

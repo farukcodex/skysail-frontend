@@ -167,7 +167,7 @@ export default function MilestonesPage() {
   const fetchMilestones = useCallback(async (projectId: number) => {
     setIsLoading(true);
     try {
-      const res = await apiFetch(`/api/milestones?project_id=${projectId}`);
+      const res = await apiFetch(`/api/admin/milestones?project_id=${projectId}`);
       const data = await res.json();
       if (res.ok) {
         setMilestones(data.data);

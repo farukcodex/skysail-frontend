@@ -558,7 +558,7 @@ export default function VendorUploadPage() {
     try {
       const [docsRes, msRes, decRes] = await Promise.all([
         apiFetch(`/api/documents`),
-        apiFetch(`/api/milestones`),
+        apiFetch(`/api/admin/milestones`),
         apiFetch(`/api/decisions`)
       ]);
       const docsData = await docsRes.json();

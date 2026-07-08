@@ -49,7 +49,7 @@ export default function RisksPage() {
     async function fetchRisks() {
       setIsLoading(true);
       try {
-        const res = await apiFetch("/api/risks");
+        const res = await apiFetch("/api/client/risks");
         if (res.ok) {
           const data = await res.json();
           setRisks(data.data || []);

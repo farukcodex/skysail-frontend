@@ -118,7 +118,7 @@ export default function BudgetPage() {
 
   // Fetch project ID (assumes first assigned project)
   useEffect(() => {
-    apiFetch(`/api/projects?all=1`)
+    apiFetch(`/api/client/projects?all=1`)
       .then((res) => res.json())
       .then((data) => {
         if (data.data && data.data.length > 0) {
@@ -138,7 +138,7 @@ export default function BudgetPage() {
     if (!projectId) return;
     setIsLoading(true);
     try {
-      const res = await apiFetch(`/api/projects/${projectId}/finances`);
+      const res = await apiFetch(`/api/client/projects/${projectId}/finances`);
       const data = await res.json();
       if (res.ok) {
         const mappedBudgets = data.data.budgets.map((m: any) => ({
@@ -173,7 +173,7 @@ export default function BudgetPage() {
 
   async function handleApprove(id: number) {
     try {
-      const res = await apiFetch(`/api/change-orders/${id}/approve`, {
+      const res = await apiFetch(`/api/client/change-orders/${id}/approve`, {
         method: "POST",
       });
       if (res.ok) {
@@ -189,7 +189,7 @@ export default function BudgetPage() {
 
   async function handleReject(id: number) {
     try {
-      const res = await apiFetch(`/api/change-orders/${id}/reject`, {
+      const res = await apiFetch(`/api/client/change-orders/${id}/reject`, {
         method: "POST",
       });
       if (res.ok) {

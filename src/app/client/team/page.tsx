@@ -71,7 +71,7 @@ export default function TeamPage() {
   useEffect(() => {
     async function loadProjects() {
       try {
-        const projectsRes = await apiFetch("/api/projects?all=1");
+        const projectsRes = await apiFetch("/api/client/projects?all=1");
         if (!projectsRes.ok) throw new Error("Failed to load projects");
         
         const projectsData = await projectsRes.json();
@@ -98,7 +98,7 @@ export default function TeamPage() {
     async function loadTeam() {
       setIsLoading(true);
       try {
-        const teamRes = await apiFetch(`/api/projects/${activeProjectId}/team`);
+        const teamRes = await apiFetch(`/api/client/projects/${activeProjectId}/team`);
         if (!teamRes.ok) throw new Error("Failed to load team");
         
         const teamData = await teamRes.json();

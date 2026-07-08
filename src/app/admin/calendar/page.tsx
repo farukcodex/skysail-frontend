@@ -290,7 +290,7 @@ export default function CalendarPage() {
 
   // Fetch projects
   useEffect(() => {
-    apiFetch("/api/projects")
+    apiFetch("/api/admin/projects")
       .then((res) => res.json())
       .then((data) => {
         if (data.data) {

@@ -156,7 +156,7 @@ export default function AdminBudgetPage() {
     if (!selectedProjectId) return;
     setIsLoading(true);
     try {
-      const res = await apiFetch(`/api/projects/${selectedProjectId}/finances`);
+      const res = await apiFetch(`/api/admin/projects/${selectedProjectId}/finances`);
       const data = await res.json();
       if (res.ok) {
         const mappedBudgets = data.data.budgets.map((m: any) => ({

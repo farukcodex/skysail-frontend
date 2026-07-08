@@ -479,7 +479,7 @@ export default function PostUpdatesPage() {
 
   const fetchProjects = async () => {
     try {
-      const res = await apiFetch("/api/projects");
+      const res = await apiFetch("/api/admin/projects");
       if (res.ok) {
         const data = await res.json();
         setProjects(data.data || data);
@@ -490,7 +490,7 @@ export default function PostUpdatesPage() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch(`/api/posts?page=${page}&search=${search}&per_page=10&project_id=${filterProject}`);
+      const res = await apiFetch(`/api/admin/posts?page=${page}&search=${search}&per_page=10&project_id=${filterProject}`);
       if (res.ok) {
         const postsData = await res.json();
         setPosts(postsData.data || postsData);

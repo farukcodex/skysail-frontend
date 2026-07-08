@@ -131,8 +131,8 @@ export default function RisksPage() {
     setIsLoading(true);
     try {
       const [risksRes, projRes] = await Promise.all([
-        apiFetch("/api/risks" + (clientProjectId ? `?project_id=${clientProjectId}` : "")),
-        apiFetch("/api/projects?all=1")
+        apiFetch("/api/admin/risks" + (clientProjectId ? `?project_id=${clientProjectId}` : "")),
+        apiFetch("/api/admin/projects?all=1")
       ]);
       if (risksRes.ok) {
         const data = await risksRes.json();

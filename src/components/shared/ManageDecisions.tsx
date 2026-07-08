@@ -66,8 +66,8 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
     setIsLoadingDocs(true);
     try {
       const [docsRes, projRes] = await Promise.all([
-        apiFetch("/api/decisions"),
-        apiFetch("/api/projects?all=1")
+        apiFetch(`/api/${role}/decisions`),
+        apiFetch(`/api/${role}/projects?all=1`)
       ]);
       
       if (docsRes.ok) {
@@ -150,7 +150,7 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
     if (imageFile) formData.append("image", imageFile);
 
     try {
-      const res = await apiFetch("/api/decisions", {
+      const res = await apiFetch(`/api/${role}/decisions`, {
         method: "POST",
         body: formData,
       });

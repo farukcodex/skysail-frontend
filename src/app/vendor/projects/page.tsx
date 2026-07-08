@@ -76,7 +76,7 @@ export default function VendorProjectsPage() {
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch(`/api/projects?per_page=${PAGE_SIZE}&page=${page}`);
+      const res = await apiFetch(`/api/vendor/projects?per_page=${PAGE_SIZE}&page=${page}`);
       if (res.ok) {
         const data = await res.json();
         setProjects(data.data || []);

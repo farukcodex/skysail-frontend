@@ -307,7 +307,7 @@ export default function NewsFeedPage() {
     try {
       setLoading(true);
       setPlayingVideoId(null);
-      const res = await apiFetch(`/api/posts?page=${page}&search=${search}&type=${type}&media_type=${mediaType}`);
+      const res = await apiFetch(`/api/client/posts?page=${page}&search=${search}&type=${type}&media_type=${mediaType}`);
       if (res.ok) {
         const data = await res.json();
         setPosts(data.data || []);

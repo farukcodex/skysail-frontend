@@ -57,8 +57,8 @@ export default function VendorDocumentsPage() {
     setIsLoadingDocs(true);
     try {
       const [docsRes, projRes] = await Promise.all([
-        apiFetch("/api/documents"),
-        apiFetch("/api/projects?all=1")
+        apiFetch("/api/vendor/documents"),
+        apiFetch("/api/vendor/projects?all=1")
       ]);
       
       if (docsRes.ok) {
@@ -138,7 +138,7 @@ export default function VendorDocumentsPage() {
     if (docNote) formData.append("note", docNote);
 
     try {
-      const res = await apiFetch("/api/documents", {
+      const res = await apiFetch("/api/vendor/documents", {
         method: "POST",
         body: formData,
       });

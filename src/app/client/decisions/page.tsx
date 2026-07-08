@@ -62,7 +62,7 @@ export default function DecisionsPage() {
   const fetchDecisions = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch("/api/decisions");
+      const res = await apiFetch("/api/client/decisions");
       if (res.ok) {
         const data = await res.json();
         setDecisions(data.data || []);
@@ -83,7 +83,7 @@ export default function DecisionsPage() {
 
   const handleApprove = async (id: number) => {
     try {
-      const res = await apiFetch(`/api/decisions/${id}/client-approve`, { method: "POST" });
+      const res = await apiFetch(`/api/client/decisions/${id}/approve`, { method: "POST" });
       if (res.ok) {
         toast.success("Decision approved");
         fetchDecisions();
@@ -97,7 +97,7 @@ export default function DecisionsPage() {
 
   const handleReject = async (id: number) => {
     try {
-      const res = await apiFetch(`/api/decisions/${id}/client-reject`, { method: "POST" });
+      const res = await apiFetch(`/api/client/decisions/${id}/reject`, { method: "POST" });
       if (res.ok) {
         toast.success("Decision rejected");
         fetchDecisions();

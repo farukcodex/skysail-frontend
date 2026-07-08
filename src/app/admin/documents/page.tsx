@@ -15,7 +15,7 @@ import {
 import { useRef, useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
-import { ProjectCombobox } from "../updates/ProjectCombobox";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 

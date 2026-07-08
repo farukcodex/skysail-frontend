@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
-import { ProjectCombobox, ProjectFilterCombobox } from "./ProjectCombobox";
+import { ProjectCombobox, ProjectFilterCombobox } from "@/components/shared/ProjectCombobox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -443,7 +443,8 @@ export default function PostUpdatesPage() {
   const [updateType, setUpdateType] = useState(UPDATE_TYPES[0]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [notify, setNotify] = useState(false);
+  const [sendPush, setSendPush] = useState(false);
+  const [sendEmail, setSendEmail] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -553,8 +554,9 @@ export default function PostUpdatesPage() {
       formData.append("project_id", client);
       formData.append("update_type", updateType);
       formData.append("title", title);
-      formData.append("description", body);
-      formData.append("notify", notify ? "1" : "0");
+      if (body.trim()) formData.append("description", body);
+      formData.append("send_push", sendPush ? "1" : "0");
+      formData.append("send_email", sendEmail ? "1" : "0");
 
       mediaFiles.forEach((file) => {
         formData.append("media[]", file);
@@ -600,7 +602,8 @@ export default function PostUpdatesPage() {
       setTitle("");
       setBody("");
       setMediaFiles([]);
-      setNotify(false);
+      setSendPush(false);
+      setSendEmail(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -733,10 +736,10 @@ export default function PostUpdatesPage() {
               placeholder="Search updates by title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full max-w-sm bg-secondary/50 border-none rounded-lg px-4 py-2 text-sm focus:outline-none"
+              className="w-full max-w-sm bg-secondary/50 border-none rounded-lg px-4 py-2 text-sm focus:outline-none h-[56px]"
             />
-            <div className="w-full sm:w-[220px]">
-              <ProjectFilterCombobox projects={projects} value={filterProject} onChange={setFilterProject} />
+            <div className="w-full sm:w-[300px]">
+              <ProjectCombobox projects={projects} value={filterProject} onChange={setFilterProject} />
             </div>
           </div>
         )}
@@ -1007,26 +1010,44 @@ export default function PostUpdatesPage() {
                         </div>
                       )}
 
-                      {/* Push notification toggle */}
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">Send push notification?</p>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={notify}
-                          onClick={() => setNotify((v) => !v)}
-                          className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                          style={{ backgroundColor: notify ? "#1a1a1a" : "#e5e7eb" }}
-                        >
-                          <span
-                            className="inline-block size-5 rounded-full bg-white shadow transition-transform"
-                            style={{
-                              transform: notify
-                                ? "translateX(22px)"
-                                : "translateX(2px)",
-                            }}
-                          />
-                        </button>
+                      {/* Notification toggles */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">Send push notification?</p>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={sendPush}
+                            onClick={() => setSendPush((v) => !v)}
+                            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                            style={{ backgroundColor: sendPush ? "#1a1a1a" : "#e5e7eb" }}
+                          >
+                            <span
+                              className="inline-block size-5 rounded-full bg-white shadow transition-transform"
+                              style={{
+                                transform: sendPush ? "translateX(22px)" : "translateX(2px)",
+                              }}
+                            />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">Send email notification?</p>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={sendEmail}
+                            onClick={() => setSendEmail((v) => !v)}
+                            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                            style={{ backgroundColor: sendEmail ? "#1a1a1a" : "#e5e7eb" }}
+                          >
+                            <span
+                              className="inline-block size-5 rounded-full bg-white shadow transition-transform"
+                              style={{
+                                transform: sendEmail ? "translateX(22px)" : "translateX(2px)",
+                              }}
+                            />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Publish button */}

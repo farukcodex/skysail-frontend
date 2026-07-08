@@ -45,7 +45,7 @@ export function ProjectCombobox({
           <button
             type="button"
             className={cn(
-              "flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 h-[56px] text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40",
+              "flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 min-h-[56px] h-auto py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40",
               !selectedProject && "text-muted-foreground"
             )}
           >
@@ -57,12 +57,15 @@ export function ProjectCombobox({
                     {selectedProject.client?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                  <span className="text-sm font-semibold leading-none truncate text-foreground w-full text-left">
-                    {selectedProject.client} - {selectedProject.name}
+                <div className="flex flex-col items-start min-w-0 flex-1">
+                  <span className="text-sm font-semibold leading-tight whitespace-normal break-words text-foreground w-full text-left">
+                    {selectedProject.name}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5 whitespace-normal break-words w-full text-left">
+                    {selectedProject.client}
                   </span>
                   {selectedProject.email && (
-                    <span className="text-[10px] text-muted-foreground mt-1 truncate w-full text-left">
+                    <span className="text-[10px] text-muted-foreground opacity-80 whitespace-normal break-words w-full text-left">
                       {selectedProject.email}
                     </span>
                   )}
@@ -76,7 +79,7 @@ export function ProjectCombobox({
             <ChevronDown size={16} className="text-muted-foreground opacity-50 shrink-0 ml-2" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <PopoverContent className="p-0 w-auto" style={{ width: "var(--radix-popover-trigger-width)" }} align="start">
           <Command>
             <CommandInput placeholder="Search by project, client, or email..." />
             <CommandList>
@@ -115,11 +118,14 @@ export function ProjectCombobox({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-sm font-semibold leading-none truncate">
-                        {project.client} - {project.name}
+                      <span className="text-sm font-semibold leading-tight whitespace-normal break-words">
+                        {project.name}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground mt-0.5 whitespace-normal break-words">
+                        {project.client}
                       </span>
                       {project.email && (
-                        <span className="text-[10px] text-muted-foreground mt-1 truncate">
+                        <span className="text-[10px] text-muted-foreground opacity-80 whitespace-normal break-words">
                           {project.email}
                         </span>
                       )}
@@ -181,7 +187,7 @@ export function ProjectFilterCombobox({
           <ChevronDown size={14} className="opacity-50 shrink-0 ml-2" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0" align="end">
+      <PopoverContent className="w-[calc(100vw-32px)] sm:w-[300px] p-0" align="end">
         <Command>
           <CommandInput placeholder="Filter by client..." />
           <CommandList>

@@ -13,6 +13,8 @@ import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const DOC_FILTER_TABS = ["Pending", "Approved", "Rejected", "All"] as const;
 type DocFilterTab = (typeof DOC_FILTER_TABS)[number];
@@ -65,6 +67,9 @@ interface MilestoneRow {
 interface Project {
   id: number;
   name: string;
+  client: string;
+  email?: string;
+  clientAvatar?: string;
   vendors: Vendor[];
 }
 
@@ -174,14 +179,12 @@ function DocPreviewCard({ doc, onApprove, onReject }: { doc: VendorDoc, onApprov
           Uploaded by
         </span>
         <div className="flex flex-row items-center gap-[12px] w-full h-[50px]">
-          <Image
-            src={doc.uploader_avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${doc.uploader_name}&size=40&backgroundColor=b6e3f4`}
-            alt={doc.uploader_name || "User"}
-            width={40}
-            height={40}
-            className="rounded-[37px] border border-[#C4C7C7] object-cover bg-[#F1EDEC] shrink-0"
-            unoptimized
-          />
+          <Avatar className="size-10 shrink-0 border border-[#C4C7C7]">
+            <AvatarImage src={doc.uploader_avatar || undefined} alt={doc.uploader_name || "User"} />
+            <AvatarFallback className="text-sm font-semibold bg-secondary text-foreground">
+              {doc.uploader_name?.[0] || 'U'}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex flex-col justify-center items-start gap-1">
             <div className="flex flex-row items-center gap-1">
               <span className="font-bold text-[16px] leading-[22px] tracking-[0.2px] text-black dark:text-white font-sans truncate max-w-[200px]">
@@ -299,14 +302,12 @@ function DecisionCard({ decision, onApprove, onReject }: { decision: DecisionRow
                 Uploaded by
               </span>
               <div className="flex flex-row items-center gap-[12px] w-full h-[50px]">
-                <Image
-                  src={decision.creator_avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${decision.creator_name}&size=40&backgroundColor=b6e3f4`}
-                  alt={decision.creator_name || "User"}
-                  width={40}
-                  height={40}
-                  className="box-border w-[40px] h-[40px] rounded-[37px] border border-[#C4C7C7] object-cover bg-[#F1EDEC] shrink-0"
-                  unoptimized
-                />
+                <Avatar className="size-10 shrink-0 border border-[#C4C7C7]">
+                  <AvatarImage src={decision.creator_avatar || undefined} alt={decision.creator_name || "User"} />
+                  <AvatarFallback className="text-sm font-semibold bg-secondary text-foreground">
+                    {decision.creator_name?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex flex-col items-start gap-[4px] flex-1 justify-center h-[50px]">
                   <span className="font-['Manrope'] font-bold text-[16px] leading-[22px] tracking-[0.2px] text-[#000000] dark:text-white truncate max-w-[200px] flex items-center h-[22px]">
                     {decision.creator_name || "Unknown"}
@@ -557,9 +558,9 @@ export default function VendorUploadPage() {
     setIsLoading(true);
     try {
       const [docsRes, msRes, decRes] = await Promise.all([
-        apiFetch(`/api/documents`),
+        apiFetch(`/api/admin/documents`),
         apiFetch(`/api/admin/milestones`),
-        apiFetch(`/api/decisions`)
+        apiFetch(`/api/admin/decisions`)
       ]);
       const docsData = await docsRes.json();
       const msData = await msRes.json();
@@ -722,36 +723,30 @@ export default function VendorUploadPage() {
             <p className="text-sm text-muted-foreground mt-1">Review and manage vendor documents and milestones.</p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 bg-secondary/40 border border-border rounded-xl px-3 py-1.5">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2 bg-secondary/40 border border-border rounded-xl px-3 py-1.5 self-start sm:self-auto">
               <Filter size={14} className="text-muted-foreground" />
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
             </div>
-            <div className="relative">
-              <select
-                value={selectedProjectId}
-                onChange={(e) => {
-                  setSelectedProjectId(e.target.value === "all" ? "all" : parseInt(e.target.value));
+            <div className="w-full sm:w-[300px]">
+              <ProjectCombobox
+                projects={projects}
+                value={selectedProjectId.toString()}
+                onChange={(val) => {
+                  setSelectedProjectId(val === "all" ? "all" : parseInt(val));
                   setDocPage(1);
                 }}
-                className="appearance-none bg-background border border-border rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition min-w-[160px]"
-              >
-                <option value="all">All Projects</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              />
             </div>
 
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={selectedVendorRole}
                 onChange={(e) => {
                   setSelectedVendorRole(e.target.value);
                   setDocPage(1);
                 }}
-                className="appearance-none bg-background border border-border rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition min-w-[160px]"
+                className="w-full appearance-none bg-background border border-border rounded-xl px-4 py-2.5 h-[56px] pr-10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition sm:min-w-[160px]"
               >
                 <option value="all">All Vendor Roles</option>
                 {VENDOR_ROLES.map((r) => (
@@ -764,7 +759,7 @@ export default function VendorUploadPage() {
         </div>
 
         {/* Doc filter tabs */}
-        <div className="relative flex gap-0 border-b border-border mt-2">
+        <div className="relative flex gap-0 border-b border-border mt-2 overflow-x-auto no-scrollbar">
           {DOC_FILTER_TABS.map((tab) => (
             <button
               key={tab}
@@ -773,7 +768,7 @@ export default function VendorUploadPage() {
                 setActiveDocTab(tab);
                 setDocPage(1);
               }}
-              className="relative px-6 py-3 text-sm font-semibold transition-colors z-10"
+              className="relative px-4 sm:px-6 py-3 text-sm font-semibold transition-colors z-10 whitespace-nowrap shrink-0"
               style={{
                 color:
                   activeDocTab === tab

@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ProjectCombobox } from "../updates/ProjectCombobox";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -63,13 +63,13 @@ function RiskCard({
   return (
     <div className="rounded-2xl border border-border p-5 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-1 min-w-0">
-          <p className="text-sm font-bold leading-snug">{risk.title}</p>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="text-[10px] uppercase font-semibold text-[#C49A3C]">{risk.project_name}</span>
-            <span>&bull;</span>
-            <Calendar size={11} />
-            <span className="text-[11px]">{risk.date}</span>
+        <div className="flex flex-col gap-1 min-w-0 flex-1">
+          <p className="text-sm font-bold leading-snug break-words">{risk.title}</p>
+          <div className="flex items-center gap-1.5 text-muted-foreground overflow-hidden">
+            <span className="text-[10px] uppercase font-semibold text-[#C49A3C] truncate">{risk.project_name}</span>
+            <span className="shrink-0">&bull;</span>
+            <Calendar size={11} className="shrink-0" />
+            <span className="text-[11px] shrink-0">{risk.date}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -105,7 +105,7 @@ function RiskCard({
           </DropdownMenu>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">{risk.body}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed break-words">{risk.body}</p>
     </div>
   );
 }
@@ -248,7 +248,7 @@ export default function RisksPage() {
         {/* Two-column grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-start">
           {/* LEFT — risk list */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 min-w-0">
             {isLoading ? (
                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-muted-foreground" size={24} /></div>
             ) : risks.length === 0 ? (
@@ -287,7 +287,7 @@ export default function RisksPage() {
 
                 {/* Pagination */}
                 {allPageable.length > PAGE_SIZE && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-4 mt-2">
                     <p className="text-xs text-muted-foreground">
                       Showing{" "}
                       <span className="font-semibold text-foreground">
@@ -302,9 +302,9 @@ export default function RisksPage() {
                         type="button"
                         disabled={page === 1}
                         onClick={() => setPage((p) => p - 1)}
-                        className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="size-8 sm:size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
-                        <ChevronLeft size={13} />
+                        <ChevronLeft size={14} />
                       </button>
 
                       {pageNumbers(page, totalPages).map((p, i) =>
@@ -320,7 +320,7 @@ export default function RisksPage() {
                             key={p}
                             type="button"
                             onClick={() => setPage(p as number)}
-                            className="size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
+                            className="size-8 sm:size-7 flex items-center justify-center rounded-lg text-xs font-semibold border transition-colors"
                             style={
                               page === p
                                 ? { backgroundColor: GOLD, color: "#fff", borderColor: GOLD }
@@ -336,9 +336,9 @@ export default function RisksPage() {
                         type="button"
                         disabled={page === totalPages}
                         onClick={() => setPage((p) => p + 1)}
-                        className="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="size-8 sm:size-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
-                        <ChevronRight size={13} />
+                        <ChevronRight size={14} />
                       </button>
                     </div>
                   </div>

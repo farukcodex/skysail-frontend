@@ -54,7 +54,7 @@ export function AppSidebar() {
   }, []);
 
   const getAvatarUrl = (path: string | null, name: string) => {
-    if (!path) return `https://api.dicebear.com/10.x/micah/svg?seed=${name?.replace(/ /g, '') || 'Client'}&backgroundColor=b6e3f4`;
+    if (!path) return undefined;
     if (path.startsWith('http')) return path;
     const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
     return `${baseUrl}/storage/${path}`;

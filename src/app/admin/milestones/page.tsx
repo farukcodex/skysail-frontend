@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { ModalShell } from "@/components/shared/ModalShell";
 import { Field } from "@/components/shared/Field";
 import { VendorCombobox } from "./VendorCombobox";
-import { ProjectCombobox } from "../updates/ProjectCombobox";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 import { ManageVendorsModal } from "@/app/admin/projects/components/ManageVendorsModal";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -319,9 +319,9 @@ export default function MilestonesPage() {
               Update phase completion and key dates
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3">
             {projects.length > 0 && (
-              <div className="w-[300px]">
+              <div className="w-full sm:w-[300px]">
                 <ProjectCombobox
                   projects={projects as any}
                   value={String(selectedProjectId)}
@@ -351,63 +351,68 @@ export default function MilestonesPage() {
               </span>
             </div>
 
-            {/* Column headers */}
-            <div className="grid grid-cols-[48px_1fr_100px_110px_100px_80px] px-5 py-2 border-y border-border bg-secondary/30">
-              {["PH", "PHASE NAME", "COMPLETE %", "STATUS", "TARGET", "ACTION"].map(
-                (h) => (
-                  <p
-                    key={h}
-                    className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground"
-                  >
-                    {h}
-                  </p>
-                ),
-              )}
-            </div>
+            {/* Table Scroll Container */}
+            <div className="overflow-x-auto">
+              <div className="min-w-[650px]">
+                {/* Column headers */}
+                <div className="grid grid-cols-[48px_1fr_100px_110px_100px_80px] px-5 py-2 border-y border-border bg-secondary/30">
+                  {["PH", "PHASE NAME", "COMPLETE %", "STATUS", "TARGET", "ACTION"].map(
+                    (h) => (
+                      <p
+                        key={h}
+                        className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground"
+                      >
+                        {h}
+                      </p>
+                    ),
+                  )}
+                </div>
 
-            {/* Rows */}
-            <div className="flex flex-col divide-y divide-border flex-1">
-              {isLoading ? (
-                <div className="flex-1 flex justify-center items-center py-20">
-                  <Loader2 className="animate-spin text-muted-foreground" size={32} />
-                </div>
-              ) : milestones.length === 0 ? (
-                <div className="flex-1 flex justify-center items-center py-20 text-muted-foreground text-sm">
-                  No milestones found.
-                </div>
-              ) : milestones.map((m) => (
-                <div
-                  key={m.id}
-                  className="grid grid-cols-[48px_1fr_100px_110px_100px_80px] px-5 py-4 items-center hover:bg-secondary/20 transition-colors"
-                >
-                  <p className="text-sm text-muted-foreground font-medium">
-                    {String(m.phase).padStart(2, "0")}
-                  </p>
-                  <p className="text-sm font-semibold pr-2">{m.name}</p>
-                  <p className="text-sm font-semibold">{m.completion_percent}%</p>
-                  <div>
-                    <StatusPill status={m.status} />
-                    {m.assignee_name && <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-[100px]">Assigned: {m.assignee_name}</p>}
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">{m.target_date || "TBD"}</p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      aria-label={`Edit ${m.name}`}
-                      onClick={() => {
-                        setIsUnlocked(false);
-                        setSelectedMilestoneId(m.id);
-                        setCompletion(m.completion_percent.toString());
-                        setStatus(m.status);
-                        setTargetDate(m.target_date || "");
-                      }}
-                      className="flex items-center justify-center size-8 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                {/* Rows */}
+                <div className="flex flex-col divide-y divide-border flex-1">
+                  {isLoading ? (
+                    <div className="flex-1 flex justify-center items-center py-20">
+                      <Loader2 className="animate-spin text-muted-foreground" size={32} />
+                    </div>
+                  ) : milestones.length === 0 ? (
+                    <div className="flex-1 flex justify-center items-center py-20 text-muted-foreground text-sm">
+                      No milestones found.
+                    </div>
+                  ) : milestones.map((m) => (
+                    <div
+                      key={m.id}
+                      className="grid grid-cols-[48px_1fr_100px_110px_100px_80px] px-5 py-4 items-center hover:bg-secondary/20 transition-colors"
                     >
-                      <Pencil size={14} />
-                    </button>
-                  </div>
+                      <p className="text-sm text-muted-foreground font-medium">
+                        {String(m.phase).padStart(2, "0")}
+                      </p>
+                      <p className="text-sm font-semibold pr-2">{m.name}</p>
+                      <p className="text-sm font-semibold">{m.completion_percent}%</p>
+                      <div>
+                        <StatusPill status={m.status} />
+                        {m.assignee_name && <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-[100px]">Assigned: {m.assignee_name}</p>}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{m.target_date || "TBD"}</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${m.name}`}
+                          onClick={() => {
+                            setIsUnlocked(false);
+                            setSelectedMilestoneId(m.id);
+                            setCompletion(m.completion_percent.toString());
+                            setStatus(m.status);
+                            setTargetDate(m.target_date || "");
+                          }}
+                          className="flex items-center justify-center size-8 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 

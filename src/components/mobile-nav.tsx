@@ -50,7 +50,7 @@ export function MobileNav() {
 
   const getAvatarUrl = (path: string | null, name: string) => {
     const defaultName = isEffectiveAdmin ? 'Admin' : (isEffectiveVendor ? 'Vendor' : 'Client');
-    if (!path) return `https://api.dicebear.com/10.x/micah/svg?seed=${name?.replace(/ /g, '') || defaultName}&backgroundColor=b6e3f4`;
+    if (!path) return undefined;
     if (path.startsWith('http')) return path;
     const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8007";
     return `${baseUrl}/storage/${path}`;

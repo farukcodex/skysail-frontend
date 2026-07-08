@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { ViewNotificationModal } from "@/components/shared/ViewNotificationModal";
@@ -77,6 +78,7 @@ export default function NotificationsPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [viewNotification, setViewNotification] = useState<DatabaseNotification | null>(null);
+  const router = useRouter();
 
   const fetchNotifications = async (p: number) => {
     setIsLoading(true);
@@ -237,6 +239,9 @@ export default function NotificationsPage() {
                                 e.stopPropagation();
                                 if (isUnread) {
                                   handleMarkAsRead(n.id);
+                                }
+                                if (n.data.action?.url) {
+                                  router.push(n.data.action.url);
                                 }
                               }}
                             >

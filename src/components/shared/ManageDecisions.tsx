@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { ImageViewer } from "@/components/shared/ImageViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ProjectCombobox } from "@/app/admin/updates/ProjectCombobox";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 10;
@@ -229,7 +229,7 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
             </p>
           </div>
 
-          <div className="relative flex gap-0 border-b border-border mb-6">
+          <div className="relative flex gap-0 border-b border-border mb-6 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
             {TABS.map((tab) => (
               <button
                 key={tab}

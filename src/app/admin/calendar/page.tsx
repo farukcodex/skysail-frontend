@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { getEchoInstance } from "@/lib/echo";
 import { toast } from "sonner";
-import { ProjectCombobox } from "../updates/ProjectCombobox";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 
 // --- Data & Types ------------------------------------------------------------
 
@@ -44,6 +44,9 @@ interface Meeting {
   rescheduleReason?: string;
   rescheduleProposedDate?: string;
   rescheduleProposedTimezone?: string;
+  rawDate?: string;
+  rawTime?: string;
+  projectId?: number;
 }
 
 const AVATAR = "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=32&backgroundColor=b6e3f4";
@@ -78,6 +81,20 @@ function mapBackendMeeting(m: any): Meeting {
   const createdDate = new Date(m.created_at);
   const formattedCreated = `Scheduled on ${createdDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at ${createdDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
 
+  let rawDate = "";
+  let rawTime = "";
+  if (typeof m.date === "string") {
+    const parts = m.date.split(" ");
+    if (parts.length >= 2) {
+      rawDate = parts[0];
+      rawTime = parts[1].substring(0, 5);
+    } else if (m.date.includes("T")) {
+      const parts = m.date.split("T");
+      rawDate = parts[0];
+      rawTime = parts[1].substring(0, 5);
+    }
+  }
+
   return {
     id: m.id,
     month: d.toLocaleString("en-US", { month: "short", year: "numeric" }).toUpperCase(),
@@ -99,6 +116,9 @@ function mapBackendMeeting(m: any): Meeting {
     rescheduleReason: m.reschedule_reason,
     rescheduleProposedDate: m.reschedule_proposed_date,
     rescheduleProposedTimezone: m.reschedule_proposed_timezone,
+    rawDate,
+    rawTime,
+    projectId: m.project_id,
   };
 }
 
@@ -218,7 +238,7 @@ function MeetingCard({ meeting, onApproveReschedule, onDeclineReschedule, onProp
               {meeting.type === "zoom" ? "Join Zoom" : "Join Meet"}
             </a>
           )}
-          {!isReschedule && onEdit && (
+          {meeting.status === 'confirmed' && onEdit && (
             <button type="button" onClick={() => onEdit(meeting)} className="flex flex-col justify-center items-center px-4 py-2 h-[38px] border border-[#C4C7C7] text-[#1C1B1B] text-sm font-semibold w-full xl:w-auto min-w-[117px] bg-transparent hover:bg-black/5 transition-colors">Edit</button>
           )}
         </div>
@@ -511,17 +531,14 @@ export default function CalendarPage() {
     setEditingId(m.id);
     setMeetTitle(m.title);
     setMeetingType(m.type);
-    
-    // Parse out raw date from DB, or mapBackendMeeting should return it
-    // Wait, m.date is lost, mapBackendMeeting only gives month/day/dayName.
-    // I will extract date and time properly from the raw meeting object, but for now I can just clear it or make the user pick again.
-    // Actually, I can just use `fetchMeetings` to fetch the raw meeting or extract it from the local state if I stored it.
-    // Let us just reset it to empty for date/time to force them to pick the new proposed time.
-    setDate("");
-    setTime("");
+    setDate(m.rawDate || "");
+    setTime(m.rawTime || "");
     setTimezone(m.timezone || "America/New_York");
     setLink(m.joinLink || "");
     setAddress(m.location || "");
+    if (m.projectId) {
+      setFormProjectId(m.projectId.toString());
+    }
   };
 
   const handleCancelEdit = () => {
@@ -531,6 +548,9 @@ export default function CalendarPage() {
     setTime("");
     setLink("");
     setAddress("");
+    if (projects.length > 0) {
+      setFormProjectId(projects[0].id.toString());
+    }
   };
 
   return (

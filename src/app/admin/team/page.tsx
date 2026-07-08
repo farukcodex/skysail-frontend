@@ -11,7 +11,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api";
-import { ProjectCombobox } from "../updates/ProjectCombobox";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 

@@ -37,10 +37,11 @@ type Message = {
   file_size?: number | null;
   file_url?: string | null;
   is_read: boolean;
+  is_edited?: boolean;
   created_at: string;
 };
 
-export default function VendorMessagesPage() {
+export function UserChat({ role }: { role: "client" | "vendor" }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -168,6 +169,21 @@ export default function VendorMessagesPage() {
               ),
             );
           })
+          .listen("MessageUpdated", (e: { message: Message }) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === e.message.id ? e.message : m)),
+            );
+          })
+          .listen(
+            "MessageDeleted",
+            (e: {
+              messageId: number;
+              senderId: number;
+              receiverId: number;
+            }) => {
+              setMessages((prev) => prev.filter((m) => m.id !== e.messageId));
+            },
+          )
           .listen(".UserTyping", (e: { senderId: number }) => {
             setIsTyping(true);
             setTimeout(() => {
@@ -428,6 +444,11 @@ export default function VendorMessagesPage() {
                     {msg.message && (
                       <div className="rounded-2xl rounded-tl-sm bg-background border border-border px-4 py-3 text-sm break-all whitespace-pre-wrap">
                         {msg.message}
+                        {msg.is_edited && (
+                          <span className="text-[10px] text-muted-foreground ml-2 italic">
+                            (edited)
+                          </span>
+                        )}
                       </div>
                     )}
                     <p className="text-[10px] text-muted-foreground mt-1 ml-1">

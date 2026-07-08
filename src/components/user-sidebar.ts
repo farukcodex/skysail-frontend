@@ -1,4 +1,3 @@
-
 import {
   LayoutDashboard,
   Rss,
@@ -9,6 +8,7 @@ import {
   Calendar,
   FileText,
   Users,
+  MessageSquare,
 } from "lucide-react";
 type NavItem = {
   label: string;
@@ -42,6 +42,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: "Calendar", href: "/client/calendar", icon: Calendar },
       { label: "Documents", href: "/client/documents", icon: FileText },
+      { label: "Messages", href: "/client/messages", icon: MessageSquare },
       { label: "Team", href: "/client/team", icon: Users },
     ],
   },

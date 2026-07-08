@@ -6,6 +6,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { getToken, setAuth, getUser } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
+import { Editor } from "primereact/editor";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -68,14 +69,15 @@ function FieldGroup({
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-type Tab = "edit" | "password";
+type Tab = "edit" | "password" | "privacy" | "terms";
 
-export default function ProfilePage() {
+export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("edit");
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Form states
+  // Form states (Profile)
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -86,33 +88,72 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Form states (Admin Settings)
+  const [privacyText, setPrivacyText] = useState<string>("");
+  const [termsText, setTermsText] = useState<string>("");
+  const [privacyDate, setPrivacyDate] = useState<string>("Loading...");
+  const [termsDate, setTermsDate] = useState<string>("Loading...");
+
   const [isSaving, setIsSaving] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchProfile = async () => {
+  const fetchInitialData = async () => {
     try {
       const token = getToken();
       if (!token) return;
+      const currentUser = getUser();
+      const isAdminUser = currentUser?.role === "admin";
+      setIsAdmin(isAdminUser);
+
+      // Fetch profile
       const res = await apiFetch(`/api/profile`);
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         setUserProfile(data.data);
         setName(data.data.name || "");
         setEmail(data.data.email || "");
         setPhone(data.data.phone || "");
         setPhotoPreview(data.data.profile_photo_url || "");
       }
+
+      // If admin, fetch privacy and terms
+      if (isAdminUser) {
+        const [privacyRes, termsRes] = await Promise.all([
+          apiFetch("/api/privacy"),
+          apiFetch("/api/terms")
+        ]);
+
+        if (privacyRes.ok) {
+          const privacyData = await privacyRes.json();
+          setPrivacyText(privacyData.data.content || "");
+          if (privacyData.data.updated_at) {
+            setPrivacyDate(new Date(privacyData.data.updated_at).toLocaleString());
+          } else {
+            setPrivacyDate("Not updated yet");
+          }
+        }
+        
+        if (termsRes.ok) {
+          const termsData = await termsRes.json();
+          setTermsText(termsData.data.content || "");
+          if (termsData.data.updated_at) {
+            setTermsDate(new Date(termsData.data.updated_at).toLocaleString());
+          } else {
+            setTermsDate("Not updated yet");
+          }
+        }
+      }
     } catch (error) {
       console.error(error);
-      toast.error("Failed to load profile.");
+      toast.error("Failed to load settings data.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProfile();
+    fetchInitialData();
   }, []);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,13 +170,13 @@ export default function ProfilePage() {
     try {
       const token = getToken();
       const formData = new FormData();
-      formData.append("_method", "PATCH"); // Laravel multipart spoofing
+      formData.append("_method", "PATCH");
       formData.append("name", name);
       if (phone) formData.append("phone", phone);
       if (photoFile) formData.append("profile_photo", photoFile);
 
       const res = await apiFetch(`/api/profile`, {
-        method: "POST", // Must be POST with _method=PATCH for FormData
+        method: "POST",
         body: formData,
       });
       const data = await res.json();
@@ -143,7 +184,6 @@ export default function ProfilePage() {
       
       toast.success(data.message || "Profile updated successfully.");
       
-      // Refresh context user if needed
       const currentUser = getUser();
       if (currentUser) {
         setAuth(token as string, { ...currentUser, ...data.data.user }, !!localStorage.getItem("token"));
@@ -168,8 +208,8 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           current_password: currentPassword,
-          password: newPassword,
-          password_confirmation: confirmPassword,
+          new_password: newPassword,
+          new_password_confirmation: confirmPassword,
         }),
       });
       const data = await res.json();
@@ -186,6 +226,39 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSaveLegal = async () => {
+    setIsSaving(true);
+    const endpoint = tab === "privacy" ? "/api/admin/privacy" : "/api/admin/terms";
+    const content = tab === "privacy" ? privacyText : termsText;
+    
+    try {
+      const res = await apiFetch(endpoint, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message || "Saved successfully");
+        const dateStr = data.data?.updated_at ? new Date(data.data.updated_at).toLocaleString() : new Date().toLocaleString();
+        if (tab === "privacy") {
+          setPrivacyDate(dateStr);
+        } else {
+          setTermsDate(dateStr);
+        }
+      } else {
+        toast.error("Failed to save changes");
+      }
+    } catch (err) {
+      toast.error("An error occurred while saving");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-dvh bg-background items-center justify-center">
@@ -196,65 +269,72 @@ export default function ProfilePage() {
 
   const defaultAvatar = `https://api.dicebear.com/9.x/initials/svg?seed=${name || "User"}`;
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "edit", label: "Edit Profile" },
+    { key: "password", label: "Change Password" },
+  ];
+
+  if (isAdmin) {
+    tabs.push({ key: "privacy", label: "Privacy Policy" });
+    tabs.push({ key: "terms", label: "Terms & Conditions" });
+  }
+
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-      <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6 max-w-3xl w-full mx-auto">
+      <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6 max-w-4xl w-full mx-auto">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Profile Manage</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage your Profile
+            Manage your profile and preferences
           </p>
         </div>
 
         {/* Avatar row */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <div className="size-16 rounded-full overflow-hidden border border-border shrink-0 bg-muted relative">
-              <Image
-                src={photoPreview || defaultAvatar}
-                alt={name || "User avatar"}
-                fill
-                className="object-cover"
-                unoptimized
-              />
+        {(tab === "edit" || tab === "password") && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="size-16 rounded-full overflow-hidden border border-border shrink-0 bg-muted relative">
+                <Image
+                  src={photoPreview || defaultAvatar}
+                  alt={name || "User avatar"}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-base font-bold truncate">{name}</p>
+                <p className="text-sm text-muted-foreground truncate">{email}</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-base font-bold truncate">{name}</p>
-              <p className="text-sm text-muted-foreground truncate">{email}</p>
-            </div>
+            
+            <input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handlePhotoChange} 
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="sm:ml-auto w-fit flex items-center justify-center gap-2 bg-foreground text-background text-xs font-bold tracking-wide px-4 py-2.5 rounded-full hover:opacity-80 transition-opacity shrink-0"
+            >
+              <UploadIcon size={13} />
+              Upload Image
+            </button>
           </div>
-          
-          <input 
-            type="file" 
-            accept="image/*" 
-            className="hidden" 
-            ref={fileInputRef} 
-            onChange={handlePhotoChange} 
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="sm:ml-auto w-fit flex items-center justify-center gap-2 bg-foreground text-background text-xs font-bold tracking-wide px-4 py-2.5 rounded-full hover:opacity-80 transition-opacity shrink-0"
-          >
-            <UploadIcon size={13} />
-            Upload Image
-          </button>
-        </div>
+        )}
 
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-border">
-          {(
-            [
-              { key: "edit", label: "Edit Profile" },
-              { key: "password", label: "Change Password" },
-            ] as { key: Tab; label: string }[]
-          ).map(({ key, label }) => (
+        <div className="flex gap-6 border-b border-border overflow-x-auto no-scrollbar">
+          {tabs.map(({ key, label }) => (
             <button
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className={`pb-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+              className={`pb-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px whitespace-nowrap ${
                 tab === key
                   ? "border-foreground text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -266,8 +346,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Tab content */}
-        {tab === "edit" ? (
-          <form className="flex flex-col gap-5" onSubmit={handleEditProfileSubmit}>
+        {tab === "edit" && (
+          <form className="flex flex-col gap-5 max-w-2xl" onSubmit={handleEditProfileSubmit}>
             <FieldGroup label="Full Name" id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} />
             <FieldGroup
               label="Email Address (Cannot be changed)"
@@ -293,8 +373,10 @@ export default function ProfilePage() {
               {isSaving ? "Saving..." : "Save changes"}
             </button>
           </form>
-        ) : (
-          <form className="flex flex-col gap-5" onSubmit={handleChangePasswordSubmit}>
+        )}
+        
+        {tab === "password" && (
+          <form className="flex flex-col gap-5 max-w-2xl" onSubmit={handleChangePasswordSubmit}>
             <FieldGroup
               label="Current Password"
               id="current-password"
@@ -328,6 +410,37 @@ export default function ProfilePage() {
               {isSaving ? "Updating..." : "Update password"}
             </button>
           </form>
+        )}
+
+        {(tab === "privacy" || tab === "terms") && isAdmin && (
+          <div className="rounded-2xl border border-border overflow-hidden flex flex-col animate-in fade-in duration-200">
+            {/* Card header */}
+            <div className="px-5 py-4 border-b border-border flex flex-col gap-0.5">
+              <p className="text-base font-bold">{tab === "privacy" ? "Privacy Policy" : "Terms and Conditions"}</p>
+              <p className="text-xs text-muted-foreground">{tab === "privacy" ? privacyDate : termsDate}</p>
+            </div>
+
+            {/* PrimeReact Editor */}
+            <div className="p-0 [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-border [&_.ql-container]:border-0 [&_.ql-editor]:min-h-64 [&_.ql-editor]:text-sm">
+              <Editor
+                value={tab === "privacy" ? privacyText : termsText}
+                onTextChange={(e) => tab === "privacy" ? setPrivacyText(e.htmlValue ?? "") : setTermsText(e.htmlValue ?? "")}
+                style={{ border: "none", borderRadius: 0 }}
+              />
+            </div>
+
+            {/* Save button */}
+            <div className="px-5 py-4 border-t border-border">
+              <button
+                type="button"
+                onClick={handleSaveLegal}
+                disabled={isSaving}
+                className="w-full flex items-center justify-center py-4 rounded-2xl bg-foreground text-background text-sm font-bold tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

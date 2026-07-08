@@ -44,7 +44,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       { label: "Risk", href: "/admin/risks", icon: Triangle },
       { label: "Calendar", href: "/admin/calendar", icon: Calendar },
       { label: "Team members", href: "/admin/team", icon: Users },
-      { label: "Setting", href: "/admin/settings", icon: Settings },
+      { label: "Settings", href: "/settings", icon: Settings },
     ],
   },
 ];

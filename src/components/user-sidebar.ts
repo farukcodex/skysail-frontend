@@ -9,6 +9,7 @@ import {
   FileText,
   Users,
   MessageSquare,
+  Settings,
 } from "lucide-react";
 type NavItem = {
   label: string;
@@ -44,6 +45,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Documents", href: "/client/documents", icon: FileText },
       { label: "Messages", href: "/client/messages", icon: MessageSquare },
       { label: "Team", href: "/client/team", icon: Users },
+      { label: "Settings", href: "/settings", icon: Settings },
     ],
   },
 ];

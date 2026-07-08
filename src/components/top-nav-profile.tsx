@@ -59,7 +59,7 @@ export function TopNavProfile({ defaultRole, messagesLink, hideMessages }: { def
     <div className="flex items-center gap-3 border-l border-border pl-4">
       <div className="text-right">
         <Link
-          href="/profile"
+          href="/settings"
           className="text-sm font-bold bg-linear-to-r from-[#C49A3C] to-[#A46909] bg-clip-text text-transparent"
         >
           {user?.name || user?.firstName ? (user?.name || `${user.firstName} ${user.lastName || ''}`) : "User"}

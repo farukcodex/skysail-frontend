@@ -5,6 +5,7 @@ import {
   Milestone,
   CheckCircle,
   MessageSquare,
+  Settings,
 } from "lucide-react";
 
 type NavItem = {
@@ -36,6 +37,11 @@ export const VENDOR_NAV_SECTIONS: NavSection[] = [
         label: "Messages — admin only",
         href: "/vendor/messages",
         icon: MessageSquare,
+      },
+      {
+        label: "Settings",
+        href: "/settings",
+        icon: Settings,
       },
     ],
   },

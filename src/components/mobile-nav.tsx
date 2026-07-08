@@ -35,6 +35,10 @@ export function MobileNav() {
     setUser(getUser());
   }, []);
 
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   const isEffectiveAdmin = isAdminPath || (!isVendorPath && !isClientPath && user?.role === "admin");
   const isEffectiveVendor = isVendorPath || (!isAdminPath && !isClientPath && user?.role && user.role !== "admin" && user.role !== "client");
 

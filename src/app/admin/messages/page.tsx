@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Paperclip,
   Smile,
@@ -73,6 +74,14 @@ const formatBytes = (bytes: number, decimals = 2) => {
 };
 
 export default function AdminMessagesPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-muted-foreground">Loading chat...</div>}>
+      <MessagesContent />
+    </Suspense>
+  );
+}
+
+function MessagesContent() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [input, setInput] = useState("");
@@ -106,6 +115,52 @@ export default function AdminMessagesPage() {
   const [hasMoreVendors, setHasMoreVendors] = useState(false);
   const [loadingVendors, setLoadingVendors] = useState(false);
   const vendorListRef = useRef<HTMLDivElement>(null);
+
+  const searchParams = useSearchParams();
+  const preselectedVendorId = searchParams.get('vendor_id');
+  const preselectedClientId = searchParams.get('client_id');
+
+  useEffect(() => {
+    const fetchUser = async (id: number, type: "vendors" | "clients") => {
+      try {
+        const res = await apiFetch(`/api/admin/${type}/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedVendor(data.data);
+          setActiveTab(type);
+          
+          setVendors(prev => {
+            if (!prev.find(v => v.id === id)) {
+              return [data.data, ...prev];
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch user", err);
+      }
+    };
+
+    if (preselectedVendorId && !selectedVendor) {
+      const vendorId = Number(preselectedVendorId);
+      const vendor = vendors.find((v) => v.id === vendorId);
+      if (vendor) {
+        setSelectedVendor(vendor);
+        setActiveTab("vendors");
+      } else if (!loadingVendors && vendors.length > 0) {
+        fetchUser(vendorId, "vendors");
+      }
+    } else if (preselectedClientId && !selectedVendor) {
+      const clientId = Number(preselectedClientId);
+      const client = vendors.find((v) => v.id === clientId);
+      if (client) {
+        setSelectedVendor(client);
+        setActiveTab("clients");
+      } else if (!loadingVendors && vendors.length > 0) {
+        fetchUser(clientId, "clients");
+      }
+    }
+  }, [preselectedVendorId, preselectedClientId, vendors, selectedVendor, loadingVendors]);
 
   const fetchVendors = async (
     pageNum: number = 1,

@@ -15,6 +15,7 @@ import {
 import { useRef, useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
+import { ProjectCombobox } from "../updates/ProjectCombobox";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,9 @@ type DocStatus = "pending" | "approved" | "rejected";
 interface Project {
   id: number;
   name: string;
+  client: string;
+  email?: string;
+  clientAvatar?: string;
 }
 
 interface AdminDoc {
@@ -253,31 +257,16 @@ export default function DocumentsPage() {
         </div>
 
         {/* Client / Project selector */}
-        <div className="flex flex-col gap-1.5 w-full max-w-sm">
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-            Client / Project
-          </p>
-          <div className="relative">
-            <select
-              value={client}
-              onChange={(e) => {
-                setClient(e.target.value);
-                setPage(1);
-              }}
-              className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
-            >
-              <option value="all">All Projects</option>
-              {projects.map((cp) => (
-                <option key={cp.id} value={cp.id.toString()}>
-                  {cp.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={16}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-            />
-          </div>
+        <div className="w-full max-w-sm z-10 relative">
+          <ProjectCombobox
+            label="Client / Project"
+            projects={projects as any}
+            value={client}
+            onChange={(val) => {
+              setClient(val);
+              setPage(1);
+            }}
+          />
         </div>
 
         {/* Two-column grid */}

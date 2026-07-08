@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, PlusIcon, Loader2, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, PlusIcon, Loader2, Search, MessageSquare } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { AddVendorModal } from "./components/AddVendorModal";
@@ -11,7 +12,7 @@ import { VendorDetailsModal } from "./components/VendorDetailsModal";
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 10;
 
-const VENDOR_TABS = ["Architect", "Designer", "Builder", "General Vendor"] as const;
+const VENDOR_TABS = ["All", "Architect", "Designer", "Builder", "General Vendor"] as const;
 export type VendorTab = (typeof VENDOR_TABS)[number];
 
 export interface Vendor {
@@ -24,10 +25,12 @@ export interface Vendor {
   creationDate: string;
   avatar: string;
   status: string;
+  projects?: { id: number; name: string }[];
+  milestones?: { id: number; name: string; completion_percent: number; status: string; project_name: string | null }[];
 }
 
 export default function VendorsPage() {
-  const [activeTab, setActiveTab] = useState<VendorTab>("Architect");
+  const [activeTab, setActiveTab] = useState<VendorTab>("All");
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -225,6 +228,12 @@ export default function VendorsPage() {
                     >
                       Edit
                     </button>
+                    <Link
+                      href={`/admin/messages?vendor_id=${vendor.id}`}
+                      className="px-4 py-1.5 rounded-full border border-border text-xs font-semibold hover:bg-secondary transition-colors"
+                    >
+                      Message
+                    </Link>
                     <button
                       type="button"
                       onClick={() => handleBlockToggle(vendor.id)}

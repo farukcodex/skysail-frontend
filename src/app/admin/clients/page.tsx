@@ -1,6 +1,7 @@
 "use client";
 
-import { PlusIcon, Loader2, Search } from "lucide-react";
+import { PlusIcon, Loader2, Search, MessageSquare } from "lucide-react";
+import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Pagination } from "@/components/shared/Pagination";
@@ -179,6 +180,12 @@ export default function ClientManagementPage() {
                     >
                       Edit
                     </button>
+                    <Link
+                      href={`/admin/messages?client_id=${client.id}`}
+                      className="px-4 py-1.5 rounded-full border border-border text-xs font-semibold hover:bg-secondary transition-colors"
+                    >
+                      Message
+                    </Link>
                     <button
                       type="button"
                       onClick={() => handleBlockToggle(client.id)}

@@ -66,7 +66,6 @@ export default function ProfileLayout({
             <TopNavProfile 
               defaultRole={getRoleLabel()} 
               messagesLink={getMessagesLink()}
-              hideMessages={role === "client"} 
             />
           </header>
           {children}

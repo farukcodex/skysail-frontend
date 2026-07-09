@@ -54,10 +54,19 @@ function GradientBar(props: Record<string, unknown>) {
   );
 }
 
-export default function BudgetChart() {
+export default function BudgetChart({ data }: { data?: any[] }) {
+  const chartData = data && data.length > 0 ? data : [
+    { month: "JAN", amount: 0 },
+    { month: "FEB", amount: 0 },
+    { month: "MAR", amount: 0 },
+    { month: "APR", amount: 0 },
+    { month: "MAY", amount: 0 },
+    { month: "JUN", amount: 0, active: true },
+  ];
+
   return (
     <ChartContainer config={budgetChartConfig} className="h-28 w-full mt-2">
-      <BarChart data={BUDGET_BARS} barSize={52} barCategoryGap="15%">
+      <BarChart data={chartData} barSize={52} barCategoryGap="15%">
         <XAxis
           dataKey="month"
           axisLine={false}

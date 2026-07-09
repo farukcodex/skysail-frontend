@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ArrowRight,
   Bell,
@@ -14,211 +16,21 @@ import {
   FileText,
   Play,
   Users,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 
 import Chart from "./chart";
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-type MilestoneStatus = "completed" | "inprogress" | "notstart";
-
-interface Milestone {
-  label: string;
-  status: MilestoneStatus;
-  completedBy?: string;
-}
-
-interface NewsItem {
-  id: number;
-  title: string;
-  summary: string;
-  tag: "TODAY" | "YESTERDAY";
-  thumb: string;
-  hasVideo?: boolean;
-}
-
-interface Document {
-  id: number;
-  name: string;
-  size: string;
-}
-
-interface Decision {
-  id: number;
-  title: string;
-  due: string;
-  urgency: "high" | "medium" | "low";
-}
-
-interface TeamMember {
-  id: number;
-  name: string;
-  role: string;
-  avatar: string;
-}
-
-interface Risk {
-  id: number;
-  title: string;
-  detail: string;
-  level: "high" | "medium" | "low";
-}
-
-interface UpcomingEvent {
-  id: number;
-  month: string;
-  day: number;
-  title: string;
-  time: string;
-  location: string;
-  action: "rsvp" | "join";
-}
-
-// ─── Static data ─────────────────────────────────────────────────────────────
-
-const MILESTONES: Milestone[] = [
-  {
-    label: "Site prep & demolition",
-    status: "completed",
-    completedBy: "Anna Keller, Architect",
-  },
-  {
-    label: "Foundation & excavation",
-    status: "completed",
-    completedBy: "Anna Keller, Architect",
-  },
-  { label: "Framing", status: "inprogress" },
-  { label: "MEP Systems", status: "notstart" },
-  { label: "Interior Finishes", status: "notstart" },
-  { label: "Final punch list & handover", status: "notstart" },
-];
-
-const NEWS: NewsItem[] = [
-  {
-    id: 1,
-    title: "Framing photos — week 8 progress",
-    summary:
-      "Main structure completed for west wing. Inspection scheduled for Monday. Timber",
-    tag: "TODAY",
-    thumb: "https://placehold.co/80x80/8B6914/ffffff?text=Frame",
-  },
-  {
-    id: 2,
-    title: "Video walkthrough — second floor",
-    summary:
-      "4 minute high-definition tour of the structural integrity and layout validation of the second floor master suite.",
-    tag: "YESTERDAY",
-    thumb: "https://placehold.co/80x80/1a1a1a/ffffff?text=▶",
-    hasVideo: true,
-  },
-];
-
-const DOCUMENTS: Document[] = [
-  { id: 1, name: "Construction contract — signed", size: "2.1MB" },
-  { id: 2, name: "Architectural plans v3.2", size: "2.1MB" },
-  { id: 3, name: "Budget tracker — May 2025", size: "2.1MB" },
-  { id: 4, name: "Budget tracker — May 2025", size: "2.1MB" },
-];
-
-const DECISIONS: Decision[] = [
-  {
-    id: 1,
-    title: "Primary kitchen tile selection",
-    due: "Overdue by 2 days — please action immediately",
-    urgency: "high",
-  },
-  {
-    id: 2,
-    title: "Window casing profile — master suite",
-    due: "Due May 29 · 6 days left",
-    urgency: "medium",
-  },
-  {
-    id: 3,
-    title: "HVAC system specification sign-off",
-    due: "Due May 29 · 12 days left",
-    urgency: "low",
-  },
-];
-
-const TEAM: TeamMember[] = [
-  {
-    id: 1,
-    name: "Bob Henderson",
-    role: "Owner's Representative",
-    avatar: "https://api.dicebear.com/10.x/micah/svg?seed=Felix",
-  },
-  {
-    id: 2,
-    name: "Bob Henderson",
-    role: "Owner's Representative",
-    avatar: "https://api.dicebear.com/10.x/micah/svg?seed=Felix",
-  },
-  {
-    id: 3,
-    name: "Bob Henderson",
-    role: "Owner's Representative",
-    avatar: "https://api.dicebear.com/10.x/micah/svg?seed=Felix",
-  },
-];
-
-const RISKS: Risk[] = [
-  {
-    id: 1,
-    title: "Lumber delivery delayed 8 days",
-    detail: "May impact framing completion",
-    level: "high",
-  },
-  {
-    id: 2,
-    title: "Window casing profile — master suite",
-    detail: "Due May 29 · 6 days left",
-    level: "medium",
-  },
-  {
-    id: 3,
-    title: "Window casing profile",
-    detail: "Due May 29 · 6 days left",
-    level: "medium",
-  },
-];
-
-const EVENTS: UpcomingEvent[] = [
-  {
-    id: 1,
-    month: "MAY",
-    day: 27,
-    title: "Sitewalkthrough",
-    time: "09:00 AM",
-    location: "On-site",
-    action: "rsvp",
-  },
-  {
-    id: 2,
-    month: "MAY",
-    day: 27,
-    title: "Interior finishes review",
-    time: "09:00 AM",
-    location: "Google Meet · Link ready",
-    action: "join",
-  },
-  {
-    id: 3,
-    month: "JUNE",
-    day: 6,
-    title: "MEP coordination",
-    time: "09:00 AM",
-    location: "On-site",
-    action: "rsvp",
-  },
-];
 
 // ─── Micro-components ─────────────────────────────────────────────────────────
 
@@ -241,7 +53,7 @@ function SectionLink({
   );
 }
 
-function MilestoneRow({ milestone }: { milestone: Milestone }) {
+function MilestoneRow({ milestone }: { milestone: any }) {
   const cfg = {
     completed: {
       icon: (
@@ -270,11 +82,11 @@ function MilestoneRow({ milestone }: { milestone: Milestone }) {
       label: "Not Start",
       labelCls: "text-muted-foreground/50",
     },
-  }[milestone.status];
+  }[milestone.status as "completed" | "inprogress" | "notstart"];
 
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
-      {cfg.icon}
+      {cfg?.icon}
       <div className="flex-1 min-w-0">
         <span
           className={`text-sm ${
@@ -293,12 +105,12 @@ function MilestoneRow({ milestone }: { milestone: Milestone }) {
           </p>
         )}
       </div>
-      <span className={`text-xs shrink-0 ${cfg.labelCls}`}>{cfg.label}</span>
+      <span className={`text-xs shrink-0 ${cfg?.labelCls}`}>{cfg?.label}</span>
     </div>
   );
 }
 
-function RiskDot({ level }: { level: Risk["level"] }) {
+function RiskDot({ level }: { level: string }) {
   return (
     <span
       className={`mt-1 size-2 shrink-0 rounded-full ${
@@ -312,7 +124,7 @@ function RiskDot({ level }: { level: Risk["level"] }) {
   );
 }
 
-function EventActionBtn({ action }: { action: UpcomingEvent["action"] }) {
+function EventActionBtn({ action }: { action: string }) {
   return (
     <button
       type="button"
@@ -330,30 +142,96 @@ function EventActionBtn({ action }: { action: UpcomingEvent["action"] }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+  const fetchDashboardData = useCallback(async (projectId: number | null = null) => {
+    setIsLoading(true);
+    try {
+      let url = "/api/client/dashboard";
+      if (projectId) {
+        url += `?project_id=${projectId}`;
+      }
+      const res = await apiFetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        setData(json.data);
+        if (json.data.activeProject?.id && !selectedProjectId) {
+           setSelectedProjectId(json.data.activeProject.id);
+        }
+      } else {
+        toast.error("Failed to load dashboard data");
+      }
+    } catch (err) {
+      toast.error("An error occurred while fetching data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    fetchDashboardData(selectedProjectId);
+  }, [fetchDashboardData, selectedProjectId]);
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex flex-col min-h-dvh bg-background items-center justify-center">
+        <Loader2 className="animate-spin text-muted-foreground" size={32} />
+      </div>
+    );
+  }
+
+  const projects = data?.projects || [];
+  const activeProject = data?.activeProject || { name: "No Active Project", image: "https://placehold.co/1200x400/1c2b3a/ffffff?text=The+Henderson+Residence" };
+  const stats = data?.stats || {};
+  const news = data?.news || [];
+  const recentDocs = data?.recentDocs || [];
+  const pendingDecisions = data?.pendingDecisions || [];
+  const milestones = data?.milestones || [];
+  const team = data?.team || [];
+  const risks = data?.risks || [];
+  const events = data?.events || [];
+
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       {/* ── Content ── */}
       <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8 flex flex-col gap-6">
-        {/* ── Greeting ── */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Good morning, Bob{" "}
-            <span role="img" aria-label="wave">
-              👋
-            </span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Project started Jan 2025 &bull; Last updated 2 hours ago
-          </p>
+        
+        {/* Header & Project Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Good morning{" "}
+              <span role="img" aria-label="wave">
+                👋
+              </span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Project Dashboard &bull; Last updated just now
+            </p>
+          </div>
+          <div className="w-full sm:w-[300px]">
+            <ProjectCombobox
+              projects={projects}
+              value={selectedProjectId ? selectedProjectId.toString() : (projects[0]?.id.toString() || "")}
+              onChange={(val) => {
+                if (val !== "all" && val) setSelectedProjectId(Number(val));
+              }}
+              label=""
+              hideAllOption={true}
+            />
+          </div>
         </div>
 
         {/* ── Hero image ── */}
         <div className="relative w-full h-56 sm:h-72 rounded-2xl overflow-hidden">
           <Image
-            src="https://placehold.co/1200x400/1c2b3a/ffffff?text=The+Henderson+Residence"
-            alt="The Henderson Residence"
+            src={activeProject.image || "https://placehold.co/1200x400/1c2b3a/ffffff?text=The+Henderson+Residence"}
+            alt={activeProject.name || "Client Dashboard"}
             fill
             className="object-cover"
+            unoptimized
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
           <div className="absolute top-4 left-4">
@@ -366,7 +244,7 @@ export default function DashboardPage() {
           </div>
           <div className="absolute bottom-5 left-5">
             <h2 className="text-white text-2xl sm:text-3xl font-semibold">
-              The Henderson Residence
+              {activeProject.name || "No Project Selected"}
             </h2>
           </div>
         </div>
@@ -386,8 +264,10 @@ export default function DashboardPage() {
                   Project Phase
                 </p>
               </div>
-              <p className="text-4xl font-bold text-white">3 / 6</p>
-              <p className="text-sm text-white/60">Framing — on track</p>
+              <p className="text-4xl font-bold text-white">
+                {stats.phaseIndex || 1} / {stats.totalPhases || 6}
+              </p>
+              <p className="text-sm text-white/60">{stats.phase || 'Planning'}</p>
             </CardContent>
             <div className="size-30 rounded-full bg-white/20 flex items-center justify-center absolute -right-15 top-1/2 transform -translate-y-1/2"></div>
             <div className="size-10 rounded-full bg-white/50 flex items-center justify-center absolute -right-5 top-1/2 transform -translate-y-1/2"></div>
@@ -404,9 +284,9 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 text-[10px] tracking-widest uppercase text-muted-foreground font-semibold">
                 <DollarSign size={12} /> Budget Used
               </div>
-              <p className="text-4xl font-bold">62%</p>
+              <p className="text-4xl font-bold">{stats.budgetUsedPercent || 0}%</p>
               <p className="text-sm font-medium" style={{ color: GOLD }}>
-                $403K of $650K
+                {stats.budgetUsedFormatted || '$0 of $0'}
               </p>
             </CardContent>
           </Card>
@@ -422,9 +302,9 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 text-[10px] tracking-widest uppercase text-muted-foreground font-semibold">
                 <Clock size={12} /> Days Remaining
               </div>
-              <p className="text-4xl font-bold">187</p>
+              <p className="text-4xl font-bold">{stats.daysRemaining || 0}</p>
               <p className="text-sm text-green-600 font-medium">
-                Est. completion Nov 2025
+                {stats.completionEst || 'Unknown'}
               </p>
             </CardContent>
           </Card>
@@ -440,7 +320,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 text-[10px] tracking-widest uppercase text-muted-foreground font-semibold">
                 <Bell size={12} /> Decisions Needed
               </div>
-              <p className="text-4xl font-bold text-red-500">3</p>
+              <p className="text-4xl font-bold text-red-500">{stats.decisionsNeeded || 0}</p>
               <p className="text-sm text-red-500 font-medium">
                 Action required
               </p>
@@ -459,50 +339,59 @@ export default function DashboardPage() {
                   Project news feed
                 </CardTitle>
                 <div className="">
-                  <SectionLink href="/news-feed" />
+                  <SectionLink href="/client/updates" />
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-0 pt-2">
-                {NEWS.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 py-4 border-b border-border last:border-0"
-                  >
-                    <div className="relative size-16 shrink-0 rounded-xl overflow-hidden bg-muted">
-                      <Image
-                        src={item.thumb}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                      />
-                      {item.hasVideo && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                          <Play size={16} className="text-white fill-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold leading-snug line-clamp-2">
-                          {item.title}
-                        </p>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 font-medium">
-                          {item.tag}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {item.summary}
-                      </p>
-                      <button
-                        type="button"
-                        className="text-xs font-medium mt-1.5 hover:opacity-80 transition-opacity"
-                        style={{ color: GOLD }}
-                      >
-                        Watch Now
-                      </button>
-                    </div>
+                {news.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No recent news
                   </div>
-                ))}
+                ) : (
+                  news.map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="flex gap-3 py-4 border-b border-border last:border-0"
+                    >
+                      <div className="relative size-16 shrink-0 rounded-xl overflow-hidden bg-muted">
+                        <Image
+                          src={item.thumb}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                        {item.hasVideo && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <Play size={16} className="text-white fill-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-semibold leading-snug line-clamp-2">
+                            {item.title}
+                          </p>
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 font-medium">
+                            {item.tag}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {item.summary}
+                        </p>
+                        {item.hasVideo && (
+                          <button
+                            type="button"
+                            className="text-xs font-medium mt-1.5 hover:opacity-80 transition-opacity"
+                            style={{ color: GOLD }}
+                          >
+                            Watch Now
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
 
@@ -513,33 +402,39 @@ export default function DashboardPage() {
                   Recent Documents
                 </CardTitle>
                 <div className="">
-                  <SectionLink href="/documents" />
+                  <SectionLink href="/client/documents" />
                 </div>
               </CardHeader>
               <CardContent className="pt-2">
-                {DOCUMENTS.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center gap-3 py-3 border-b border-border last:border-0"
-                  >
-                    <div className="size-8 rounded-md bg-red-50 flex items-center justify-center shrink-0">
-                      <FileText size={14} className="text-red-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {doc.size}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                      aria-label="Download"
-                    >
-                      <Download size={16} />
-                    </button>
+                {recentDocs.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No recent documents
                   </div>
-                ))}
+                ) : (
+                  recentDocs.map((doc: any) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-3 py-3 border-b border-border last:border-0"
+                    >
+                      <div className="size-8 rounded-md bg-red-50 flex items-center justify-center shrink-0">
+                        <FileText size={14} className="text-red-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.size}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                        aria-label="Download"
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
 
@@ -550,38 +445,44 @@ export default function DashboardPage() {
                   Pending decisions
                 </CardTitle>
                 <div className="">
-                  <SectionLink href="/decisions" />
+                  <SectionLink href="/client/decisions" />
                 </div>
               </CardHeader>
               <CardContent className="pt-2 flex flex-col gap-0">
-                {DECISIONS.map((d) => (
-                  <div
-                    key={d.id}
-                    className="flex items-start gap-3 py-3 border-b border-border last:border-0"
-                  >
-                    <span
-                      className={`mt-1.5 size-2.5 shrink-0 rounded-full ${
-                        d.urgency === "high"
-                          ? "bg-red-500"
-                          : d.urgency === "medium"
-                            ? "bg-yellow-400"
-                            : "bg-green-500"
-                      }`}
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{d.title}</p>
-                      <p
-                        className={`text-xs mt-0.5 ${
-                          d.urgency === "high"
-                            ? "text-red-500"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {d.due}
-                      </p>
-                    </div>
+                {pendingDecisions.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No pending decisions
                   </div>
-                ))}
+                ) : (
+                  pendingDecisions.map((d: any) => (
+                    <div
+                      key={d.id}
+                      className="flex items-start gap-3 py-3 border-b border-border last:border-0"
+                    >
+                      <span
+                        className={`mt-1.5 size-2.5 shrink-0 rounded-full ${
+                          d.urgency === "high"
+                            ? "bg-red-500"
+                            : d.urgency === "medium"
+                              ? "bg-yellow-400"
+                              : "bg-green-500"
+                        }`}
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{d.title}</p>
+                        <p
+                          className={`text-xs mt-0.5 ${
+                            d.urgency === "high"
+                              ? "text-red-500"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {d.due}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
           </div>
@@ -597,11 +498,10 @@ export default function DashboardPage() {
                 <div className="">
                   <Button
                     variant="outline"
-                    size="xs"
-                    className="rounded-full text-xs gap-1"
+                    size="sm"
+                    className="rounded-full text-xs h-7 px-3 gap-1"
                   >
-                    Phase: Framing
-                    <span className="text-muted-foreground">▾</span>
+                    Phase: {stats.phase || 'All'}
                   </Button>
                 </div>
               </CardHeader>
@@ -611,17 +511,17 @@ export default function DashboardPage() {
                     <p className="text-[10px] tracking-widest uppercase text-muted-foreground font-semibold">
                       Spent
                     </p>
-                    <p className="text-lg font-bold mt-0.5">$403,200</p>
+                    <p className="text-lg font-bold mt-0.5">{stats.budgetUsedFormatted ? stats.budgetUsedFormatted.split(' of ')[0] : '$0'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] tracking-widest uppercase text-muted-foreground font-semibold">
                       Pending
                     </p>
-                    <p className="text-lg font-bold mt-0.5">$14,500</p>
+                    <p className="text-lg font-bold mt-0.5">{stats.pendingSpendFormatted || '$0'}</p>
                   </div>
                 </div>
                 {/* Bar chart */}
-                <Chart />
+                <Chart data={data?.chartData} />
               </CardContent>
             </Card>
 
@@ -632,50 +532,19 @@ export default function DashboardPage() {
                   Key Milestones
                 </CardTitle>
                 <div className="">
-                  <SectionLink href="/milestones" />
+                  <SectionLink href="/client/milestones" />
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                {MILESTONES.map((m) => (
-                  <MilestoneRow key={m.label} milestone={m} />
-                ))}
-              </CardContent>
-            </Card>
-            {/* ── Video section ── */}
-            <Card className="rounded-2xl">
-              <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
-                <CardTitle className="text-base font-semibold">Video</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="flex flex-col gap-2">
-                      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-muted group cursor-pointer">
-                        <Image
-                          src={`https://placehold.co/600x340/1c2b3a/ffffff?text=Video+${i}`}
-                          alt={`Video ${i}`}
-                          fill
-                          className="object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-                          <div className="size-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                            <Play
-                              size={16}
-                              className="text-white fill-white ml-0.5"
-                            />
-                          </div>
-                        </div>
-                        <Badge className="absolute top-2 left-2 bg-foreground text-background text-[10px]">
-                          Video
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-medium">
-                        Video walkthrough — second floor
-                      </p>
-                      <p className="text-xs text-muted-foreground">Yesterday</p>
-                    </div>
-                  ))}
-                </div>
+                {milestones.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No milestones found
+                  </div>
+                ) : (
+                  milestones.map((m: any) => (
+                    <MilestoneRow key={m.id} milestone={m} />
+                  ))
+                )}
               </CardContent>
             </Card>
           </div>
@@ -690,27 +559,33 @@ export default function DashboardPage() {
                 Your project team
               </CardTitle>
               <div className="">
-                <SectionLink href="/team" />
+                <SectionLink href="/client/team" />
               </div>
             </CardHeader>
             <CardContent className="pt-2 flex flex-col gap-0">
-              {TEAM.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center gap-3 py-3 border-b border-border last:border-0"
-                >
-                  <Avatar size="default" className="size-9 shrink-0">
-                    <AvatarImage src={m.avatar} alt={m.name} />
-                    <AvatarFallback>
-                      <Users size={14} />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">{m.name}</p>
-                    <p className="text-xs text-muted-foreground">{m.role}</p>
+              {team.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No team members
                   </div>
-                </div>
-              ))}
+                ) : (
+                team.map((m: any) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-3 py-3 border-b border-border last:border-0"
+                  >
+                    <Avatar className="size-9 shrink-0">
+                      <AvatarImage src={m.avatar} alt={m.name} />
+                      <AvatarFallback>
+                        <Users size={14} />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{m.name}</p>
+                      <p className="text-xs text-muted-foreground">{m.role}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -721,24 +596,30 @@ export default function DashboardPage() {
                 Active risks
               </CardTitle>
               <div className="">
-                <SectionLink href="/risks" />
+                <SectionLink href="/client/risks" />
               </div>
             </CardHeader>
             <CardContent className="pt-2 flex flex-col gap-0">
-              {RISKS.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-start gap-3 py-3 border-b border-border last:border-0"
-                >
-                  <RiskDot level={r.level} />
-                  <div>
-                    <p className="text-sm font-medium">{r.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {r.detail}
-                    </p>
+              {risks.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No active risks
                   </div>
-                </div>
-              ))}
+                ) : (
+                risks.map((r: any) => (
+                  <div
+                    key={r.id}
+                    className="flex items-start gap-3 py-3 border-b border-border last:border-0"
+                  >
+                    <RiskDot level={r.level} />
+                    <div>
+                      <p className="text-sm font-medium">{r.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                        {r.detail}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -749,32 +630,38 @@ export default function DashboardPage() {
                 Upcoming Event
               </CardTitle>
               <div className="">
-                <SectionLink href="/calendar" />
+                <SectionLink href="/client/calendar" />
               </div>
             </CardHeader>
             <CardContent className="pt-2 flex flex-col gap-0">
-              {EVENTS.map((e) => (
-                <div
-                  key={e.id}
-                  className="flex items-center gap-3 py-3 border-b border-border last:border-0"
-                >
-                  <div className="flex flex-col items-center w-8 shrink-0">
-                    <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">
-                      {e.month}
-                    </span>
-                    <span className="text-base font-bold leading-tight">
-                      {e.day}
-                    </span>
+              {events.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No upcoming events
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{e.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {e.time} &bull; {e.location}
-                    </p>
+                ) : (
+                events.map((e: any) => (
+                  <div
+                    key={e.id}
+                    className="flex items-center gap-3 py-3 border-b border-border last:border-0"
+                  >
+                    <div className="flex flex-col items-center w-8 shrink-0">
+                      <span className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground">
+                        {e.month}
+                      </span>
+                      <span className="text-base font-bold leading-tight">
+                        {e.day}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{e.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {e.time} &bull; {e.location}
+                      </p>
+                    </div>
+                    <EventActionBtn action={e.action} />
                   </div>
-                  <EventActionBtn action={e.action} />
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </div>

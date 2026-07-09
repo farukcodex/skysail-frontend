@@ -23,11 +23,13 @@ export function ProjectCombobox({
   value,
   onChange,
   label,
+  hideAllOption,
 }: {
   projects: ProjectType[];
   value: string;
   onChange: (val: string) => void;
   label?: string;
+  hideAllOption?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -71,7 +73,7 @@ export function ProjectCombobox({
                   )}
                 </div>
               </div>
-            ) : value === "all" ? (
+            ) : value === "all" && !hideAllOption ? (
               <span className="font-semibold text-foreground">All Projects</span>
             ) : (
               <span>Select a project...</span>
@@ -85,26 +87,28 @@ export function ProjectCombobox({
             <CommandList>
               <CommandEmpty>No projects found.</CommandEmpty>
               <CommandGroup>
-                <CommandItem
-                  value="All Projects"
-                  onSelect={() => {
-                    onChange("all");
-                    setOpen(false);
-                  }}
-                  className="flex items-center gap-3 py-2 cursor-pointer font-medium"
-                >
-                  All Projects
-                  <Check
-                    className={cn(
-                      "ml-auto h-4 w-4 shrink-0 text-[#C49A3C]",
-                      value === "all" ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
+                {!hideAllOption && (
+                  <CommandItem
+                    value="All Projects"
+                    onSelect={() => {
+                      onChange("all");
+                      setOpen(false);
+                    }}
+                    className="flex items-center gap-3 py-2 cursor-pointer font-medium"
+                  >
+                    All Projects
+                    <Check
+                      className={cn(
+                        "ml-auto h-4 w-4 shrink-0 text-[#C49A3C]",
+                        value === "all" ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                  </CommandItem>
+                )}
                 {projects.map((project) => (
                   <CommandItem
                     key={project.id}
-                    value={`${project.client} ${project.name} ${project.email || ""}`}
+                    value={`${project.id} ${project.client} ${project.name} ${project.email || ""}`}
                     onSelect={() => {
                       onChange(project.id.toString());
                       setOpen(false);

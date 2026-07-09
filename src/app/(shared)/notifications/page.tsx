@@ -178,7 +178,7 @@ export default function NotificationsPage() {
                     return (
                       <div
                         key={n.id}
-                        className={`flex items-center gap-4 px-5 py-4 hover:bg-secondary/20 transition-colors cursor-pointer ${
+                        className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 hover:bg-secondary/20 transition-colors cursor-pointer ${
                           isUnread ? "bg-secondary/10" : ""
                         }`}
                         onClick={() => {
@@ -186,7 +186,7 @@ export default function NotificationsPage() {
                         }}
                       >
                         {/* Content */}
-                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        <div className="flex-1 min-w-0 w-full flex flex-col gap-1">
                           {/* Badge + age row */}
                           {n.data.badge && (
                             <div className="flex items-center gap-2 mb-0.5">
@@ -207,7 +207,7 @@ export default function NotificationsPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
                           <button
                             type="button"
                             className="shrink-0 px-3 py-1.5 rounded-full border border-border text-foreground text-xs font-semibold hover:bg-secondary transition-colors"
@@ -250,7 +250,7 @@ export default function NotificationsPage() {
                           )}
                           {/* Unread dot indicator */}
                           {isUnread && (
-                            <div className="shrink-0 size-2 rounded-full bg-red-500 ml-1" />
+                            <div className="shrink-0 size-2 rounded-full bg-red-500 ml-1 hidden sm:block" />
                           )}
                         </div>
                       </div>

@@ -125,9 +125,22 @@ export default function DocumentsPage() {
   const [docName, setDocName] = useState("");
   const [docFile, setDocFile] = useState<File | null>(null);
   const [notify, setNotify] = useState(true);
+  const [emailNotify, setEmailNotify] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Approval Modal State
+  const [approveModalDoc, setApproveModalDoc] = useState<AdminDoc | null>(null);
+  const [approvePushNotify, setApprovePushNotify] = useState(true);
+  const [approveEmailNotify, setApproveEmailNotify] = useState(true);
+  const [isApproving, setIsApproving] = useState(false);
+
+  // Reject & Delete Modal State
+  const [rejectModalDoc, setRejectModalDoc] = useState<AdminDoc | null>(null);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [deleteModalDoc, setDeleteModalDoc] = useState<AdminDoc | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoadingDocs(true);
@@ -180,6 +193,8 @@ export default function DocumentsPage() {
     formData.append("document_type", category);
     formData.append("document_title", docName);
     formData.append("document", docFile);
+    formData.append("email_notify", emailNotify.toString());
+    formData.append("push_notify", notify.toString());
 
     try {
       const res = await apiFetch("/api/admin/documents", {
@@ -205,38 +220,74 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this document?")) return;
+  const submitDelete = async () => {
+    if (!deleteModalDoc) return;
+    setIsDeleting(true);
     try {
-      const res = await apiFetch(`/api/admin/documents/${id}`, {
+      const res = await apiFetch(`/api/admin/documents/${deleteModalDoc.id}`, {
         method: "DELETE",
       });
       if (res.ok) {
         toast.success("Document deleted");
         fetchData();
+        setDeleteModalDoc(null);
       } else {
         toast.error("Failed to delete document");
       }
     } catch (err) {
       console.error(err);
       toast.error("An error occurred");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const handleStatusUpdate = async (id: number, status: "approve" | "reject") => {
+  const submitReject = async () => {
+    if (!rejectModalDoc) return;
+    setIsRejecting(true);
     try {
-      const res = await apiFetch(`/api/admin/documents/${id}/${status}`, {
+      const res = await apiFetch(`/api/admin/documents/${rejectModalDoc.id}/reject`, {
         method: "POST",
       });
       if (res.ok) {
-        toast.success(`Document ${status}d`);
+        toast.success(`Document rejected`);
         fetchData();
+        setRejectModalDoc(null);
       } else {
-        toast.error(`Failed to ${status} document`);
+        toast.error(`Failed to reject document`);
       }
     } catch (err) {
       console.error(err);
       toast.error("An error occurred");
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  const submitApprove = async () => {
+    if (!approveModalDoc) return;
+    setIsApproving(true);
+    try {
+      const res = await apiFetch(`/api/admin/documents/${approveModalDoc.id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email_notify: approveEmailNotify,
+          push_notify: approvePushNotify
+        }),
+      });
+      if (res.ok) {
+        toast.success(`Document approved`);
+        fetchData();
+        setApproveModalDoc(null);
+      } else {
+        toast.error(`Failed to approve document`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred");
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -326,7 +377,7 @@ export default function DocumentsPage() {
                           <>
                             <button
                               type="button"
-                              onClick={() => handleStatusUpdate(doc.id, 'approve')}
+                              onClick={() => setApproveModalDoc(doc)}
                               aria-label="Approve"
                               className="size-8 flex items-center justify-center rounded-lg hover:bg-green-50 text-green-500 transition-colors"
                             >
@@ -334,7 +385,7 @@ export default function DocumentsPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleStatusUpdate(doc.id, 'reject')}
+                              onClick={() => setRejectModalDoc(doc)}
                               aria-label="Reject"
                               className="size-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-red-400 transition-colors"
                             >
@@ -353,7 +404,7 @@ export default function DocumentsPage() {
                         </a>
                         <button
                           type="button"
-                          onClick={() => handleDelete(doc.id)}
+                          onClick={() => setDeleteModalDoc(doc)}
                           aria-label="Delete document"
                           className="size-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-red-400 hover:text-red-500 transition-colors"
                         >
@@ -560,6 +611,30 @@ export default function DocumentsPage() {
                 </button>
               </div>
 
+              {/* Email notification toggle */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={emailNotify}
+                  disabled={client === "all"}
+                  onClick={() => setEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span
+                    className="inline-block size-5 rounded-full bg-white shadow transition-transform"
+                    style={{
+                      transform: emailNotify
+                        ? "translateX(22px)"
+                        : "translateX(2px)",
+                    }}
+                  />
+                </button>
+              </div>
+
+
               {/* Upload button */}
               <button
                 type="button"
@@ -574,6 +649,179 @@ export default function DocumentsPage() {
           </div>
         </div>
       </div>
+
+      {/* Approval Modal */}
+      {approveModalDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-lg animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <p className="font-semibold">Approve Document</p>
+              <button
+                type="button"
+                onClick={() => setApproveModalDoc(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-5 flex flex-col gap-6">
+              <p className="text-sm text-muted-foreground">
+                You are about to approve <strong>{approveModalDoc.document_title}</strong>. 
+                Would you like to notify the client?
+              </p>
+
+              <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                {/* Push notification toggle */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send push notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={approvePushNotify}
+                    onClick={() => setApprovePushNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: approvePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span
+                      className="inline-block size-5 rounded-full bg-white shadow transition-transform"
+                      style={{
+                        transform: approvePushNotify ? "translateX(22px)" : "translateX(2px)",
+                      }}
+                    />
+                  </button>
+                </div>
+
+                {/* Email notification toggle */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send email notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={approveEmailNotify}
+                    onClick={() => setApproveEmailNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: approveEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span
+                      className="inline-block size-5 rounded-full bg-white shadow transition-transform"
+                      style={{
+                        transform: approveEmailNotify ? "translateX(22px)" : "translateX(2px)",
+                      }}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setApproveModalDoc(null)}
+                  disabled={isApproving}
+                  className="px-4 py-2 text-sm font-medium hover:bg-secondary rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitApprove}
+                  disabled={isApproving}
+                  className="px-4 py-2 flex items-center gap-2 bg-foreground text-background text-sm font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {isApproving ? <Loader2 size={16} className="animate-spin" /> : "Approve"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Reject Modal */}
+      {rejectModalDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-lg animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <p className="font-semibold text-red-600">Reject Document</p>
+              <button
+                type="button"
+                onClick={() => setRejectModalDoc(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-5 flex flex-col gap-6">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to reject <strong>{rejectModalDoc.document_title}</strong>? 
+                This action cannot be undone.
+              </p>
+
+              <div className="flex items-center gap-3 justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectModalDoc(null)}
+                  disabled={isRejecting}
+                  className="px-4 py-2 text-sm font-medium hover:bg-secondary rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitReject}
+                  disabled={isRejecting}
+                  className="px-4 py-2 flex items-center gap-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isRejecting ? <Loader2 size={16} className="animate-spin" /> : "Reject"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {deleteModalDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-lg animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <p className="font-semibold text-red-600">Delete Document</p>
+              <button
+                type="button"
+                onClick={() => setDeleteModalDoc(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-5 flex flex-col gap-6">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to permanently delete <strong>{deleteModalDoc.document_title}</strong>? 
+                This action cannot be undone and will remove the file from the system.
+              </p>
+
+              <div className="flex items-center gap-3 justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalDoc(null)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium hover:bg-secondary rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 flex items-center gap-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { getEchoInstance } from "@/lib/echo";
 import { toast } from "sonner";
 import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // --- Data & Types ------------------------------------------------------------
 
@@ -306,7 +307,24 @@ export default function CalendarPage() {
   const [timezone, setTimezone] = useState("America/New_York");
   const [link, setLink] = useState("");
   const [address, setAddress] = useState("");
-  const [notify, setNotify] = useState(true);
+  const [pushNotify, setPushNotify] = useState(true);
+  const [emailNotify, setEmailNotify] = useState(true);
+
+  // Modals
+  const [approveModalId, setApproveModalId] = useState<number | null>(null);
+  const [approvePushNotify, setApprovePushNotify] = useState(true);
+  const [approveEmailNotify, setApproveEmailNotify] = useState(true);
+  const [isApproving, setIsApproving] = useState(false);
+
+  const [declineModalId, setDeclineModalId] = useState<number | null>(null);
+  const [declinePushNotify, setDeclinePushNotify] = useState(true);
+  const [declineEmailNotify, setDeclineEmailNotify] = useState(true);
+  const [isDeclining, setIsDeclining] = useState(false);
+
+  const [proposeModalData, setProposeModalData] = useState<{id: number, date: string, time: string, tz: string} | null>(null);
+  const [proposePushNotify, setProposePushNotify] = useState(true);
+  const [proposeEmailNotify, setProposeEmailNotify] = useState(true);
+  const [isProposing, setIsProposing] = useState(false);
 
   // Fetch projects
   useEffect(() => {
@@ -363,48 +381,83 @@ export default function CalendarPage() {
     }
   }, [page, clientProjectId, filterStatus, filterType, filterDate, filterClient]);
 
-  const handleApproveReschedule = async (id: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/meetings/${id}/approve-reschedule`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to approve");
-      toast.success("Reschedule approved");
-      fetchMeetings();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
+  const clickApproveReschedule = (id: number) => {
+    setApproveModalId(id);
+    setApprovePushNotify(true);
+    setApproveEmailNotify(true);
   };
-
-  const handleDeclineReschedule = async (id: number) => {
+  const submitApproveReschedule = async () => {
+    if (!approveModalId) return;
+    setIsApproving(true);
     try {
-      const res = await apiFetch(`/api/admin/meetings/${id}/decline-reschedule`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to decline");
-      toast.success("Reschedule declined");
-      fetchMeetings();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
-
-  const handleProposeNewTime = async (id: number, pDate: string, pTime: string, pTimezone: string) => {
-    if (!pDate || !pTime) {
-      toast.error("Please provide date and time.");
-      return;
-    }
-    try {
-      const res = await apiFetch(`/api/admin/meetings/${id}/propose-new-time`, { 
+      const res = await apiFetch(`/api/admin/meetings/${approveModalId}/approve-reschedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: pDate, time: pTime, timezone: pTimezone })
+        body: JSON.stringify({ push_notify: approvePushNotify, email_notify: approveEmailNotify })
+      });
+      if (!res.ok) throw new Error("Failed to approve");
+      toast.success("Reschedule approved");
+      setApproveModalId(null);
+      fetchMeetings();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally { setIsApproving(false); }
+  };
+
+  const clickDeclineReschedule = (id: number) => {
+    setDeclineModalId(id);
+    setDeclinePushNotify(true);
+    setDeclineEmailNotify(true);
+  };
+  const submitDeclineReschedule = async () => {
+    if (!declineModalId) return;
+    setIsDeclining(true);
+    try {
+      const res = await apiFetch(`/api/admin/meetings/${declineModalId}/decline-reschedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ push_notify: declinePushNotify, email_notify: declineEmailNotify })
+      });
+      if (!res.ok) throw new Error("Failed to decline");
+      toast.success("Reschedule declined");
+      setDeclineModalId(null);
+      fetchMeetings();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally { setIsDeclining(false); }
+  };
+
+  const clickProposeNewTime = (id: number, pDate: string, pTime: string, pTimezone: string) => {
+    if (!pDate || !pTime) { toast.error("Please provide date and time."); return; }
+    setProposeModalData({ id, date: pDate, time: pTime, tz: pTimezone });
+    setProposePushNotify(true);
+    setProposeEmailNotify(true);
+  };
+  const submitProposeNewTime = async () => {
+    if (!proposeModalData) return;
+    setIsProposing(true);
+    try {
+      const res = await apiFetch(`/api/admin/meetings/${proposeModalData.id}/propose-new-time`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          date: proposeModalData.date, 
+          time: proposeModalData.time, 
+          timezone: proposeModalData.tz,
+          push_notify: proposePushNotify,
+          email_notify: proposeEmailNotify
+        })
       });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Failed to propose time");
       }
       toast.success("New time proposed to client");
+      setProposeModalData(null);
       fetchMeetings();
     } catch (err: any) {
       toast.error(err.message);
-    }
+    } finally { setIsProposing(false); }
   };
 
   const handleCreate = async () => {
@@ -436,7 +489,8 @@ export default function CalendarPage() {
         type: meetingType,
         meeting_link: (meetingType === "meet" || meetingType === "zoom") ? link : null,
         location: meetingType === "on-site" ? address : null,
-        notify_client: notify,
+        push_notify: pushNotify,
+        email_notify: emailNotify,
       };
 
       let res;
@@ -497,7 +551,8 @@ export default function CalendarPage() {
         type: meetingType,
         meeting_link: (meetingType === "meet" || meetingType === "zoom") ? link : null,
         location: meetingType === "on-site" ? address : null,
-        notify_client: notify,
+        push_notify: pushNotify,
+        email_notify: emailNotify,
       };
 
       const res = await apiFetch("/api/admin/meetings", {
@@ -611,14 +666,14 @@ export default function CalendarPage() {
                     </p>
                     <div className="flex flex-col gap-3">
                       {group.items.map((m) => (
-                        <MeetingCard 
-                          key={m.id} 
-                          meeting={m} 
-                          onApproveReschedule={handleApproveReschedule}
-                          onDeclineReschedule={handleDeclineReschedule}
-                          onProposeNewTime={handleProposeNewTime}
-                          onEdit={handleEditClick} 
-                        />
+                          <MeetingCard 
+                            key={m.id} 
+                            meeting={m} 
+                            onApproveReschedule={clickApproveReschedule}
+                            onDeclineReschedule={clickDeclineReschedule}
+                            onProposeNewTime={clickProposeNewTime}
+                            onEdit={handleEditClick} 
+                          />
                       ))}
                     </div>
                   </div>
@@ -700,9 +755,33 @@ export default function CalendarPage() {
                   </select>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Send push notification?</p>
-                <button type="button" role="switch" aria-checked={notify} onClick={() => setNotify((v) => !v)} className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors" style={{ backgroundColor: notify ? "#1a1a1a" : "#e5e7eb" }}><span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: notify ? "translateX(22px)" : "translateX(2px)" }} /></button>
+              <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send push notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={pushNotify}
+                    onClick={() => setPushNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: pushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: pushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send email notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={emailNotify}
+                    onClick={() => setEmailNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: emailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
               </div>
               {editingId && <button type="button" onClick={handleCancelEdit} className="w-full mb-2 flex items-center justify-center gap-2 py-3 rounded-2xl border border-border text-sm font-bold tracking-wide hover:bg-black/5 transition-colors">CANCEL</button>}
               <button type="button" onClick={handleCreate} disabled={creating} className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-foreground text-background text-sm font-bold tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50">
@@ -712,6 +791,155 @@ export default function CalendarPage() {
           </div>
         </div>
       </div>
+      {/* Approve Modal */}
+      <Dialog open={!!approveModalId} onOpenChange={(open) => !open && setApproveModalId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approve Reschedule</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              You are about to approve the new time proposed by the client.
+            </p>
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50 mb-6">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={approvePushNotify}
+                  onClick={() => setApprovePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: approvePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: approvePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={approveEmailNotify}
+                  onClick={() => setApproveEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: approveEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: approveEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={submitApproveReschedule}
+              disabled={isApproving}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 text-white font-bold tracking-wide hover:bg-green-600 transition-colors disabled:opacity-50"
+            >
+              {isApproving ? <Loader2 size={16} className="animate-spin" /> : "CONFIRM APPROVAL"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Decline Modal */}
+      <Dialog open={!!declineModalId} onOpenChange={(open) => !open && setDeclineModalId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Decline Reschedule</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              You are about to decline the reschedule request and keep the original time.
+            </p>
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50 mb-6">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={declinePushNotify}
+                  onClick={() => setDeclinePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: declinePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: declinePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={declineEmailNotify}
+                  onClick={() => setDeclineEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: declineEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: declineEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={submitDeclineReschedule}
+              disabled={isDeclining}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500 text-white font-bold tracking-wide hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {isDeclining ? <Loader2 size={16} className="animate-spin" /> : "CONFIRM DECLINE"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Propose Modal */}
+      <Dialog open={!!proposeModalData} onOpenChange={(open) => !open && setProposeModalData(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Propose New Time</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              You are about to propose a new time to the client.
+            </p>
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50 mb-6">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={proposePushNotify}
+                  onClick={() => setProposePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: proposePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: proposePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={proposeEmailNotify}
+                  onClick={() => setProposeEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: proposeEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: proposeEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={submitProposeNewTime}
+              disabled={isProposing}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-500 text-white font-bold tracking-wide hover:bg-orange-600 transition-colors disabled:opacity-50"
+            >
+              {isProposing ? <Loader2 size={16} className="animate-spin" /> : "PROPOSE TIME"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 
@@ -52,7 +53,7 @@ function RiskCard({
   onStatusChange,
 }: {
   risk: Risk;
-  onStatusChange: (id: number, status: RiskStatus) => void;
+  onStatusChange: (risk: Risk, status: RiskStatus) => void;
 }) {
   const getStatusColor = (status: RiskStatus) => {
     if (status === "active") return "text-red-600 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/50";
@@ -84,19 +85,19 @@ function RiskCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40 rounded-xl">
               <DropdownMenuItem 
-                onClick={() => onStatusChange(risk.id, "active")}
+                onClick={() => onStatusChange(risk, "active")}
                 className="text-[11px] font-bold tracking-widest uppercase cursor-pointer"
               >
                 Active
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => onStatusChange(risk.id, "monitoring")}
+                onClick={() => onStatusChange(risk, "monitoring")}
                 className="text-[11px] font-bold tracking-widest uppercase cursor-pointer"
               >
                 Monitoring
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => onStatusChange(risk.id, "resolved")}
+                onClick={() => onStatusChange(risk, "resolved")}
                 className="text-[11px] font-bold tracking-widest uppercase cursor-pointer"
               >
                 Resolved
@@ -125,7 +126,15 @@ export default function RisksPage() {
   const [riskTitle, setRiskTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<RiskStatus>("active");
-  const [notify, setNotify] = useState(true);
+  const [pushNotify, setPushNotify] = useState(true);
+  const [emailNotify, setEmailNotify] = useState(true);
+
+  // Status Change Modal
+  const [statusModalRisk, setStatusModalRisk] = useState<Risk | null>(null);
+  const [statusModalNewStatus, setStatusModalNewStatus] = useState<RiskStatus | null>(null);
+  const [statusPushNotify, setStatusPushNotify] = useState(true);
+  const [statusEmailNotify, setStatusEmailNotify] = useState(true);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -153,21 +162,37 @@ export default function RisksPage() {
     fetchData();
   }, [fetchData]);
 
-  async function handleStatusChange(id: number, newStatus: RiskStatus) {
+  function handleStatusChangeClick(risk: Risk, newStatus: RiskStatus) {
+    setStatusModalRisk(risk);
+    setStatusModalNewStatus(newStatus);
+    setStatusPushNotify(true);
+    setStatusEmailNotify(true);
+  }
+
+  async function submitStatusChange() {
+    if (!statusModalRisk || !statusModalNewStatus) return;
+    setIsUpdatingStatus(true);
     try {
-      const res = await apiFetch(`/api/admin/risks/${id}/status`, { 
+      const res = await apiFetch(`/api/admin/risks/${statusModalRisk.id}/status`, { 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ 
+          status: statusModalNewStatus,
+          push_notify: statusPushNotify,
+          email_notify: statusEmailNotify
+        })
       });
       if (res.ok) {
         toast.success("Risk status updated");
+        setStatusModalRisk(null);
         fetchData();
       } else {
         toast.error("Failed to update risk status");
       }
     } catch {
       toast.error("Error updating risk status");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   }
 
@@ -191,6 +216,8 @@ export default function RisksPage() {
           title: riskTitle,
           description: description,
           status: status,
+          push_notify: pushNotify,
+          email_notify: emailNotify
         })
       });
       if (res.ok) {
@@ -265,7 +292,7 @@ export default function RisksPage() {
                     </p>
                     <div className="rounded-2xl border border-border p-4 flex flex-col gap-3">
                       {pageActive.map((r) => (
-                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChange} />
+                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChangeClick} />
                       ))}
                     </div>
                   </div>
@@ -279,7 +306,7 @@ export default function RisksPage() {
                     </p>
                     <div className="rounded-2xl border border-border p-4 flex flex-col gap-3">
                       {pageResolved.map((r) => (
-                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChange} />
+                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChangeClick} />
                       ))}
                     </div>
                   </div>
@@ -408,22 +435,34 @@ export default function RisksPage() {
                 </Select>
               </div>
 
-              {/* Push notification toggle */}
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Send push notification?</p>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={notify}
-                  onClick={() => setNotify((v) => !v)}
-                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                  style={{ backgroundColor: notify ? "#1a1a1a" : "#e5e7eb" }}
-                >
-                  <span
-                    className="inline-block size-5 rounded-full bg-white shadow transition-transform"
-                    style={{ transform: notify ? "translateX(22px)" : "translateX(2px)" }}
-                  />
-                </button>
+              {/* Push & Email notification toggles */}
+              <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send push notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={pushNotify}
+                    onClick={() => setPushNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: pushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: pushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send email notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={emailNotify}
+                    onClick={() => setEmailNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: emailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
               </div>
 
               {/* Add button */}
@@ -440,6 +479,56 @@ export default function RisksPage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <Dialog open={!!statusModalRisk} onOpenChange={(open) => !open && setStatusModalRisk(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Risk Status</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              You are about to change the status of <strong>{statusModalRisk?.title}</strong> to <span className="font-bold uppercase tracking-wider">{statusModalNewStatus}</span>.
+            </p>
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50 mb-6">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={statusPushNotify}
+                  onClick={() => setStatusPushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: statusPushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: statusPushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={statusEmailNotify}
+                  onClick={() => setStatusEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: statusEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: statusEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={submitStatusChange}
+              disabled={isUpdatingStatus}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-foreground text-background font-bold tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {isUpdatingStatus ? <Loader2 size={16} className="animate-spin" /> : "CONFIRM UPDATE"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

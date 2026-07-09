@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ImageViewer } from "@/components/shared/ImageViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 10;
@@ -59,6 +60,19 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
   const [urgency, setUrgency] = useState<string>("normal");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [pushNotify, setPushNotify] = useState(true);
+  const [emailNotify, setEmailNotify] = useState(true);
+
+  // Approve & Reject Modal States
+  const [approveModalMs, setApproveModalMs] = useState<VendorDecision | null>(null);
+  const [approvePushNotify, setApprovePushNotify] = useState(true);
+  const [approveEmailNotify, setApproveEmailNotify] = useState(true);
+  const [isApproving, setIsApproving] = useState(false);
+
+  const [rejectModalMs, setRejectModalMs] = useState<VendorDecision | null>(null);
+  const [rejectPushNotify, setRejectPushNotify] = useState(true);
+  const [rejectEmailNotify, setRejectEmailNotify] = useState(true);
+  const [isRejecting, setIsRejecting] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,6 +162,8 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
     if (dueDate) formData.append("due_date", dueDate);
     if (urgency) formData.append("urgency", urgency);
     if (imageFile) formData.append("image", imageFile);
+    formData.append("push_notify", pushNotify ? "true" : "false");
+    formData.append("email_notify", emailNotify ? "true" : "false");
 
     try {
       const res = await apiFetch(`/api/${role}/decisions`, {
@@ -186,31 +202,67 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
     }
   };
 
-  const handleApprove = async (id: number) => {
+  const handleApprove = (doc: VendorDecision) => {
+    setApproveModalMs(doc);
+    setApprovePushNotify(true);
+    setApproveEmailNotify(true);
+  };
+
+  const handleReject = (doc: VendorDecision) => {
+    setRejectModalMs(doc);
+    setRejectPushNotify(true);
+    setRejectEmailNotify(true);
+  };
+
+  const submitApprove = async () => {
+    if (!approveModalMs) return;
+    setIsApproving(true);
     try {
-      const res = await apiFetch(`/api/admin/decisions/${id}/approve`, { method: "POST" });
+      const res = await apiFetch(`/api/admin/decisions/${approveModalMs.id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          push_notify: approvePushNotify,
+          email_notify: approveEmailNotify,
+        })
+      });
       if (res.ok) {
         toast.success("Decision approved");
+        setApproveModalMs(null);
         fetchData();
       } else {
         toast.error("Failed to approve decision");
       }
     } catch {
       toast.error("Error approving decision");
+    } finally {
+      setIsApproving(false);
     }
   };
 
-  const handleReject = async (id: number) => {
+  const submitReject = async () => {
+    if (!rejectModalMs) return;
+    setIsRejecting(true);
     try {
-      const res = await apiFetch(`/api/admin/decisions/${id}/reject`, { method: "POST" });
+      const res = await apiFetch(`/api/admin/decisions/${rejectModalMs.id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          push_notify: rejectPushNotify,
+          email_notify: rejectEmailNotify,
+        })
+      });
       if (res.ok) {
         toast.success("Decision rejected");
+        setRejectModalMs(null);
         fetchData();
       } else {
         toast.error("Failed to reject decision");
       }
     } catch {
       toast.error("Error rejecting decision");
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -353,14 +405,14 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
                         <div className="flex gap-2 p-4 pt-0 mt-auto">
                           <button
                             type="button"
-                            onClick={() => handleApprove(doc.id)}
+                            onClick={() => handleApprove(doc)}
                             className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-bold tracking-wider uppercase bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                           >
                             <Check size={14} /> Approve
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleReject(doc.id)}
+                            onClick={() => handleReject(doc)}
                             className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-bold tracking-wider uppercase bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                           >
                             <X size={14} /> Reject
@@ -526,6 +578,35 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
                   />
                 </div>
               </div>
+
+              <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send push notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={pushNotify}
+                    onClick={() => setPushNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: pushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: pushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send email notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={emailNotify}
+                    onClick={() => setEmailNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: emailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+              </div>
               
               <button
                 type="submit"
@@ -548,6 +629,106 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
         </div>
 
       </div>
+
+      <Dialog open={!!approveModalMs} onOpenChange={(open) => !open && setApproveModalMs(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approve Decision</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              You are about to approve <strong>{approveModalMs?.title}</strong>.
+            </p>
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50 mb-6">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={approvePushNotify}
+                  onClick={() => setApprovePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: approvePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: approvePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={approveEmailNotify}
+                  onClick={() => setApproveEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: approveEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: approveEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={submitApprove}
+              disabled={isApproving}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 text-white font-bold tracking-wide hover:bg-green-600 transition-colors disabled:opacity-50"
+            >
+              {isApproving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+              CONFIRM APPROVAL
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!rejectModalMs} onOpenChange={(open) => !open && setRejectModalMs(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Decision</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              You are about to reject <strong>{rejectModalMs?.title}</strong>.
+            </p>
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50 mb-6">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={rejectPushNotify}
+                  onClick={() => setRejectPushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: rejectPushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: rejectPushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={rejectEmailNotify}
+                  onClick={() => setRejectEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: rejectEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: rejectEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={submitReject}
+              disabled={isRejecting}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500 text-white font-bold tracking-wide hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {isRejecting ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
+              CONFIRM REJECTION
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ImageViewer 
         images={viewingImage ? [viewingImage] : []}

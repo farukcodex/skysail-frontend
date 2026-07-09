@@ -67,6 +67,8 @@ function CreateMilestoneModal({ projectId, vendors, nextPhase, onClose, onSucces
   const [name, setName] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
+  const [pushNotify, setPushNotify] = useState(true);
+  const [emailNotify, setEmailNotify] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,6 +84,8 @@ function CreateMilestoneModal({ projectId, vendors, nextPhase, onClose, onSucces
           name: name,
           target_date: targetDate || null,
           assigned_to: assignedTo ? parseInt(assignedTo) : null,
+          push_notify: pushNotify,
+          email_notify: emailNotify,
         }),
       });
       const data = await res.json();
@@ -114,6 +118,35 @@ function CreateMilestoneModal({ projectId, vendors, nextPhase, onClose, onSucces
           onAddVendorToProject={onAddVendorToProject}
         />
 
+        <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Send push notification?</p>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={pushNotify}
+              onClick={() => setPushNotify((v) => !v)}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+              style={{ backgroundColor: pushNotify ? "#1a1a1a" : "#e5e7eb" }}
+            >
+              <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: pushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Send email notification?</p>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={emailNotify}
+              onClick={() => setEmailNotify((v) => !v)}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+              style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
+            >
+              <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: emailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+            </button>
+          </div>
+        </div>
+
         <button type="submit" disabled={isSubmitting} className="w-full flex items-center justify-center gap-2 py-3.5 mt-2 rounded-2xl bg-foreground text-background text-sm font-semibold hover:opacity-80 transition-opacity disabled:opacity-50">
           {isSubmitting && <Loader2 size={16} className="animate-spin" />}
           Create
@@ -145,6 +178,20 @@ export default function MilestonesPage() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
   const [manageVendorsProject, setManageVendorsProject] = useState<Project | null>(null);
+  
+  const [pushNotify, setPushNotify] = useState(true);
+  const [emailNotify, setEmailNotify] = useState(true);
+
+  // Approve & Reject Modal States
+  const [approveModalMs, setApproveModalMs] = useState<Milestone | null>(null);
+  const [approvePushNotify, setApprovePushNotify] = useState(true);
+  const [approveEmailNotify, setApproveEmailNotify] = useState(true);
+  const [isApproving, setIsApproving] = useState(false);
+
+  const [rejectModalMs, setRejectModalMs] = useState<Milestone | null>(null);
+  const [rejectPushNotify, setRejectPushNotify] = useState(true);
+  const [rejectEmailNotify, setRejectEmailNotify] = useState(true);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const fetchProjects = useCallback(() => {
     apiFetch(`/api/admin/projects?all=1`)
@@ -212,6 +259,8 @@ export default function MilestonesPage() {
           completion_percent: pct,
           status: status,
           assigned_to: assignedTo ? parseInt(assignedTo) : null,
+          push_notify: pushNotify,
+          email_notify: emailNotify,
         })
       });
       if (res.ok) {
@@ -229,35 +278,57 @@ export default function MilestonesPage() {
     }
   };
 
-  const handleApprove = async () => {
-    if (!selectedMilestoneId) return;
+  const submitApprove = async () => {
+    if (!approveModalMs) return;
+    setIsApproving(true);
     try {
-      const res = await apiFetch(`/api/admin/milestones/${selectedMilestoneId}/approve`, { method: "POST" });
+      const res = await apiFetch(`/api/admin/milestones/${approveModalMs.id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          push_notify: approvePushNotify,
+          email_notify: approveEmailNotify,
+        })
+      });
       if (res.ok) {
         toast.success("Milestone approved!");
         if (selectedProjectId) fetchMilestones(selectedProjectId);
+        setApproveModalMs(null);
       } else {
         toast.error("Failed to approve milestone.");
       }
     } catch (err) {
       console.error(err);
       toast.error("An error occurred");
+    } finally {
+      setIsApproving(false);
     }
   };
 
-  const handleReject = async () => {
-    if (!selectedMilestoneId) return;
+  const submitReject = async () => {
+    if (!rejectModalMs) return;
+    setIsRejecting(true);
     try {
-      const res = await apiFetch(`/api/admin/milestones/${selectedMilestoneId}/reject`, { method: "POST" });
+      const res = await apiFetch(`/api/admin/milestones/${rejectModalMs.id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          push_notify: rejectPushNotify,
+          email_notify: rejectEmailNotify,
+        })
+      });
       if (res.ok) {
         toast.success("Milestone rejected.");
         if (selectedProjectId) fetchMilestones(selectedProjectId);
+        setRejectModalMs(null);
       } else {
         toast.error("Failed to reject milestone.");
       }
     } catch (err) {
       console.error(err);
       toast.error("An error occurred");
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -579,20 +650,55 @@ export default function MilestonesPage() {
                 <div className="flex gap-2 mt-2">
                   <button
                     type="button"
-                    onClick={handleApprove}
+                    onClick={() => {
+                      if (selectedMilestone) setApproveModalMs(selectedMilestone);
+                    }}
                     className="flex-1 py-3 rounded-xl bg-[#086935] text-white text-xs font-bold tracking-widest uppercase hover:bg-[#07592d] transition-colors shadow-sm"
                   >
                     Approve
                   </button>
                   <button
                     type="button"
-                    onClick={handleReject}
+                    onClick={() => {
+                      if (selectedMilestone) setRejectModalMs(selectedMilestone);
+                    }}
                     className="flex-1 py-3 rounded-xl border border-[#970404] text-[#970404] text-xs font-bold tracking-widest uppercase hover:bg-[#970404]/5 transition-colors"
                   >
                     Reject
                   </button>
                 </div>
               )}
+
+              <div className="flex flex-col gap-4 mt-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send push notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={pushNotify}
+                    disabled={isFormDisabled}
+                    onClick={() => setPushNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: pushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: pushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send email notification?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={emailNotify}
+                    disabled={isFormDisabled}
+                    onClick={() => setEmailNotify((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: emailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+              </div>
 
               {/* Save button */}
               <button
@@ -608,6 +714,109 @@ export default function MilestonesPage() {
           </div>
         </div>
       </div>
+      {/* Approve Modal */}
+      {approveModalMs && (
+        <ModalShell id="approve-milestone" title="Approve Milestone" onClose={() => setApproveModalMs(null)}>
+          <div className="flex flex-col gap-6">
+            <p className="text-sm text-muted-foreground">
+              You are about to approve <strong>{approveModalMs.name}</strong>. 
+              Would you like to notify the client?
+            </p>
+
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={approvePushNotify}
+                  onClick={() => setApprovePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: approvePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: approvePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={approveEmailNotify}
+                  onClick={() => setApproveEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: approveEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: approveEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={submitApprove}
+              disabled={isApproving}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-foreground text-background text-sm font-semibold rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {isApproving && <Loader2 size={16} className="animate-spin" />}
+              Approve
+            </button>
+          </div>
+        </ModalShell>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModalMs && (
+        <ModalShell id="reject-milestone" title="Reject Milestone" onClose={() => setRejectModalMs(null)}>
+          <div className="flex flex-col gap-6">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to reject <strong>{rejectModalMs.name}</strong>? 
+              This will notify the client that the milestone needs revision.
+            </p>
+
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={rejectPushNotify}
+                  onClick={() => setRejectPushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: rejectPushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: rejectPushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={rejectEmailNotify}
+                  onClick={() => setRejectEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: rejectEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: rejectEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={submitReject}
+              disabled={isRejecting}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-red-600 text-white text-sm font-semibold rounded-2xl hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {isRejecting && <Loader2 size={16} className="animate-spin" />}
+              Reject
+            </button>
+          </div>
+        </ModalShell>
+      )}
     </div>
   );
 }

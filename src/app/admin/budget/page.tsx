@@ -105,6 +105,8 @@ export default function AdminBudgetPage() {
   const [phaseSelected, setPhaseSelected] = useState<number | null>(null);
   const [phaseAmount, setPhaseAmount] = useState("");
   const [phaseStatus, setPhaseStatus] = useState("Upcoming");
+  const [phasePushNotify, setPhasePushNotify] = useState(true);
+  const [phaseEmailNotify, setPhaseEmailNotify] = useState(true);
   const [isUpdatingPhase, setIsUpdatingPhase] = useState(false);
 
   // Change order form
@@ -112,6 +114,8 @@ export default function AdminBudgetPage() {
   const [changeAmount, setChangeAmount] = useState("");
   const [changePhaseId, setChangePhaseId] = useState<number | null>(null);
   const [changeFile, setChangeFile] = useState<File | null>(null);
+  const [changePushNotify, setChangePushNotify] = useState(true);
+  const [changeEmailNotify, setChangeEmailNotify] = useState(true);
   const [isAddingChange, setIsAddingChange] = useState(false);
 
   // Spend form
@@ -119,6 +123,8 @@ export default function AdminBudgetPage() {
   const [spendAmount, setSpendAmount] = useState("");
   const [spendPhaseId, setSpendPhaseId] = useState<number | null>(null);
   const [spendFile, setSpendFile] = useState<File | null>(null);
+  const [spendPushNotify, setSpendPushNotify] = useState(true);
+  const [spendEmailNotify, setSpendEmailNotify] = useState(true);
   const [isAddingSpend, setIsAddingSpend] = useState(false);
 
   const togglePhase = (id: number) => {
@@ -212,7 +218,9 @@ export default function AdminBudgetPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: isNaN(amt) ? 0 : amt,
-          status: statusVal
+          status: statusVal,
+          push_notify: phasePushNotify,
+          email_notify: phaseEmailNotify,
         })
       });
       if (res.ok) {
@@ -254,6 +262,8 @@ export default function AdminBudgetPage() {
       if (changeFile) {
         formData.append("file", changeFile);
       }
+      formData.append("push_notify", changePushNotify ? "true" : "false");
+      formData.append("email_notify", changeEmailNotify ? "true" : "false");
 
       const res = await apiFetch(`/api/admin/projects/${selectedProjectId}/change-orders`, {
         method: "POST",
@@ -301,6 +311,8 @@ export default function AdminBudgetPage() {
       if (spendFile) {
         formData.append("file", spendFile);
       }
+      formData.append("push_notify", spendPushNotify ? "true" : "false");
+      formData.append("email_notify", spendEmailNotify ? "true" : "false");
 
       const res = await apiFetch(`/api/admin/projects/${selectedProjectId}/spends`, {
         method: "POST",
@@ -704,6 +716,36 @@ export default function AdminBudgetPage() {
               />
             </div>
 
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={phasePushNotify}
+                  onClick={() => setPhasePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: phasePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: phasePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={phaseEmailNotify}
+                  onClick={() => setPhaseEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: phaseEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: phaseEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={handlePhaseSubmit}
@@ -776,6 +818,36 @@ export default function AdminBudgetPage() {
               />
             </div>
 
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={changePushNotify}
+                  onClick={() => setChangePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: changePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: changePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={changeEmailNotify}
+                  onClick={() => setChangeEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: changeEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: changeEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={handleChangeSubmit}
@@ -846,6 +918,36 @@ export default function AdminBudgetPage() {
                 onChange={(e) => setSpendFile(e.target.files?.[0] || null)}
                 className="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-secondary file:text-foreground hover:file:bg-secondary/80 focus:outline-none"
               />
+            </div>
+
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={spendPushNotify}
+                  onClick={() => setSpendPushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: spendPushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: spendPushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={spendEmailNotify}
+                  onClick={() => setSpendEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: spendEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: spendEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
             </div>
 
             <button

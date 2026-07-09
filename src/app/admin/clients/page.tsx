@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/api";
 import { AddClientModal } from "./components/AddClientModal";
 import { EditClientModal } from "./components/EditClientModal";
 import { ClientDetailsModal } from "./components/ClientDetailsModal";
+import { ConfirmBlockModal } from "./components/ConfirmBlockModal";
 import { NotifyUsersModal } from "@/components/shared/NotifyUsersModal";
 
 export interface Client {
@@ -36,9 +37,10 @@ export default function ClientManagementPage() {
   const [showNotify, setShowNotify] = useState(false);
   const [viewClient, setViewClient] = useState<Client | null>(null);
   const [editClient, setEditClient] = useState<Client | null>(null);
+  const [clientToBlock, setClientToBlock] = useState<Client | null>(null);
 
-  const fetchClients = useCallback(async () => {
-    setIsLoading(true);
+  const fetchClients = useCallback(async (silent: boolean = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const res = await apiFetch(`/api/admin/clients?page=${page}&search=${encodeURIComponent(searchQuery)}&per_page=${PAGE_SIZE}`);
       const data = await res.json();
@@ -52,7 +54,7 @@ export default function ClientManagementPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [page, searchQuery]);
 
@@ -60,13 +62,13 @@ export default function ClientManagementPage() {
     fetchClients();
   }, [fetchClients]);
 
-  const handleBlockToggle = async (clientId: number) => {
+  const executeBlockToggle = async (clientId: number) => {
     try {
       const res = await apiFetch(`/api/admin/clients/${clientId}/block`, {
         method: "POST"
       });
       if (res.ok) {
-        fetchClients();
+        fetchClients(true);
       }
     } catch (err) {
       console.error(err);
@@ -77,7 +79,14 @@ export default function ClientManagementPage() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-      {showAdd && <AddClientModal onClose={() => setShowAdd(false)} onSuccess={fetchClients} />}
+      {showAdd && <AddClientModal onClose={() => setShowAdd(false)} onSuccess={() => {
+        if (page === 1 && searchQuery === "") {
+          fetchClients();
+        } else {
+          setPage(1);
+          setSearchQuery("");
+        }
+      }} />}
       {viewClient && (
         <ClientDetailsModal
           client={viewClient}
@@ -89,6 +98,13 @@ export default function ClientManagementPage() {
           client={editClient}
           onClose={() => setEditClient(null)}
           onSuccess={fetchClients}
+        />
+      )}
+      {clientToBlock && (
+        <ConfirmBlockModal
+          client={clientToBlock}
+          onClose={() => setClientToBlock(null)}
+          onConfirm={() => executeBlockToggle(clientToBlock.id)}
         />
       )}
 
@@ -200,7 +216,7 @@ export default function ClientManagementPage() {
                     </Link>
                     <button
                       type="button"
-                      onClick={() => handleBlockToggle(client.id)}
+                      onClick={() => setClientToBlock(client)}
                       className="text-xs font-bold px-4 py-2 text-red-500 hover:opacity-70 transition-opacity ml-auto"
                     >
                       {client.status === 'blocked' ? 'Unblock' : 'Block'}

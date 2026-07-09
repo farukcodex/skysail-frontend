@@ -22,6 +22,7 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   }
 
   const res = await fetch(url, {
+    cache: "no-store",
     ...options,
     headers,
   });

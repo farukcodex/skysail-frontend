@@ -231,7 +231,7 @@ export default function TeamPage() {
                   >
                     <div className="size-11 rounded-full overflow-hidden bg-muted shrink-0">
                       <Image
-                        src={m.avatar}
+                        src={m.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${m.firstName}${m.lastName}&size=64&backgroundColor=1a2332`}
                         alt={`${m.firstName} ${m.lastName}`}
                         width={44}
                         height={44}

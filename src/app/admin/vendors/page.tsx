@@ -9,6 +9,7 @@ import { Pagination } from "@/components/shared/Pagination";
 import { AddVendorModal } from "./components/AddVendorModal";
 import { EditVendorModal } from "./components/EditVendorModal";
 import { VendorDetailsModal } from "./components/VendorDetailsModal";
+import { ConfirmBlockModal } from "./components/ConfirmBlockModal";
 import { NotifyUsersModal } from "@/components/shared/NotifyUsersModal";
 
 const GOLD = "#C49A3C";
@@ -44,9 +45,10 @@ export default function VendorsPage() {
   const [showNotify, setShowNotify] = useState(false);
   const [viewVendor, setViewVendor] = useState<Vendor | null>(null);
   const [editVendor, setEditVendor] = useState<Vendor | null>(null);
+  const [vendorToBlock, setVendorToBlock] = useState<Vendor | null>(null);
 
-  const fetchVendors = useCallback(async () => {
-    setIsLoading(true);
+  const fetchVendors = useCallback(async (silent: boolean = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const res = await apiFetch(`/api/admin/vendors?page=${page}&search=${encodeURIComponent(searchQuery)}&designation=${encodeURIComponent(activeTab)}&per_page=${PAGE_SIZE}`);
       const data = await res.json();
@@ -60,7 +62,7 @@ export default function VendorsPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [page, searchQuery, activeTab]);
 
@@ -68,13 +70,13 @@ export default function VendorsPage() {
     fetchVendors();
   }, [fetchVendors]);
 
-  const handleBlockToggle = async (vendorId: number) => {
+  const executeBlockToggle = async (vendorId: number) => {
     try {
       const res = await apiFetch(`/api/admin/vendors/${vendorId}/block`, {
         method: "POST"
       });
       if (res.ok) {
-        fetchVendors();
+        fetchVendors(true);
       }
     } catch (err) {
       console.error(err);
@@ -90,7 +92,14 @@ export default function VendorsPage() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-      {showAdd && <AddVendorModal onClose={() => setShowAdd(false)} onSuccess={fetchVendors} />}
+      {showAdd && <AddVendorModal onClose={() => setShowAdd(false)} onSuccess={() => {
+        if (page === 1 && searchQuery === "") {
+          fetchVendors();
+        } else {
+          setPage(1);
+          setSearchQuery("");
+        }
+      }} />}
       {viewVendor && (
         <VendorDetailsModal
           vendor={viewVendor}
@@ -102,6 +111,13 @@ export default function VendorsPage() {
           vendor={editVendor}
           onClose={() => setEditVendor(null)}
           onSuccess={fetchVendors}
+        />
+      )}
+      {vendorToBlock && (
+        <ConfirmBlockModal
+          vendor={vendorToBlock}
+          onClose={() => setVendorToBlock(null)}
+          onConfirm={() => executeBlockToggle(vendorToBlock.id)}
         />
       )}
 
@@ -239,7 +255,7 @@ export default function VendorsPage() {
                     </Link>
                     <button
                       type="button"
-                      onClick={() => handleBlockToggle(vendor.id)}
+                      onClick={() => setVendorToBlock(vendor)}
                       className="text-xs font-bold px-4 py-2 text-red-500 hover:opacity-70 transition-opacity ml-auto"
                     >
                       {vendor.status === 'blocked' ? 'Unblock' : 'Block'}

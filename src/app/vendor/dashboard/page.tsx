@@ -2,194 +2,121 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   FileText,
   Calendar,
   Send,
   CheckCircle,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
-
-const PROJECTS = [
-  "Bob Henderson — The Henderson Residence",
-  "Bob Henderson — The Sterling Penthouse",
-];
+import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
+import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 
 const GOLD = "#C49A3C";
 
-const RECENT_DOCS = [
-  {
-    id: 1,
-    name: "Living room mood board v2",
-    size: "2.1 MB",
-    status: "Pending" as const,
-  },
-  {
-    id: 2,
-    name: "Interior finishes schedule",
-    size: "2.1 MB",
-    status: "Approved" as const,
-  },
-  {
-    id: 3,
-    name: "Living room mood board v2",
-    size: "2.1 MB",
-    status: "Pending" as const,
-  },
-  {
-    id: 4,
-    name: "Living room mood board v2",
-    size: "2.1 MB",
-    status: "Pending" as const,
-  },
-  {
-    id: 5,
-    name: "Living room mood board v2",
-    size: "2.1 MB",
-    status: "Pending" as const,
-  },
-];
-
-const PENDING_DECISIONS = [
-  {
-    id: 1,
-    dot: "bg-red-500",
-    title: "Primary kitchen tile selection",
-    desc: "Overdue by 2 days — please action immediately",
-    descColor: "text-red-500",
-  },
-  {
-    id: 2,
-    dot: "bg-amber-500",
-    title: "Window casing profile — master suite",
-    desc: "Due May 29 · 6 days left",
-    descColor: "text-amber-600",
-  },
-  {
-    id: 3,
-    dot: "bg-green-500",
-    title: "HVAC system specification sign-off",
-    desc: "Due May 29 · 12 days left",
-    descColor: "text-green-600",
-  },
-];
-
-const MILESTONES = [
-  {
-    id: 1,
-    title: "Site prep & demolition",
-    status: "Completed",
-    statusColor: "text-green-600",
-    iconBg: "bg-green-500",
-    filled: true,
-    progress: 100,
-  },
-  {
-    id: 2,
-    title: "Framing",
-    status: "Inprocess",
-    statusColor: "text-amber-600",
-    iconBg: "border-2 border-amber-500",
-    filled: false,
-    progress: 60,
-  },
-  {
-    id: 3,
-    title: "Interior Finishes",
-    status: "Not Start",
-    statusColor: "text-muted-foreground",
-    iconBg: "border-2 border-border",
-    filled: false,
-    progress: 0,
-  },
-  {
-    id: 4,
-    title: "Final punch list & handover",
-    status: "Not Start",
-    statusColor: "text-muted-foreground",
-    iconBg: "border-2 border-border",
-    filled: false,
-    progress: 0,
-  },
-];
-
 export default function VendorDashboardPage() {
-  const [replyText, setReplyText] = useState("");
-  const [selectedProject, setSelectedProject] = useState(PROJECTS[0]);
-  const [showProjectDrop, setShowProjectDrop] = useState(false);
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+  const fetchDashboardData = useCallback(async (projectId: number | null = null) => {
+    setIsLoading(true);
+    try {
+      let url = "/api/vendor/dashboard";
+      if (projectId) {
+        url += `?project_id=${projectId}`;
+      }
+      const res = await apiFetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        setData(json.data);
+        if (json.data.activeProject?.id && !selectedProjectId) {
+           setSelectedProjectId(json.data.activeProject.id);
+        }
+      } else {
+        toast.error("Failed to load dashboard data");
+      }
+    } catch (err) {
+      toast.error("An error occurred while fetching data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    fetchDashboardData(selectedProjectId);
+  }, [fetchDashboardData, selectedProjectId]);
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex flex-col min-h-dvh bg-background items-center justify-center">
+        <Loader2 className="animate-spin text-muted-foreground" size={32} />
+      </div>
+    );
+  }
+
+  const projects = data?.projects || [];
+  const activeProject = data?.activeProject || { name: "No Active Project" };
+  const stats = data?.stats || { totalUploads: 0, approved: 0, pending: 0 };
+  const recentDocs = data?.recentDocs || [];
+  const pendingDecisions = data?.pendingDecisions || [];
+  const milestones = data?.milestones || [];
+  const messages = data?.messages || [];
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        {/* Header & Project Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold tracking-tight">
             <span>Vendor </span>
             <span className="text-muted-foreground font-normal">Dashboard</span>
           </h1>
-        </div>
-
-        {/* PROJECT selector */}
-        <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-2">
-            Project
-          </p>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowProjectDrop((v) => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-background text-sm font-medium hover:bg-secondary/50 transition-colors"
-            >
-              <span className="truncate pr-2">{selectedProject}</span>
-              <ChevronDown
-                size={16}
-                className="text-muted-foreground shrink-0"
-              />
-            </button>
-            {showProjectDrop && (
-              <div className="absolute top-full mt-1 left-0 w-full bg-background border border-border rounded-xl shadow-lg z-20 overflow-hidden">
-                {PROJECTS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => {
-                      setSelectedProject(p);
-                      setShowProjectDrop(false);
-                    }}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-secondary transition-colors"
-                    style={{ fontWeight: selectedProject === p ? 700 : 400 }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="w-full sm:w-[300px]">
+            <ProjectCombobox
+              projects={projects}
+              value={selectedProjectId ? selectedProjectId.toString() : "all"}
+              onChange={(val) => {
+                if (val === "all") setSelectedProjectId(null);
+                else setSelectedProjectId(Number(val));
+              }}
+              label="" // Removed label for a cleaner inline look
+            />
           </div>
         </div>
 
         {/* Hero image */}
-        <div className="relative w-full overflow-hidden rounded-2xl aspect-4/3 sm:aspect-16/6">
+        <div className="relative w-full overflow-hidden rounded-2xl h-[320px]">
           <Image
-            src="https://placehold.co/1200x400/1a2332/ffffff?text=The+Henderson+Residence"
-            alt="The Henderson Residence"
+            src={activeProject.image || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=1200&auto=format&fit=crop"}
+            alt={activeProject.name || "Vendor Dashboard"}
             fill
             className="object-cover"
             unoptimized
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-          <div className="absolute bottom-4 left-4 flex flex-col gap-1.5">
-            <span
-              className="text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full w-fit"
+          <div 
+            className="absolute inset-0"
+            style={{
+              background: "linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0) 100%)"
+            }} 
+          />
+          <div className="absolute bottom-[16px] left-[16px] flex flex-col items-start gap-[8px]">
+            <div
+              className="flex items-center justify-center rounded-[16px] px-[12px] py-[7px]"
               style={{
-                background: "linear-gradient(to bottom, #865B15, #E1C283)",
-                color: "#fff",
+                background: "linear-gradient(195.71deg, #865B15 4.8%, #E1C283 89.02%)",
+                height: "30px",
               }}
             >
-              ACTIVE PROJECT
-            </span>
-            <p className="text-white text-base sm:text-xl font-bold leading-tight">
-              The Henderson Residence
+              <span className="text-[12px] font-normal leading-[16px] tracking-[0.6px] uppercase text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                ACTIVE PROJECT
+              </span>
+            </div>
+            <p className="text-white text-[32px] font-normal leading-[40px] tracking-[-0.32px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {activeProject.name || "The Henderson Residence"}
             </p>
           </div>
         </div>
@@ -206,7 +133,7 @@ export default function VendorDashboardPage() {
                 Total Uploads
               </p>
               <p className="text-3xl font-bold text-white leading-none mt-1">
-                4
+                {stats.totalUploads}
               </p>
               <p className="text-xs text-white/40 mt-0.5">Files</p>
             </div>
@@ -225,7 +152,7 @@ export default function VendorDashboardPage() {
                 className="text-3xl font-bold leading-none mt-1"
                 style={{ color: GOLD }}
               >
-                1
+                {stats.approved}
               </p>
               <p className="text-xs text-green-600 mt-0.5">Verified</p>
             </div>
@@ -240,7 +167,7 @@ export default function VendorDashboardPage() {
               <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
                 Pending Review
               </p>
-              <p className="text-3xl font-bold leading-none mt-1">1</p>
+              <p className="text-3xl font-bold leading-none mt-1">{stats.pending}</p>
               <p className="text-xs text-amber-600 mt-0.5">Awaiting</p>
             </div>
           </div>
@@ -263,31 +190,39 @@ export default function VendorDashboardPage() {
                 </Link>
               </div>
               <div className="flex flex-col divide-y divide-border">
-                {RECENT_DOCS.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="px-5 py-3 flex items-center gap-3"
-                  >
-                    <div className="size-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                      <FileText size={14} className="text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {doc.size}
-                      </p>
-                    </div>
-                    <span
-                      className={`text-xs font-semibold ${
-                        doc.status === "Approved"
-                          ? "text-green-600"
-                          : "text-amber-600"
-                      }`}
-                    >
-                      {doc.status}
-                    </span>
+                {recentDocs.length === 0 ? (
+                  <div className="px-5 py-6 text-center text-sm text-muted-foreground">
+                    No recent documents
                   </div>
-                ))}
+                ) : (
+                  recentDocs.map((doc: any) => (
+                    <div
+                      key={doc.id}
+                      className="px-5 py-3 flex items-center gap-3"
+                    >
+                      <div className="size-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                        <FileText size={14} className="text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.size}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-xs font-semibold ${
+                          doc.status === "Approved"
+                            ? "text-green-600"
+                            : doc.status === "Rejected"
+                            ? "text-red-600"
+                            : "text-amber-600"
+                        }`}
+                      >
+                        {doc.status}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -304,19 +239,25 @@ export default function VendorDashboardPage() {
                 </Link>
               </div>
               <div className="flex flex-col divide-y divide-border">
-                {PENDING_DECISIONS.map((d) => (
-                  <div key={d.id} className="px-5 py-3 flex items-start gap-3">
-                    <span
-                      className={`mt-1.5 inline-block size-2 rounded-full shrink-0 ${d.dot}`}
-                    />
-                    <div>
-                      <p className="text-sm font-bold">{d.title}</p>
-                      <p className={`text-xs mt-0.5 ${d.descColor}`}>
-                        {d.desc}
-                      </p>
-                    </div>
+                {pendingDecisions.length === 0 ? (
+                  <div className="px-5 py-6 text-center text-sm text-muted-foreground">
+                    No pending decisions
                   </div>
-                ))}
+                ) : (
+                  pendingDecisions.map((d: any) => (
+                    <div key={d.id} className="px-5 py-3 flex items-start gap-3">
+                      <span
+                        className={`mt-1.5 inline-block size-2 rounded-full shrink-0 ${d.dot}`}
+                      />
+                      <div>
+                        <p className="text-sm font-bold">{d.title}</p>
+                        <p className={`text-xs mt-0.5 ${d.descColor}`}>
+                          {d.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -328,7 +269,7 @@ export default function VendorDashboardPage() {
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold">Messages from admin</p>
-                  <span className="size-2 rounded-full bg-amber-500" />
+                  {messages.length > 0 && <span className="size-2 rounded-full bg-amber-500" />}
                 </div>
                 <Link
                   href="/vendor/messages"
@@ -339,47 +280,40 @@ export default function VendorDashboardPage() {
                 </Link>
               </div>
               <div className="px-5 py-4 flex flex-col gap-4">
-                {/* Message bubble */}
-                <div className="flex items-start gap-3">
-                  <Image
-                    src="https://api.dicebear.com/9.x/avataaars/png?seed=RemyDiangelo&size=40&backgroundColor=b6e3f4"
-                    alt="Remy Diangelo"
-                    width={36}
-                    height={36}
-                    className="rounded-full shrink-0"
-                    unoptimized
-                  />
-                  <div>
-                    <p className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground mb-1">
-                      Remy Diangelo
-                    </p>
-                    <div className="rounded-2xl rounded-tl-sm bg-secondary px-4 py-3 text-sm">
-                      Marco, I&apos;ve reviewed the latest mood board.
-                      Let&apos;s look at the two options for the living room in
-                      our next meeting. The velvet textures are spot on.
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      09:12 AM
-                    </p>
+                {messages.length === 0 ? (
+                  <div className="text-center text-sm text-muted-foreground py-4">
+                    No recent messages
                   </div>
-                </div>
+                ) : (
+                  messages.map((msg: any) => {
+                    const isYou = msg.sender === "You";
+                    return (
+                      <div key={msg.id} className={`flex items-start gap-3 ${isYou ? "flex-row-reverse" : ""}`}>
+                        <Image
+                          src={msg.avatar}
+                          alt={msg.sender}
+                          width={36}
+                          height={36}
+                          className="rounded-full shrink-0"
+                          unoptimized
+                        />
+                        <div className={isYou ? "flex flex-col items-end text-right" : "flex flex-col items-start"}>
+                          <p className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground mb-1">
+                            {msg.sender}
+                          </p>
+                          <div className={`rounded-2xl px-4 py-3 text-sm ${isYou ? "rounded-tr-sm bg-[#C49A3C] text-white" : "rounded-tl-sm bg-secondary"}`}>
+                            {msg.content}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {msg.time}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
 
-                {/* Reply input */}
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5">
-                  <input
-                    type="text"
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Reply..."
-                    className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
-                  />
-                  <button
-                    type="button"
-                    className="flex items-center justify-center size-8 rounded-xl bg-foreground text-background hover:opacity-80 transition-opacity shrink-0"
-                  >
-                    <Send size={13} />
-                  </button>
-                </div>
+
               </div>
             </div>
 
@@ -396,42 +330,48 @@ export default function VendorDashboardPage() {
                 </Link>
               </div>
               <div className="flex flex-col divide-y divide-border">
-                {MILESTONES.map((m) => (
-                  <div key={m.id} className="px-5 py-3 flex items-center gap-3">
-                    {/* Icon */}
-                    {m.filled ? (
-                      <span className="size-5 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                        <CheckCircle size={12} className="text-white" />
-                      </span>
-                    ) : (
-                      <span
-                        className={`size-5 rounded-full shrink-0 ${m.iconBg}`}
-                        style={
-                          m.status === "Inprocess" ? { borderColor: GOLD } : {}
-                        }
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{m.title}</p>
-                      {m.status === "Inprocess" && (
-                        <div className="mt-1 h-1 rounded-full bg-border w-full">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${m.progress}%`,
-                              background: `linear-gradient(to right, #865B15, #E1C283)`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <span
-                      className={`text-xs font-semibold shrink-0 ${m.statusColor}`}
-                    >
-                      {m.status}
-                    </span>
+                {milestones.length === 0 ? (
+                  <div className="px-5 py-6 text-center text-sm text-muted-foreground">
+                    No milestones found
                   </div>
-                ))}
+                ) : (
+                  milestones.map((m: any) => (
+                    <div key={m.id} className="px-5 py-3 flex items-center gap-3">
+                      {/* Icon */}
+                      {m.filled ? (
+                        <span className="size-5 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                          <CheckCircle size={12} className="text-white" />
+                        </span>
+                      ) : (
+                        <span
+                          className={`size-5 rounded-full shrink-0 ${m.iconBg}`}
+                          style={
+                            m.status === "Inprocess" ? { borderColor: GOLD } : {}
+                          }
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{m.title}</p>
+                        {m.status === "Inprocess" && (
+                          <div className="mt-1 h-1 rounded-full bg-border w-full">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${m.progress}%`,
+                                background: `linear-gradient(to right, #865B15, #E1C283)`,
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs font-semibold shrink-0 ${m.statusColor}`}
+                      >
+                        {m.status}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

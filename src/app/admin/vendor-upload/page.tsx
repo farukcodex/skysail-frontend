@@ -122,7 +122,7 @@ function formatBytes(bytes?: number | null) {
 
 // --- Components ---
 
-function DocPreviewCard({ doc, onApprove, onReject }: { doc: VendorDoc, onApprove: (id: number) => void, onReject: (id: number) => void }) {
+function DocPreviewCard({ doc }: { doc: VendorDoc }) {
   // Format role name nicely
   const roleDisplay = doc.uploader_role 
     ? doc.uploader_role.replace("vendor_", "").charAt(0).toUpperCase() + doc.uploader_role.replace("vendor_", "").slice(1)
@@ -209,26 +209,19 @@ function DocPreviewCard({ doc, onApprove, onReject }: { doc: VendorDoc, onApprov
       {/* Actions */}
       {doc.status === "pending" && (
         <div className="flex flex-row items-start gap-[9px] w-full mt-3">
-          <button
-            onClick={() => onApprove(doc.id)}
-            className="flex flex-row items-center justify-center py-[12px] px-[32px] gap-[8px] bg-[#086935] hover:bg-[#07592d] transition-colors rounded-[8px] text-white font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase font-sans shadow-sm"
+          <a
+            href="/admin/documents"
+            className="flex flex-row items-center justify-center py-[12px] px-[32px] gap-[8px] bg-foreground hover:bg-foreground/80 transition-colors rounded-[8px] text-background font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase font-sans shadow-sm w-full"
           >
-            <CheckCircle2 size={16} />
-            APPROVE
-          </button>
-          <button
-            onClick={() => onReject(doc.id)}
-            className="flex flex-col justify-center items-center py-[11px] px-[32px] border border-[#970404] hover:bg-[#970404]/5 transition-colors rounded-[8px] text-[#970404] font-semibold text-[12px] leading-[16px] tracking-[1.2px] uppercase font-sans bg-transparent"
-          >
-            REJECT
-          </button>
+            REVIEW IN DOCUMENTS
+          </a>
         </div>
       )}
     </div>
   );
 }
 
-function DecisionCard({ decision, onApprove, onReject }: { decision: DecisionRow, onApprove: (id: number) => void, onReject: (id: number) => void }) {
+function DecisionCard({ decision }: { decision: DecisionRow }) {
   const roleDisplay = decision.creator_role 
     ? decision.creator_role.replace("vendor_", "").charAt(0).toUpperCase() + decision.creator_role.replace("vendor_", "").slice(1)
     : "Vendor";
@@ -333,25 +326,14 @@ function DecisionCard({ decision, onApprove, onReject }: { decision: DecisionRow
         {decision.status === "pending" && (
           <div className="flex flex-col items-start gap-[10px] w-[279.99px] h-[43px]">
             <div className="flex flex-row items-start gap-[9px] w-full h-[43px]">
-              <button
-                onClick={() => onApprove(decision.id)}
-                className="flex flex-row items-center px-[32px] py-[12px] gap-[7.99px] w-[155.99px] h-[43px] bg-[#086935] rounded-[8px] hover:bg-[#07592d] transition-colors"
+              <a
+                href="/admin/decisions"
+                className="flex flex-row items-center justify-center px-[32px] py-[12px] gap-[7.99px] w-full h-[43px] bg-foreground rounded-[8px] hover:bg-foreground/80 transition-colors"
               >
-                <div className="w-[19px] h-[19px] flex items-center justify-center">
-                  <CheckCircle2 size={19} color="white" />
-                </div>
-                <span className="font-['Plus_Jakarta_Sans'] font-semibold text-[12px] leading-[16px] text-center tracking-[1.2px] uppercase text-[#FFFFFF]">
-                  APPROVE
+                <span className="font-['Plus_Jakarta_Sans'] font-semibold text-[12px] leading-[16px] text-center tracking-[1.2px] uppercase text-background">
+                  REVIEW IN DECISIONS
                 </span>
-              </button>
-              <button
-                onClick={() => onReject(decision.id)}
-                className="box-border flex flex-col justify-center items-center py-[14.5px] px-[32px] w-[115px] h-[43px] border border-[#970404] rounded-[8px] hover:bg-[#970404]/5 transition-colors bg-transparent"
-              >
-                <span className="font-['Plus_Jakarta_Sans'] font-semibold text-[12px] leading-[16px] text-center tracking-[1.2px] uppercase text-[#970404]">
-                  REJECT
-                </span>
-              </button>
+              </a>
             </div>
           </div>
         )}
@@ -360,7 +342,7 @@ function DecisionCard({ decision, onApprove, onReject }: { decision: DecisionRow
   )
 }
 
-function MilestoneTable({ milestones, onApprove, onReject }: { milestones: MilestoneRow[], onApprove: (id: number) => void, onReject: (id: number) => void }) {
+function MilestoneTable({ milestones }: { milestones: MilestoneRow[] }) {
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(milestones.length / PAGE_SIZE);
   const rows = milestones.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -446,21 +428,12 @@ function MilestoneTable({ milestones, onApprove, onReject }: { milestones: Miles
                 <td className="px-5 py-4">
                   {m.status === "pending_review" ? (
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onApprove(m.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-[10px] font-bold hover:bg-green-700 transition-colors uppercase tracking-wider"
+                      <a
+                        href="/admin/milestones"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-[10px] font-bold hover:bg-foreground/80 transition-colors uppercase tracking-wider"
                       >
-                        <CheckCircle2 size={12} />
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onReject(m.id)}
-                        className="px-3 py-1.5 rounded-lg border border-red-200 text-red-500 text-[10px] font-bold hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors uppercase tracking-wider"
-                      >
-                        Reject
-                      </button>
+                        REVIEW MILESTONE
+                      </a>
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
@@ -580,91 +553,6 @@ export default function VendorUploadPage() {
     fetchData();
   }, [fetchData]);
 
-  // Handlers
-  const handleApproveDoc = async (id: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/documents/${id}/approve`, { method: "POST" });
-      if (res.ok) {
-        toast.success("Document approved!");
-        fetchData();
-      } else {
-        toast.error("Failed to approve document.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleRejectDoc = async (id: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/documents/${id}/reject`, { method: "POST" });
-      if (res.ok) {
-        toast.success("Document rejected.");
-        fetchData();
-      } else {
-        toast.error("Failed to reject document.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleApproveMilestone = async (id: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/milestones/${id}/approve`, { method: "POST" });
-      if (res.ok) {
-        toast.success("Milestone approved!");
-        fetchData();
-      } else {
-        toast.error("Failed to approve milestone.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleRejectMilestone = async (id: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/milestones/${id}/reject`, { method: "POST" });
-      if (res.ok) {
-        toast.success("Milestone rejected.");
-        fetchData();
-      } else {
-        toast.error("Failed to reject milestone.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleApproveDecision = async (id: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/decisions/${id}/approve`, { method: "POST" });
-      if (res.ok) {
-        toast.success("Decision approved!");
-        fetchData();
-      } else {
-        toast.error("Failed to approve decision.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleRejectDecision = async (id: number) => {
-    try {
-      const res = await apiFetch(`/api/admin/decisions/${id}/reject`, { method: "POST" });
-      if (res.ok) {
-        toast.success("Decision rejected.");
-        fetchData();
-      } else {
-        toast.error("Failed to reject decision.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   // Filter Data
   const filteredDocs = documents.filter((d) => {
     // Filter by Tab
@@ -714,47 +602,46 @@ export default function VendorUploadPage() {
     <div className="flex flex-col min-h-dvh bg-background">
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
         
-        {/* Header & Filters */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Approvals <span className="text-muted-foreground font-normal">Hub</span>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">Review and manage vendor documents and milestones.</p>
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Approvals <span className="text-muted-foreground font-normal">Hub</span>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Review and manage vendor documents and milestones.</p>
+        </div>
+        
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-4 w-full max-w-2xl z-10 relative">
+          <div className="w-full sm:flex-1 min-w-[250px]">
+            <ProjectCombobox
+              label="Client / Project"
+              projects={projects as any}
+              value={selectedProjectId.toString()}
+              onChange={(val) => {
+                setSelectedProjectId(val === "all" ? "all" : parseInt(val));
+                setDocPage(1);
+              }}
+            />
           </div>
-          
-          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center gap-2 bg-secondary/40 border border-border rounded-xl px-3 py-1.5 self-start sm:self-auto">
-              <Filter size={14} className="text-muted-foreground" />
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
-            </div>
-            <div className="w-full sm:w-[300px]">
-              <ProjectCombobox
-                projects={projects}
-                value={selectedProjectId.toString()}
-                onChange={(val) => {
-                  setSelectedProjectId(val === "all" ? "all" : parseInt(val));
-                  setDocPage(1);
-                }}
-              />
-            </div>
 
-            <div className="relative w-full sm:w-auto">
-              <select
-                value={selectedVendorRole}
-                onChange={(e) => {
-                  setSelectedVendorRole(e.target.value);
-                  setDocPage(1);
-                }}
-                className="w-full appearance-none bg-background border border-border rounded-xl px-4 py-2.5 h-[56px] pr-10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition sm:min-w-[160px]"
-              >
-                <option value="all">All Vendor Roles</option>
-                {VENDOR_ROLES.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
+          <div className="relative w-full sm:flex-1 min-w-[200px]">
+            <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-1.5 block">
+              Vendor Role
+            </label>
+            <select
+              value={selectedVendorRole}
+              onChange={(e) => {
+                setSelectedVendorRole(e.target.value);
+                setDocPage(1);
+              }}
+              className="w-full appearance-none bg-background border border-border rounded-xl px-4 min-h-[56px] h-auto py-2 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
+            >
+              <option value="all">All Vendor Roles</option>
+              {VENDOR_ROLES.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+            <ChevronDown size={16} className="absolute right-4 bottom-[20px] text-muted-foreground pointer-events-none opacity-50" />
           </div>
         </div>
 
@@ -807,8 +694,6 @@ export default function VendorUploadPage() {
                     <DocPreviewCard 
                       key={doc.id} 
                       doc={doc} 
-                      onApprove={handleApproveDoc} 
-                      onReject={handleRejectDoc} 
                     />
                   ))}
                 </div>
@@ -889,8 +774,6 @@ export default function VendorUploadPage() {
                   <DecisionCard 
                     key={decision.id}
                     decision={decision}
-                    onApprove={handleApproveDecision}
-                    onReject={handleRejectDecision}
                   />
                 ))}
               </div>
@@ -902,8 +785,6 @@ export default function VendorUploadPage() {
         <div className="mt-8">
           <MilestoneTable 
             milestones={filteredMilestones} 
-            onApprove={handleApproveMilestone} 
-            onReject={handleRejectMilestone} 
           />
         </div>
 

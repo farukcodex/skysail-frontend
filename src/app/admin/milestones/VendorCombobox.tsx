@@ -69,6 +69,22 @@ export function VendorCombobox({
                   </span>
                 </div>
               </div>
+            ) : initialLabel && value ? (
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Avatar className="size-8 shrink-0">
+                  <AvatarFallback className="text-xs">
+                    {initialLabel[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                  <span className="text-sm font-semibold leading-none truncate text-foreground w-full text-left">
+                    {initialLabel}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mt-1 truncate w-full text-left">
+                    Vendor
+                  </span>
+                </div>
+              </div>
             ) : (
               <span>Select a vendor...</span>
             )}

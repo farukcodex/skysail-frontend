@@ -181,7 +181,7 @@ export default function MilestonesPage() {
           
           const vendorId = first.assigned_to ? first.assigned_to.toString() : "";
           setAssignedTo(vendorId);
-          // Just let VendorCombobox derive the label using the ID
+          setInitialVendorLabel(first.assignee_name || "");
         } else {
           setSelectedMilestoneId(null);
         }
@@ -229,6 +229,37 @@ export default function MilestonesPage() {
     }
   };
 
+  const handleApprove = async () => {
+    if (!selectedMilestoneId) return;
+    try {
+      const res = await apiFetch(`/api/admin/milestones/${selectedMilestoneId}/approve`, { method: "POST" });
+      if (res.ok) {
+        toast.success("Milestone approved!");
+        if (selectedProjectId) fetchMilestones(selectedProjectId);
+      } else {
+        toast.error("Failed to approve milestone.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred");
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedMilestoneId) return;
+    try {
+      const res = await apiFetch(`/api/admin/milestones/${selectedMilestoneId}/reject`, { method: "POST" });
+      if (res.ok) {
+        toast.success("Milestone rejected.");
+        if (selectedProjectId) fetchMilestones(selectedProjectId);
+      } else {
+        toast.error("Failed to reject milestone.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred");
+    }
+  };
 
 
   const selectedProjectObj = projects.find(p => p.id === selectedProjectId);
@@ -403,6 +434,8 @@ export default function MilestonesPage() {
                             setCompletion(m.completion_percent.toString());
                             setStatus(m.status);
                             setTargetDate(m.target_date || "");
+                            setAssignedTo(m.assigned_to ? m.assigned_to.toString() : "");
+                            setInitialVendorLabel(m.assignee_name || "");
                           }}
                           className="flex items-center justify-center size-8 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
                         >
@@ -463,8 +496,7 @@ export default function MilestonesPage() {
                         
                         const vendorId = m.assigned_to ? m.assigned_to.toString() : "";
                         setAssignedTo(vendorId);
-                        const vendorObj = (selectedProjectObj?.vendors || []).find(v => v.id.toString() === vendorId);
-                        setInitialVendorLabel(vendorObj ? vendorObj.name : "");
+                        setInitialVendorLabel(m.assignee_name || "");
                       }
                     }}
                     className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
@@ -510,6 +542,7 @@ export default function MilestonesPage() {
                     className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition disabled:opacity-50"
                   >
                     {(originalStatus === "upcoming" || isUnlocked) && <option value="upcoming">Upcoming</option>}
+                    {originalStatus === "pending_review" && <option value="pending_review" disabled>Pending Review</option>}
                     <option value="in-progress">In progress</option>
                     <option value="completed">Completed</option>
                   </select>
@@ -541,6 +574,25 @@ export default function MilestonesPage() {
                 disabled={isFormDisabled}
                 onAddVendorToProject={() => selectedProjectObj && setManageVendorsProject(selectedProjectObj as any)}
               />
+
+              {originalStatus === "pending_review" && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleApprove}
+                    className="flex-1 py-3 rounded-xl bg-[#086935] text-white text-xs font-bold tracking-widest uppercase hover:bg-[#07592d] transition-colors shadow-sm"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleReject}
+                    className="flex-1 py-3 rounded-xl border border-[#970404] text-[#970404] text-xs font-bold tracking-widest uppercase hover:bg-[#970404]/5 transition-colors"
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
 
               {/* Save button */}
               <button

@@ -123,7 +123,7 @@ function EventRow({ event, onConfirm, onDecline, onReschedule }: { event: CalEve
 
         <div className="flex flex-wrap items-center gap-3 mt-3.5">
           {event.status === "pending" ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => onConfirm(event.id)}
@@ -166,7 +166,7 @@ function EventRow({ event, onConfirm, onDecline, onReschedule }: { event: CalEve
                   In Person
                 </span>
               )}
-              <span className="text-[11px] font-bold text-green-600 uppercase tracking-wider bg-green-50 px-3 py-1.5 rounded-full border border-green-100 hidden sm:inline-block">
+              <span className="text-[11px] font-bold text-green-600 uppercase tracking-wider bg-green-50 px-3 py-1.5 rounded-full border border-green-100 inline-block">
                 Confirmed
               </span>
               <a

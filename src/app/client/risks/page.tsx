@@ -74,7 +74,7 @@ export default function RisksPage() {
         </div>
 
         {/* Risk cards */}
-        <div className="flex flex-col gap-4 ">
+        <div className="flex flex-col gap-4 min-w-0">
           {isLoading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="animate-spin text-muted-foreground" size={24} />
@@ -88,12 +88,12 @@ export default function RisksPage() {
               <Card key={r.id} className="rounded-2xl">
                 <CardContent className="pt-5 pb-5">
                   <div className="flex items-start justify-between gap-4 mb-2">
-                    <h2 className="text-sm font-bold leading-snug">{r.title}</h2>
+                    <h2 className="text-sm font-bold leading-snug break-all flex-1 min-w-0">{r.title}</h2>
                     <StatusBadge status={r.status} />
                   </div>
 
                   <p
-                    className={`text-sm leading-relaxed ${
+                    className={`text-sm leading-relaxed break-all ${
                       r.status === "resolved"
                         ? "text-muted-foreground italic"
                         : "text-muted-foreground"

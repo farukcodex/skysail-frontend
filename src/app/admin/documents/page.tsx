@@ -123,7 +123,6 @@ export default function DocumentsPage() {
   // Upload Form State
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [docName, setDocName] = useState("");
-  const [docNote, setDocNote] = useState("");
   const [docFile, setDocFile] = useState<File | null>(null);
   const [notify, setNotify] = useState(true);
   const [dragging, setDragging] = useState(false);
@@ -181,7 +180,6 @@ export default function DocumentsPage() {
     formData.append("document_type", category);
     formData.append("document_title", docName);
     formData.append("document", docFile);
-    if (docNote) formData.append("note", docNote);
 
     try {
       const res = await apiFetch("/api/admin/documents", {
@@ -192,7 +190,6 @@ export default function DocumentsPage() {
       if (res.ok) {
         toast.success("Document uploaded successfully!");
         setDocName("");
-        setDocNote("");
         setDocFile(null);
         if (fileRef.current) fileRef.current.value = "";
         fetchData(); // Refresh the list
@@ -317,6 +314,11 @@ export default function DocumentsPage() {
                         <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                           Uploaded by: {doc.uploader_name} &bull; Project: {doc.project_name}
                         </p>
+                        {doc.note_to_admin && (
+                          <div className="mt-2 p-2 bg-amber-50/80 border border-amber-100 rounded-lg text-xs text-amber-900">
+                            <strong>Note:</strong> {doc.note_to_admin}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -484,20 +486,6 @@ export default function DocumentsPage() {
                 />
               </div>
 
-              {/* Note */}
-              <div className="flex flex-col gap-1.5">
-                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-                  Note <span className="normal-case font-normal">(optional)</span>
-                </p>
-                <input
-                  type="text"
-                  value={docNote}
-                  onChange={(e) => setDocNote(e.target.value)}
-                  disabled={client === "all"}
-                  placeholder="Any additional information..."
-                  className="w-full bg-transparent border-b border-border pb-3 text-sm focus:outline-none placeholder:text-muted-foreground/40 disabled:opacity-50"
-                />
-              </div>
 
               {/* Drag-and-drop zone */}
               <input

@@ -253,7 +253,7 @@ export default function BudgetPage() {
                   <p className="text-[10px] tracking-widest uppercase font-semibold text-white/50">
                     Contract Budget
                   </p>
-                  <p className="text-3xl font-bold text-white">
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-bold text-white">
                     {fmt(contractBudget)}
                   </p>
                   <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
@@ -277,7 +277,7 @@ export default function BudgetPage() {
                   <p className="text-[10px] tracking-widest uppercase font-semibold text-muted-foreground">
                     Approved Changes
                   </p>
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-500">{fmt(totalApprovedChanges)}</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-bold text-green-600 dark:text-green-500">{fmt(totalApprovedChanges)}</p>
                   <p className="text-sm text-muted-foreground">{totalApprovedCount} {totalApprovedCount === 1 ? 'item' : 'items'} added to contract</p>
                 </CardContent>
               </Card>
@@ -293,7 +293,7 @@ export default function BudgetPage() {
                   <p className="text-[10px] tracking-widest uppercase font-semibold text-muted-foreground">
                     Pending Changes
                   </p>
-                  <p className="text-3xl font-bold text-[#C49A3C]">{fmt(totalPendingChanges)}</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-bold text-[#C49A3C]">{fmt(totalPendingChanges)}</p>
                   <p className="text-sm text-muted-foreground">{totalPendingCount} {totalPendingCount === 1 ? 'item' : 'items'} awaiting approval</p>
                 </CardContent>
               </Card>
@@ -309,7 +309,7 @@ export default function BudgetPage() {
                   <p className="text-[10px] tracking-widest uppercase font-semibold text-muted-foreground">
                     Total Spent
                   </p>
-                  <p className="text-3xl font-bold text-red-600 dark:text-red-500">{fmt(totalSpent)}</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-bold text-red-600 dark:text-red-500">{fmt(totalSpent)}</p>
                   <p className="text-sm text-muted-foreground">Recorded expenses</p>
                 </CardContent>
               </Card>
@@ -325,7 +325,7 @@ export default function BudgetPage() {
                   <p className="text-[10px] tracking-widest uppercase font-semibold text-muted-foreground">
                     Remaining Budget
                   </p>
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-500">{fmt(remainingBudget)}</p>
+                  <p className="text-xl sm:text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-500">{fmt(remainingBudget)}</p>
                   <p className="text-sm text-muted-foreground">Available runway</p>
                 </CardContent>
               </Card>

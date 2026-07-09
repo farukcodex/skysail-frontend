@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ArrowRight,
   CalendarCheckIcon,
@@ -5,9 +7,15 @@ import {
   FolderKanban,
   PlusIcon,
   Users2Icon,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
+
+import { apiFetch } from "@/lib/api";
+import { AddProjectModal } from "../projects/components/AddProjectModal";
+
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +28,7 @@ interface Project {
   phase: string;
   phaseNum: number;
   totalPhases: number;
-  status: "on-track" | "at-risk" | "delayed";
+  status: "active" | "completed" | "cancelled";
   thumb: string;
 }
 
@@ -49,126 +57,7 @@ interface UpcomingEvent {
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-const PROJECTS: Project[] = [
-  {
-    id: 1,
-    name: "The Henderson Residence",
-    phase: "Framing",
-    phaseNum: 3,
-    totalPhases: 6,
-    status: "on-track",
-    thumb: "https://placehold.co/56x56/8B6914/ffffff?text=H",
-  },
-  {
-    id: 2,
-    name: "The Mercer Custom Build",
-    phase: "MEP",
-    phaseNum: 4,
-    totalPhases: 6,
-    status: "on-track",
-    thumb: "https://placehold.co/56x56/1c2b3a/ffffff?text=M",
-  },
-  {
-    id: 3,
-    name: "The Larsen Pool & Addition",
-    phase: "MEP",
-    phaseNum: 4,
-    totalPhases: 6,
-    status: "on-track",
-    thumb: "https://placehold.co/56x56/2d4a2d/ffffff?text=L",
-  },
-  {
-    id: 4,
-    name: "The Larsen Pool & Addition",
-    phase: "MEP",
-    phaseNum: 4,
-    totalPhases: 6,
-    status: "on-track",
-    thumb: "https://placehold.co/56x56/3a2d1c/ffffff?text=L",
-  },
-];
-
-const RECENT_CLIENTS: RecentClient[] = [
-  {
-    id: 1,
-    name: "Bob Henderson",
-    project: "The Henderson Residence",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=40&backgroundColor=b6e3f4",
-  },
-  {
-    id: 2,
-    name: "Bob Henderson",
-    project: "The Henderson Residence",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson2&size=40&backgroundColor=c0aede",
-  },
-  {
-    id: 3,
-    name: "Bob Henderson",
-    project: "The Henderson Residence",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson3&size=40&backgroundColor=d1d4f9",
-  },
-  {
-    id: 4,
-    name: "Bob Henderson",
-    project: "The Henderson Residence",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson4&size=40&backgroundColor=ffd5dc",
-  },
-];
-
-const TEAM: TeamMember[] = [
-  {
-    id: 1,
-    name: "Bob Henderson",
-    role: "Owner's Representative",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=RemyDiAngelo&size=40&backgroundColor=b6e3f4",
-  },
-  {
-    id: 2,
-    name: "Bob Henderson",
-    role: "Owner's Representative",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=JamesSullivan&size=40&backgroundColor=c0aede",
-  },
-  {
-    id: 3,
-    name: "Bob Henderson",
-    role: "Owner's Representative",
-    avatar:
-      "https://api.dicebear.com/9.x/avataaars/png?seed=AnnaKeller&size=40&backgroundColor=d1d4f9",
-  },
-];
-
-const EVENTS: UpcomingEvent[] = [
-  {
-    id: 1,
-    month: "MAY",
-    day: 27,
-    title: "Henderson site walkthrough",
-    detail: "On-site · Remy + James Sullivan",
-    action: "rsvp",
-  },
-  {
-    id: 2,
-    month: "MAY",
-    day: 27,
-    title: "Interior finishes design review",
-    detail: "Google meet · Bob Henderson confirmed",
-    action: "join",
-  },
-  {
-    id: 3,
-    month: "MAY",
-    day: 27,
-    title: "Interior finishes design review",
-    detail: "On-site · Remy + James Sullivan",
-    action: "rsvp",
-  },
-];
+// Static data removed - fetching from API
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -187,38 +76,97 @@ function SectionLink({ href }: { href: string }) {
 }
 
 function StatusPill({ status }: { status: Project["status"] }) {
-  if (status === "on-track")
+  if (status === "active")
     return (
-      <span className="text-xs font-semibold text-green-600">On track</span>
+      <span className="text-xs font-semibold text-green-600">Active</span>
     );
-  if (status === "at-risk")
+  if (status === "completed")
     return (
-      <span className="text-xs font-semibold text-yellow-500">At risk</span>
+      <span className="text-xs font-semibold text-blue-500">Completed</span>
     );
-  return <span className="text-xs font-semibold text-red-500">Delayed</span>;
+  return <span className="text-xs font-semibold text-red-500">Cancelled</span>;
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  const [data, setData] = useState<{
+    user: { name: string };
+    stats: {
+      active_projects: number;
+      total_clients: number;
+      open_decisions: number;
+      decisions_needed: number;
+    };
+    projects: Project[];
+    recent_clients: RecentClient[];
+    team: TeamMember[];
+    events: UpcomingEvent[];
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+
+  const fetchDashboard = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiFetch("/api/admin/dashboard");
+      const json = await res.json();
+      if (res.ok) {
+        setData(json);
+      } else {
+        console.error("Failed to fetch dashboard", json.message);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  if (isLoading || !data) {
+    return (
+      <div className="flex flex-col min-h-dvh bg-background items-center justify-center">
+        <Loader2 className="animate-spin text-muted-foreground" size={40} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-dvh bg-background">
+      {showAdd && <AddProjectModal onClose={() => setShowAdd(false)} onSuccess={fetchDashboard} />}
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Good morning, Bob{" "}
+              {getGreeting()}{data.user.name ? `, ${data.user.name}` : ""}{" "}
               <span role="img" aria-label="wave">
                 👋
               </span>
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Overview of all active projects &bull; May 23, 2025
+              Overview of all active projects &bull;{" "}
+              {new Date().toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
             </p>
           </div>
           <button
-            type="submit"
+            type="button"
+            onClick={() => setShowAdd(true)}
             className="flex items-center gap-6 w-fit bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all"
           >
             Add Project
@@ -241,7 +189,7 @@ export default function AdminDashboardPage() {
               <p className="text-[10px] tracking-widest uppercase font-semibold text-white/50">
                 Active Projects
               </p>
-              <p className="text-4xl font-bold text-white">3</p>
+              <p className="text-4xl font-bold text-white">{data.stats.active_projects}</p>
               <p className="text-sm text-white/50">All on track</p>
             </CardContent>
             <div className="size-28 rounded-full bg-white/10 absolute -right-14 top-1/2 -translate-y-1/2" />
@@ -259,7 +207,7 @@ export default function AdminDashboardPage() {
               <p className="text-[10px] tracking-widest uppercase font-semibold text-muted-foreground">
                 Total Clients
               </p>
-              <p className="text-4xl font-bold">23</p>
+              <p className="text-4xl font-bold">{data.stats.total_clients}</p>
               <p className="text-sm font-medium" style={{ color: GOLD }}>
                 All Client
               </p>
@@ -277,7 +225,7 @@ export default function AdminDashboardPage() {
               <p className="text-[10px] tracking-widest uppercase font-semibold text-muted-foreground">
                 Open Decisions
               </p>
-              <p className="text-4xl font-bold">18</p>
+              <p className="text-4xl font-bold">{data.stats.open_decisions}</p>
               <p className="text-sm font-medium text-red-500">
                 Awaiting client action
               </p>
@@ -296,7 +244,7 @@ export default function AdminDashboardPage() {
                 Decisions Needed
               </p>
               <p className="text-4xl font-bold" style={{ color: GOLD }}>
-                2
+                {data.stats.decisions_needed}
               </p>
               <p className="text-sm font-medium" style={{ color: GOLD }}>
                 Monitoring
@@ -320,7 +268,7 @@ export default function AdminDashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-2">
-                {PROJECTS.map((p) => (
+                {data.projects.map((p) => (
                   <div
                     key={p.id}
                     className="flex items-center gap-3 py-3 border-b border-border last:border-0"
@@ -338,7 +286,8 @@ export default function AdminDashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate">{p.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Phase {p.phaseNum} of {p.totalPhases} &middot; {p.phase}
+                        {/* Phase {p.phaseNum} of {p.totalPhases} &middot; {p.phase} */}
+                        Phase {p.phaseNum} of {p.totalPhases}
                       </p>
                     </div>
                     <StatusPill status={p.status} />
@@ -358,7 +307,7 @@ export default function AdminDashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-2">
-                {TEAM.map((m) => (
+                {data.team.map((m) => (
                   <div
                     key={m.id}
                     className="flex items-center gap-3 py-3 border-b border-border last:border-0"
@@ -392,7 +341,7 @@ export default function AdminDashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-2">
-                {RECENT_CLIENTS.map((c) => (
+                {data.recent_clients.map((c) => (
                   <div
                     key={c.id}
                     className="flex items-center gap-3 py-3 border-b border-border last:border-0 bg-secondary/40 rounded-xl px-3 mb-1.5 last:mb-0"
@@ -425,7 +374,7 @@ export default function AdminDashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-2">
-                {EVENTS.map((e) => (
+                {data.events.map((e) => (
                   <div
                     key={e.id}
                     className="flex items-center gap-3 py-3 border-b border-border last:border-0"

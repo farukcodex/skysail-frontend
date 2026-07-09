@@ -139,6 +139,13 @@ function EventActionBtn({ action }: { action: string }) {
   );
 }
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -193,6 +200,8 @@ export default function DashboardPage() {
   const risks = data?.risks || [];
   const events = data?.events || [];
 
+  const user = data?.user || {};
+
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       {/* ── Content ── */}
@@ -202,7 +211,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Good morning{" "}
+              {getGreeting()}{user.name ? `, ${user.name}` : ""}{" "}
               <span role="img" aria-label="wave">
                 👋
               </span>

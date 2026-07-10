@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ImageViewer } from "@/components/shared/ImageViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
+import { VendorProjectDropdown } from "@/components/shared/VendorProjectDropdown";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const GOLD = "#C49A3C";
@@ -73,6 +74,12 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
   const [rejectPushNotify, setRejectPushNotify] = useState(true);
   const [rejectEmailNotify, setRejectEmailNotify] = useState(true);
   const [isRejecting, setIsRejecting] = useState(false);
+
+  // Vendor Notification States
+  const [vendorApprovePushNotify, setVendorApprovePushNotify] = useState(true);
+  const [vendorApproveEmailNotify, setVendorApproveEmailNotify] = useState(true);
+  const [vendorRejectPushNotify, setVendorRejectPushNotify] = useState(true);
+  const [vendorRejectEmailNotify, setVendorRejectEmailNotify] = useState(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -206,12 +213,16 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
     setApproveModalMs(doc);
     setApprovePushNotify(true);
     setApproveEmailNotify(true);
+    setVendorApprovePushNotify(true);
+    setVendorApproveEmailNotify(true);
   };
 
   const handleReject = (doc: VendorDecision) => {
     setRejectModalMs(doc);
     setRejectPushNotify(true);
     setRejectEmailNotify(true);
+    setVendorRejectPushNotify(true);
+    setVendorRejectEmailNotify(true);
   };
 
   const submitApprove = async () => {
@@ -222,8 +233,10 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          push_notify: approvePushNotify,
-          email_notify: approveEmailNotify,
+          push_notify: String(approvePushNotify),
+          email_notify: String(approveEmailNotify),
+          vendor_push_notify: String(vendorApprovePushNotify),
+          vendor_email_notify: String(vendorApproveEmailNotify),
         })
       });
       if (res.ok) {
@@ -248,8 +261,8 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          push_notify: rejectPushNotify,
-          email_notify: rejectEmailNotify,
+          vendor_push_notify: String(vendorRejectPushNotify),
+          vendor_email_notify: String(vendorRejectEmailNotify),
         })
       });
       if (res.ok) {
@@ -491,12 +504,27 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5 w-full">
-                <ProjectCombobox
-                  projects={projects as any}
-                  value={projectId}
-                  onChange={(val) => setProjectId(val === "all" ? "" : val)}
-                  label="Select Project"
-                />
+                {role === "vendor" ? (
+                  <>
+                    <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+                      Select Project
+                    </label>
+                    <VendorProjectDropdown
+                      projects={projects}
+                      value={projectId}
+                      onChange={(val) => setProjectId(val === "all" ? "" : val)}
+                      showAllOption={false}
+                      className="w-full bg-background border border-border rounded-lg px-3 h-[38px] text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition shadow-none"
+                    />
+                  </>
+                ) : (
+                  <ProjectCombobox
+                    projects={projects as any}
+                    value={projectId}
+                    onChange={(val) => setProjectId(val === "all" ? "" : val)}
+                    label="Select Project"
+                  />
+                )}
               </div>
               
               <div className="space-y-1.5">
@@ -579,34 +607,36 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Send push notification?</p>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={pushNotify}
-                    onClick={() => setPushNotify((v) => !v)}
-                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: pushNotify ? "#1a1a1a" : "#e5e7eb" }}
-                  >
-                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: pushNotify ? "translateX(22px)" : "translateX(2px)" }} />
-                  </button>
+              {role !== 'vendor' && (
+                <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">Send push notification?</p>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={pushNotify}
+                      onClick={() => setPushNotify((v) => !v)}
+                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                      style={{ backgroundColor: pushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                    >
+                      <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: pushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">Send email notification?</p>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={emailNotify}
+                      onClick={() => setEmailNotify((v) => !v)}
+                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                      style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                    >
+                      <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: emailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Send email notification?</p>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={emailNotify}
-                    onClick={() => setEmailNotify((v) => !v)}
-                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
-                  >
-                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: emailNotify ? "translateX(22px)" : "translateX(2px)" }} />
-                  </button>
-                </div>
-              </div>
+              )}
               
               <button
                 type="submit"
@@ -667,6 +697,40 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
                 </button>
               </div>
             </div>
+
+            <p className="text-sm text-muted-foreground mt-2">
+              Would you like to notify the assigned vendor?
+            </p>
+
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50 mb-6">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification to vendor?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={vendorApprovePushNotify}
+                  onClick={() => setVendorApprovePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: vendorApprovePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: vendorApprovePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification to vendor?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={vendorApproveEmailNotify}
+                  onClick={() => setVendorApproveEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: vendorApproveEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: vendorApproveEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
             <button
               type="button"
               onClick={submitApprove}
@@ -687,33 +751,33 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground mb-6">
-              You are about to reject <strong>{rejectModalMs?.title}</strong>.
+              You are about to reject <strong>{rejectModalMs?.title}</strong>. This will notify the vendor.
             </p>
             <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50 mb-6">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Send push notification?</p>
+                <p className="text-sm font-medium">Send push notification to vendor?</p>
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={rejectPushNotify}
-                  onClick={() => setRejectPushNotify((v) => !v)}
+                  aria-checked={vendorRejectPushNotify}
+                  onClick={() => setVendorRejectPushNotify((v) => !v)}
                   className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: rejectPushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  style={{ backgroundColor: vendorRejectPushNotify ? "#1a1a1a" : "#e5e7eb" }}
                 >
-                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: rejectPushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: vendorRejectPushNotify ? "translateX(22px)" : "translateX(2px)" }} />
                 </button>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Send email notification?</p>
+                <p className="text-sm font-medium">Send email notification to vendor?</p>
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={rejectEmailNotify}
-                  onClick={() => setRejectEmailNotify((v) => !v)}
+                  aria-checked={vendorRejectEmailNotify}
+                  onClick={() => setVendorRejectEmailNotify((v) => !v)}
                   className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: rejectEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                  style={{ backgroundColor: vendorRejectEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
                 >
-                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: rejectEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: vendorRejectEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
                 </button>
               </div>
             </div>

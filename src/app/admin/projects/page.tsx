@@ -13,6 +13,7 @@ const PAGE_SIZE = 6;
 
 export interface Project {
   id: number;
+  status: string;
   name: string;
   phase: string;
   client: string;
@@ -32,6 +33,10 @@ export default function AllProjectsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [manageVendorsProject, setManageVendorsProject] = useState<Project | null>(null);
+  const [completeProject, setCompleteProject] = useState<Project | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [cancelProject, setCancelProject] = useState<Project | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -60,6 +65,40 @@ export default function AllProjectsPage() {
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  const handleCompleteProject = async () => {
+    if (!completeProject) return;
+    setIsCompleting(true);
+    try {
+      const res = await apiFetch(`/api/admin/projects/${completeProject.id}/complete`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Failed to complete project");
+      setCompleteProject(null);
+      fetchProjects();
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleCancelProject = async () => {
+    if (!cancelProject) return;
+    setIsCancelling(true);
+    try {
+      const res = await apiFetch(`/api/admin/projects/${cancelProject.id}/cancel`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Failed to cancel project");
+      setCancelProject(null);
+      fetchProjects();
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
@@ -115,6 +154,8 @@ export default function AllProjectsPage() {
                   project={project}
                   onEdit={setEditProject}
                   onManageVendors={setManageVendorsProject}
+                  onComplete={setCompleteProject}
+                  onCancel={setCancelProject}
                 />
               ))}
             </div>
@@ -132,6 +173,80 @@ export default function AllProjectsPage() {
           />
         )}
       </div>
+
+      {completeProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background rounded-2xl w-full max-w-md p-6 flex flex-col gap-5 border border-border">
+            <div>
+              <h2 className="text-xl font-bold">Mark as Completed</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                Are you sure you want to mark <strong>{completeProject.name}</strong> as completed?
+              </p>
+              <div className="mt-4 p-3 rounded-lg bg-orange-50 border border-orange-200">
+                <p className="text-sm text-orange-800 font-medium">
+                  Warning: This action will also mark all milestones for this project as 100% completed and approved.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCompleteProject(null)}
+                className="flex-1 py-3 rounded-xl border border-border text-sm font-bold tracking-wide hover:bg-black/5 transition-colors"
+                disabled={isCompleting}
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={handleCompleteProject}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 text-white text-sm font-bold tracking-wide hover:bg-green-600 transition-colors disabled:opacity-50"
+                disabled={isCompleting}
+              >
+                {isCompleting ? <Loader2 size={16} className="animate-spin" /> : "CONFIRM"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cancelProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background rounded-2xl w-full max-w-md p-6 flex flex-col gap-5 border border-border">
+            <div>
+              <h2 className="text-xl font-bold">Cancel Project</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                Are you sure you want to cancel <strong>{cancelProject.name}</strong>?
+              </p>
+              <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200">
+                <p className="text-sm text-red-800 font-medium">
+                  Warning: This action will also mark all pending milestones for this project as cancelled. This cannot be easily undone.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCancelProject(null)}
+                className="flex-1 py-3 rounded-xl border border-border text-sm font-bold tracking-wide hover:bg-black/5 transition-colors"
+                disabled={isCancelling}
+              >
+                BACK
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelProject}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500 text-white text-sm font-bold tracking-wide hover:bg-red-600 transition-colors disabled:opacity-50"
+                disabled={isCancelling}
+              >
+                {isCancelling ? <Loader2 size={16} className="animate-spin" /> : "CONFIRM CANCEL"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

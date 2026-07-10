@@ -20,10 +20,14 @@ export function ProjectCard({
   project,
   onEdit,
   onManageVendors,
+  onComplete,
+  onCancel,
 }: {
   project: Project;
   onEdit: (p: Project) => void;
   onManageVendors: (p: Project) => void;
+  onComplete?: (p: Project) => void;
+  onCancel?: (p: Project) => void;
 }) {
   return (
     <div className="rounded-3xl border border-border bg-background overflow-hidden flex flex-col shadow-sm">
@@ -66,13 +70,33 @@ export function ProjectCard({
         </div>
 
         {/* CTA */}
-        <button
-          type="button"
-          onClick={() => onManageVendors(project)}
-          className="mt-1 w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity"
-        >
-          Add / Manage vendors
-        </button>
+        <div className="flex flex-col gap-2 mt-1">
+          <button
+            type="button"
+            onClick={() => onManageVendors(project)}
+            className="w-full py-3.5 rounded-2xl bg-foreground text-background text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            Add / Manage vendors
+          </button>
+          {project.status !== 'completed' && project.status !== 'cancelled' && onComplete && (
+            <button
+              type="button"
+              onClick={() => onComplete(project)}
+              className="w-full py-3 rounded-2xl border border-border bg-background text-foreground text-sm font-semibold hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors"
+            >
+              Mark as Completed
+            </button>
+          )}
+          {project.status !== 'completed' && project.status !== 'cancelled' && onCancel && (
+            <button
+              type="button"
+              onClick={() => onCancel(project)}
+              className="w-full py-3 rounded-2xl border border-border bg-background text-foreground text-sm font-semibold hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors"
+            >
+              Cancel Project
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { getEchoInstance } from "@/lib/echo";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
 // --- Types -------------------------------------------------------------------
 
@@ -194,6 +195,8 @@ const GOLD = "#C49A3C";
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<{id: number, name: string}[]>([]);
+  const [projectId, setProjectId] = useState<string>("all");
   
   // Filters & Pagination
   const [page, setPage] = useState(1);
@@ -212,9 +215,24 @@ export default function CalendarPage() {
   const [rescheduleTimezone, setRescheduleTimezone] = useState("America/New_York");
   const [rescheduleReason, setRescheduleReason] = useState("");
 
+  useEffect(() => {
+    const fetchProjectsList = async () => {
+      try {
+        const res = await apiFetch("/api/client/projects?all=true");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.data || []);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchProjectsList();
+  }, []);
+
   const fetchMeetings = () => {
     setLoading(true);
-    const url = `/api/client/meetings?page=${page}&per_page=${PAGE_SIZE}&status=${statusFilter}&type=${typeFilter}&date_filter=${dateFilter}`;
+    const url = `/api/client/meetings?page=${page}&per_page=${PAGE_SIZE}&status=${statusFilter}&type=${typeFilter}&date_filter=${dateFilter}&project_id=${projectId}`;
     
     apiFetch(url)
       .then((res) => res.json())
@@ -233,12 +251,12 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchMeetings();
-  }, [page, statusFilter, dateFilter, typeFilter]);
+  }, [page, statusFilter, dateFilter, typeFilter, projectId]);
 
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, dateFilter, typeFilter]);
+  }, [statusFilter, dateFilter, typeFilter, projectId]);
 
   useEffect(() => {
     const echo = getEchoInstance();
@@ -334,6 +352,14 @@ export default function CalendarPage() {
               <CalendarCheck2 size={16} className="text-primary" />
               Manage your upcoming project milestones and consultations.
             </p>
+          </div>
+          <div className="w-full sm:w-auto flex sm:justify-end">
+            <ClientProjectDropdown
+              projects={projects}
+              value={projectId}
+              onChange={(val) => setProjectId(val)}
+              showAllOption={true}
+            />
           </div>
         </div>
 

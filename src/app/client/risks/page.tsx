@@ -1,9 +1,10 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,8 @@ type RiskStatus = "active" | "monitoring" | "resolved" | "monitor";
 
 interface Risk {
   id: number;
+  project_id?: number;
+  project_name?: string;
   title: string;
   body: string;
   status: RiskStatus;
@@ -44,33 +47,61 @@ function StatusBadge({ status }: { status: RiskStatus }) {
 export default function RisksPage() {
   const [risks, setRisks] = useState<Risk[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState<{id: number, name: string}[]>([]);
+  const [projectId, setProjectId] = useState<string>("all");
 
   useEffect(() => {
-    async function fetchRisks() {
-      setIsLoading(true);
+    const fetchProjectsList = async () => {
       try {
-        const res = await apiFetch("/api/client/risks");
+        const res = await apiFetch("/api/client/projects?all=true");
         if (res.ok) {
           const data = await res.json();
-          setRisks(data.data || []);
+          setProjects(data.data || []);
         }
-      } catch (err) {
-        console.error("Failed to fetch risks", err);
-      } finally {
-        setIsLoading(false);
+      } catch (error) {
+        console.error(error);
       }
-    }
-    fetchRisks();
+    };
+    fetchProjectsList();
   }, []);
+
+  const fetchRisks = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiFetch(`/api/client/risks?project_id=${projectId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRisks(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch risks", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchRisks();
+  }, [fetchRisks]);
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-4">
         {/* Header */}
-        <div className="mb-2">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Priority Risk Log
-          </h1>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+          <div className="mb-2">
+            <h1 className="text-2xl font-bold tracking-tight">
+              Priority Risk Log
+            </h1>
+          </div>
+          <div className="w-full sm:w-auto flex sm:justify-end">
+            <ClientProjectDropdown
+              projects={projects}
+              value={projectId}
+              onChange={(val) => setProjectId(val)}
+              showAllOption={true}
+            />
+          </div>
         </div>
 
         {/* Risk cards */}
@@ -88,7 +119,12 @@ export default function RisksPage() {
               <Card key={r.id} className="rounded-2xl">
                 <CardContent className="pt-5 pb-5">
                   <div className="flex items-start justify-between gap-4 mb-2">
-                    <h2 className="text-sm font-bold leading-snug break-all flex-1 min-w-0">{r.title}</h2>
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                      <h2 className="text-sm font-bold leading-snug break-all">{r.title}</h2>
+                      {r.project_name && (
+                        <span className="text-[10px] font-bold text-[#C49A3C] uppercase tracking-widest">{r.project_name}</span>
+                      )}
+                    </div>
                     <StatusBadge status={r.status} />
                   </div>
 

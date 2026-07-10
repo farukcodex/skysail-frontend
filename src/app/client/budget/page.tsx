@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -214,20 +215,15 @@ export default function BudgetPage() {
               Full financial summary for your project
             </p>
           </div>
-          {projects.length > 1 && (
-            <Select value={String(projectId)} onValueChange={(val) => setProjectId(Number(val))}>
-              <SelectTrigger className="w-full sm:w-[250px] bg-white rounded-full">
-                <SelectValue placeholder="Select a project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name || `Project #${p.id}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <div className="w-full sm:w-auto flex sm:justify-end">
+            <ClientProjectDropdown
+              projects={projects}
+              value={projectId}
+              onChange={(val) => {
+                if (val) setProjectId(Number(val));
+              }}
+            />
+          </div>
         </div>
 
         {isLoading ? (

@@ -4,6 +4,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight, FileText, ImagePlus, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 10;
@@ -348,17 +355,17 @@ export default function VendorDocumentsPage() {
               >
                 Project
               </label>
-              <select
-                id="project-select"
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="w-full rounded-xl bg-secondary/60 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
-              >
-                {projects.length === 0 && <option value="">No assigned projects</option>}
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+              <Select value={projectId || undefined} onValueChange={setProjectId}>
+                <SelectTrigger className="w-full rounded-xl bg-secondary/60 h-[46px] px-4 border-0 text-sm focus:ring-2 focus:ring-[#C49A3C]/40 transition shadow-none">
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.length === 0 && <SelectItem value="none" disabled>No assigned projects</SelectItem>}
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Document type + title */}
@@ -370,19 +377,19 @@ export default function VendorDocumentsPage() {
                 >
                   Document Type
                 </label>
-                <select
-                  id="doc-type"
-                  value={docType}
-                  onChange={(e) => setDocType(e.target.value)}
-                  className="w-full rounded-xl bg-secondary/60 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
-                >
-                  <option>Contract</option>
-                  <option>Plan</option>
-                  <option>Report</option>
-                  <option>Invoice</option>
-                  <option>Design</option>
-                  <option>Other</option>
-                </select>
+                <Select value={docType} onValueChange={setDocType}>
+                  <SelectTrigger className="w-full rounded-xl bg-secondary/60 h-[46px] px-4 border-0 text-sm focus:ring-2 focus:ring-[#C49A3C]/40 transition shadow-none">
+                    <SelectValue placeholder="Document Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Contract">Contract</SelectItem>
+                    <SelectItem value="Plan">Plan</SelectItem>
+                    <SelectItem value="Report">Report</SelectItem>
+                    <SelectItem value="Invoice">Invoice</SelectItem>
+                    <SelectItem value="Design">Design</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label

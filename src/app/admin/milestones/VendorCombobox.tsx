@@ -151,7 +151,7 @@ export function VendorCombobox({
                       value="add_new_vendor_to_project"
                       onSelect={() => {
                         setOpen(false);
-                        onAddVendorToProject();
+                        setTimeout(() => onAddVendorToProject(), 10);
                       }}
                       className="flex items-center gap-3 py-2 cursor-pointer"
                     >

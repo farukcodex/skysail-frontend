@@ -4,14 +4,8 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { apiFetch } from "@/lib/api";
+import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -125,20 +119,13 @@ export default function TeamPage() {
           </div>
           
           {/* Project Selector */}
-          {projects.length > 0 && (
-            <Select value={activeProjectId} onValueChange={setActiveProjectId}>
-              <SelectTrigger className="w-full sm:w-[240px]">
-                <SelectValue placeholder="Select a project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id.toString()}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <div className="w-full sm:w-auto flex sm:justify-end">
+            <ClientProjectDropdown
+              projects={projects}
+              value={activeProjectId}
+              onChange={(val) => setActiveProjectId(val)}
+            />
+          </div>
         </div>
 
         {/* Team grid */}

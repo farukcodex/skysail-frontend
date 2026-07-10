@@ -4,6 +4,7 @@ import { CheckCircle2, Circle, CircleEllipsisIcon, Clock, Loader2 } from "lucide
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
+import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
 type MilestoneStatus = "completed" | "active" | "upcoming";
 
@@ -139,9 +140,31 @@ function MilestoneRow({ m, isLast }: { m: MilestoneUI; isLast: boolean }) {
 export default function MilestonesPage() {
   const [milestones, setMilestones] = useState<MilestoneUI[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState<{id: number, name: string}[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/client/milestones")
+    const fetchProjectsList = async () => {
+      try {
+        const res = await apiFetch("/api/client/projects?all=true");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.data || []);
+          if (data.data && data.data.length > 0) {
+            setSelectedProjectId(data.data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchProjectsList();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    setIsLoading(true);
+    apiFetch(`/api/client/milestones?project_id=${selectedProjectId}`)
       .then(res => res.json())
       .then(data => {
         if (data.data) {
@@ -176,7 +199,7 @@ export default function MilestonesPage() {
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [selectedProjectId]);
 
   if (isLoading) {
     return (
@@ -193,7 +216,7 @@ export default function MilestonesPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Project Masterplan
@@ -201,6 +224,15 @@ export default function MilestonesPage() {
           <p className="text-sm text-muted-foreground mt-0.5">
             Timeline &amp; Milestones
           </p>
+        </div>
+        <div className="w-full sm:w-auto flex sm:justify-end">
+          <ClientProjectDropdown 
+            projects={projects} 
+            value={selectedProjectId} 
+            onChange={(val) => {
+              if (val) setSelectedProjectId(Number(val));
+            }}
+          />
         </div>
       </div>
 

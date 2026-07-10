@@ -28,7 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
+import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
 import Chart from "./chart";
 
@@ -220,15 +220,13 @@ export default function DashboardPage() {
               Project Dashboard &bull; Last updated just now
             </p>
           </div>
-          <div className="w-full sm:w-[300px]">
-            <ProjectCombobox
-              projects={projects}
-              value={selectedProjectId ? selectedProjectId.toString() : (projects[0]?.id.toString() || "")}
+          <div className="w-full sm:w-auto flex sm:justify-end">
+            <ClientProjectDropdown 
+              projects={projects} 
+              value={selectedProjectId} 
               onChange={(val) => {
-                if (val !== "all" && val) setSelectedProjectId(Number(val));
+                if (val) setSelectedProjectId(Number(val));
               }}
-              label=""
-              hideAllOption={true}
             />
           </div>
         </div>

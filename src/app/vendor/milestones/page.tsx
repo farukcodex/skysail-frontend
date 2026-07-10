@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { ModalShell } from "@/components/shared/ModalShell";
+import { VendorProjectDropdown } from "@/components/shared/VendorProjectDropdown";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -159,33 +160,13 @@ export default function VendorMilestonesPage() {
               <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-2">
                 Client / Project
               </p>
-              <div className="relative max-w-sm">
-                <button
-                  type="button"
-                  onClick={() => setShowDropdown((v) => !v)}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-background text-sm font-medium hover:bg-secondary/50 transition-colors"
-                >
-                  {selectedProjectName}
-                  <ChevronDown size={16} className="text-muted-foreground shrink-0" />
-                </button>
-                {showDropdown && (
-                  <div className="absolute top-full mt-1 left-0 w-full bg-background border border-border rounded-xl shadow-lg z-20 overflow-hidden">
-                    {projects.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedProjectId(p.id);
-                          setShowDropdown(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-secondary transition-colors truncate"
-                        style={{ fontWeight: selectedProjectId === p.id ? 700 : 400 }}
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="w-full sm:w-auto flex sm:justify-start">
+                <VendorProjectDropdown
+                  projects={projects}
+                  value={selectedProjectId || ""}
+                  onChange={(val) => setSelectedProjectId(Number(val))}
+                  showAllOption={false}
+                />
               </div>
             </div>
 

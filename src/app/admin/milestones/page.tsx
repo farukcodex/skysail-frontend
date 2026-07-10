@@ -193,6 +193,10 @@ export default function MilestonesPage() {
   const [rejectEmailNotify, setRejectEmailNotify] = useState(true);
   const [isRejecting, setIsRejecting] = useState(false);
 
+  // Vendor Notification States for Approval
+  const [vendorApprovePushNotify, setVendorApprovePushNotify] = useState(true);
+  const [vendorApproveEmailNotify, setVendorApproveEmailNotify] = useState(true);
+
   const fetchProjects = useCallback(() => {
     apiFetch(`/api/admin/projects?all=1`)
       .then(res => res.json())
@@ -282,13 +286,17 @@ export default function MilestonesPage() {
     if (!approveModalMs) return;
     setIsApproving(true);
     try {
+      const payload = {
+        push_notify: String(approvePushNotify),
+        email_notify: String(approveEmailNotify),
+        vendor_push_notify: String(vendorApprovePushNotify),
+        vendor_email_notify: String(vendorApproveEmailNotify),
+      };
+
       const res = await apiFetch(`/api/admin/milestones/${approveModalMs.id}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          push_notify: approvePushNotify,
-          email_notify: approveEmailNotify,
-        })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         toast.success("Milestone approved!");
@@ -313,8 +321,8 @@ export default function MilestonesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          push_notify: rejectPushNotify,
-          email_notify: rejectEmailNotify,
+          vendor_push_notify: rejectPushNotify,
+          vendor_email_notify: rejectEmailNotify,
         })
       });
       if (res.ok) {
@@ -364,13 +372,6 @@ export default function MilestonesPage() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-      {manageVendorsProject && (
-        <ManageVendorsModal
-          project={manageVendorsProject as any}
-          onClose={() => setManageVendorsProject(null)}
-          onSuccess={fetchProjects}
-        />
-      )}
       {showCreate && selectedProjectObj && (
         <CreateMilestoneModal
           projectId={selectedProjectId!}
@@ -753,6 +754,40 @@ export default function MilestonesPage() {
               </div>
             </div>
 
+            <p className="text-sm text-muted-foreground">
+              Would you like to notify the assigned vendor?
+            </p>
+
+            <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send push notification to vendor?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={vendorApprovePushNotify}
+                  onClick={() => setVendorApprovePushNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: vendorApprovePushNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: vendorApprovePushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Send email notification to vendor?</p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={vendorApproveEmailNotify}
+                  onClick={() => setVendorApproveEmailNotify((v) => !v)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: vendorApproveEmailNotify ? "#1a1a1a" : "#e5e7eb" }}
+                >
+                  <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: vendorApproveEmailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+                </button>
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={submitApprove}
@@ -772,12 +807,12 @@ export default function MilestonesPage() {
           <div className="flex flex-col gap-6">
             <p className="text-sm text-muted-foreground">
               Are you sure you want to reject <strong>{rejectModalMs.name}</strong>? 
-              This will notify the client that the milestone needs revision.
+              This will notify the assigned vendor that the milestone needs revision.
             </p>
 
             <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Send push notification?</p>
+                <p className="text-sm font-medium">Send push notification to vendor?</p>
                 <button
                   type="button"
                   role="switch"
@@ -791,7 +826,7 @@ export default function MilestonesPage() {
               </div>
 
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Send email notification?</p>
+                <p className="text-sm font-medium">Send email notification to vendor?</p>
                 <button
                   type="button"
                   role="switch"
@@ -816,6 +851,14 @@ export default function MilestonesPage() {
             </button>
           </div>
         </ModalShell>
+      )}
+
+      {manageVendorsProject && (
+        <ManageVendorsModal
+          project={manageVendorsProject as any}
+          onClose={() => setManageVendorsProject(null)}
+          onSuccess={fetchProjects}
+        />
       )}
     </div>
   );

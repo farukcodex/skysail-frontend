@@ -6,6 +6,7 @@ import Image from "next/image";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -66,20 +67,16 @@ function PdfIcon({ ext }: { ext: string }) {
 
 export default function DocumentsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [clientProject, setClientProject] = useState("");
+  const [clientProject, setClientProject] = useState("all");
   const [documents, setDocuments] = useState<ClientDoc[]>([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(true);
 
   const fetchData = useCallback(async () => {
     setIsLoadingDocs(true);
     try {
-      // In client view, they fetch from their specific project scope
-      // Admin/Project routes might be different, let's fetch client's projects if they exist.
-      // We can use the documents endpoint to get documents, but for the dropdown we might need a general projects endpoint.
-      // Let's assume the user has access to /api/projects via shared middleware.
       const [docsRes, projRes] = await Promise.all([
-        apiFetch("/api/client/documents"),
-        apiFetch("/api/client/projects")
+        apiFetch(`/api/client/documents?project_id=${clientProject}`),
+        apiFetch("/api/client/projects?all=true")
       ]);
       
       if (docsRes.ok) {
@@ -90,9 +87,6 @@ export default function DocumentsPage() {
       if (projRes.ok) {
         const data = await projRes.json();
         setProjects(data.data || []);
-        if (data.data && data.data.length > 0 && !clientProject) {
-          setClientProject(data.data[0].id.toString());
-        }
       }
     } catch (err) {
       console.error(err);
@@ -106,17 +100,12 @@ export default function DocumentsPage() {
     fetchData();
   }, [fetchData]);
 
-  // Filter docs by project (or show all if client === "all")
-  const filteredDocs = clientProject === "all" || !clientProject
-    ? documents 
-    : documents.filter(d => d.project_id.toString() === clientProject);
-
   // Group by document type dynamically based on available documents
-  const uniqueTypes = Array.from(new Set(filteredDocs.map(d => d.document_type)));
+  const uniqueTypes = Array.from(new Set(documents.map(d => d.document_type)));
   const docGroups = uniqueTypes
     .map(cat => ({
       label: cat || "Uncategorized",
-      files: filteredDocs.filter(d => d.document_type === cat)
+      files: documents.filter(d => d.document_type === cat)
     }))
     .filter(g => g.files.length > 0)
     .sort((a, b) => a.label.localeCompare(b.label));
@@ -136,25 +125,13 @@ export default function DocumentsPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-1.5 w-full max-w-[250px]">
-            <div className="relative">
-              <select
-                value={clientProject}
-                onChange={(e) => setClientProject(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition"
-              >
-                <option value="all">All Projects</option>
-                {projects.map((cp) => (
-                  <option key={cp.id} value={cp.id.toString()}>
-                    {cp.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-              />
-            </div>
+          <div className="w-full sm:w-auto flex sm:justify-end">
+            <ClientProjectDropdown
+              projects={projects}
+              value={clientProject}
+              onChange={(val) => setClientProject(val)}
+              showAllOption={true}
+            />
           </div>
         </div>
 

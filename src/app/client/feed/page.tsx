@@ -25,6 +25,10 @@ interface Post {
     name: string;
     profile_photo_path?: string;
   };
+  project?: {
+    id: number;
+    name: string;
+  };
 }
 
 import Link from "next/link";
@@ -68,6 +72,7 @@ function FeedPostCard({ post }: { post: Post }) {
 
         {/* Title and Description */}
         <div className="flex flex-col gap-2">
+          {post.project && <span className="text-[#C49A3C] text-xs font-bold uppercase tracking-wider">{post.project.name}</span>}
           <h3 className="text-[20px] font-semibold text-[#1C1B1B] leading-[28px] line-clamp-2">
             {post.title}
           </h3>
@@ -175,6 +180,11 @@ function FeaturedVideo({ video, playingVideoId, onPlay }: { video: Post; playing
             <span className="text-[10px] font-bold tracking-widest uppercase bg-[#C49A3C] text-black px-2 py-0.5 rounded">
               Latest Walkthrough
             </span>
+            {video.project && (
+              <span className="text-[10px] font-bold tracking-widest uppercase text-[#C49A3C] border border-[#C49A3C] px-2 py-0.5 rounded">
+                {video.project.name}
+              </span>
+            )}
           </div>
           <p className="text-xl font-bold leading-tight">{video.title}</p>
           <p className="text-muted-foreground text-sm mt-1">{time}</p>
@@ -206,6 +216,11 @@ function FeaturedVideo({ video, playingVideoId, onPlay }: { video: Post; playing
           <span className="text-[10px] font-bold tracking-widest uppercase bg-[#C49A3C] text-black px-2 py-0.5 rounded">
             Latest Walkthrough
           </span>
+          {video.project && (
+            <span className="text-[10px] font-bold tracking-widest uppercase text-[#C49A3C] border border-[#C49A3C] px-2 py-0.5 rounded">
+              {video.project.name}
+            </span>
+          )}
         </div>
         <p className="text-white text-base sm:text-xl lg:text-2xl font-bold leading-tight line-clamp-2">
           {video.title}
@@ -235,7 +250,15 @@ function ThumbVideoCard({ video, playingVideoId, onPlay }: { video: Post; playin
           <p className="text-sm font-semibold leading-tight line-clamp-2">
             {video.title}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">{time}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-muted-foreground">{time}</p>
+            {video.project && (
+              <>
+                <span className="text-[10px] text-muted-foreground">•</span>
+                <p className="text-[10px] font-medium text-[#C49A3C] uppercase truncate max-w-[100px]">{video.project.name}</p>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -265,7 +288,15 @@ function ThumbVideoCard({ video, playingVideoId, onPlay }: { video: Post; playin
         <p className="text-sm font-semibold leading-tight line-clamp-2">
           {video.title}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5">{time}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <p className="text-xs text-muted-foreground">{time}</p>
+          {video.project && (
+            <>
+              <span className="text-[10px] text-muted-foreground">•</span>
+              <p className="text-[10px] font-medium text-[#C49A3C] uppercase truncate max-w-[100px]">{video.project.name}</p>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -285,9 +316,26 @@ export default function NewsFeedPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState(""); 
   const [type, setType] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+  const [projects, setProjects] = useState<{id: number, name: string}[]>([]);
   const [mediaType, setMediaType] = useState("posts");
   const [page, setPage] = useState(1);
   const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchProjectsList = async () => {
+      try {
+        const res = await apiFetch("/api/client/projects?all=true");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.data || []);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchProjectsList();
+  }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -301,13 +349,13 @@ export default function NewsFeedPage() {
 
   useEffect(() => {
     fetchPosts();
-  }, [search, type, page, mediaType]);
+  }, [search, type, page, mediaType, projectId]);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
       setPlayingVideoId(null);
-      const res = await apiFetch(`/api/client/posts?page=${page}&search=${search}&type=${type}&media_type=${mediaType}`);
+      const res = await apiFetch(`/api/client/posts?page=${page}&search=${search}&type=${type}&media_type=${mediaType}&project_id=${projectId}`);
       if (res.ok) {
         const data = await res.json();
         setPosts(data.data || []);
@@ -459,6 +507,19 @@ export default function NewsFeedPage() {
             </button>
           )}
         </form>
+        
+        <Select value={projectId} onValueChange={(val) => { setPage(1); setProjectId(val); }}>
+          <SelectTrigger className="w-full sm:w-[200px] bg-background">
+            <SelectValue placeholder="Filter by project" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Projects</SelectItem>
+            {projects.map((p) => (
+              <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {mediaType !== "videos" && (
           <Select value={type} onValueChange={handleTypeChange}>
             <SelectTrigger className="w-full sm:w-[200px] bg-background">

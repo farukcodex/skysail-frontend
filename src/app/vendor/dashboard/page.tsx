@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
-import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
+import { VendorProjectDropdown } from "@/components/shared/VendorProjectDropdown";
 
 const GOLD = "#C49A3C";
 
@@ -75,15 +75,13 @@ export default function VendorDashboardPage() {
             <span>Vendor </span>
             <span className="text-muted-foreground font-normal">Dashboard</span>
           </h1>
-          <div className="w-full sm:w-[300px]">
-            <ProjectCombobox
+          <div className="w-full sm:w-auto flex sm:justify-end">
+            <VendorProjectDropdown
               projects={projects}
               value={selectedProjectId ? selectedProjectId.toString() : "all"}
               onChange={(val) => {
-                if (val === "all") setSelectedProjectId(null);
-                else setSelectedProjectId(Number(val));
+                setSelectedProjectId(Number(val));
               }}
-              label="" // Removed label for a cleaner inline look
             />
           </div>
         </div>
@@ -111,8 +109,8 @@ export default function VendorDashboardPage() {
                 height: "30px",
               }}
             >
-              <span className="text-[12px] font-normal leading-[16px] tracking-[0.6px] uppercase text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                ACTIVE PROJECT
+              <span className="text-[12px] font-bold leading-[16px] tracking-[0.6px] uppercase text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                {activeProject.status ? activeProject.status.replace("_", " ") : "ACTIVE"}
               </span>
             </div>
             <p className="text-white text-[32px] font-normal leading-[40px] tracking-[-0.32px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>

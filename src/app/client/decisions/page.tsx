@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ImageViewer } from "@/components/shared/ImageViewer";
+import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -58,11 +59,28 @@ export default function DecisionsPage() {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [projects, setProjects] = useState<{id: number, name: string}[]>([]);
+  const [projectId, setProjectId] = useState<string>("all");
+
+  useEffect(() => {
+    const fetchProjectsList = async () => {
+      try {
+        const res = await apiFetch("/api/client/projects?all=true");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.data || []);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchProjectsList();
+  }, []);
 
   const fetchDecisions = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch("/api/client/decisions");
+      const res = await apiFetch(`/api/client/decisions?project_id=${projectId}`);
       if (res.ok) {
         const data = await res.json();
         setDecisions(data.data || []);
@@ -75,7 +93,7 @@ export default function DecisionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     fetchDecisions();
@@ -113,14 +131,24 @@ export default function DecisionsPage() {
     <div className="flex flex-col min-h-dvh bg-background">
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Pending Decisions
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-md">
-            A curated selection of critical project choices requiring your
-            immediate oversight to ensure construction continuity.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Pending Decisions
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md">
+              A curated selection of critical project choices requiring your
+              immediate oversight to ensure construction continuity.
+            </p>
+          </div>
+          <div className="w-full sm:w-auto flex sm:justify-end">
+            <ClientProjectDropdown
+              projects={projects}
+              value={projectId}
+              onChange={(val) => setProjectId(val)}
+              showAllOption={true}
+            />
+          </div>
         </div>
 
         {/* Decision cards */}
@@ -167,7 +195,10 @@ export default function DecisionsPage() {
                   {/* Content */}
                   <div className="flex-1 p-6 flex flex-col gap-3 justify-center">
                     <div className="flex justify-between items-start gap-4">
-                       <UrgencyBadge urgency={d.urgency} label={d.due_date ? `DUE ${new Date(d.due_date).toLocaleDateString()}` : "NO DUE DATE"} />
+                       <div className="flex flex-col gap-1.5 items-start">
+                         <UrgencyBadge urgency={d.urgency} label={d.due_date ? `DUE ${new Date(d.due_date).toLocaleDateString()}` : "NO DUE DATE"} />
+                         <span className="text-[10px] font-bold text-[#C49A3C] uppercase tracking-widest">{d.project_name}</span>
+                       </div>
                        {d.status !== "approved" && (
                          <span className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
                            {d.status.replace("_", " ")}

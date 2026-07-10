@@ -24,7 +24,7 @@ export interface Client {
   status: string;
 }
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 15;
 
 export default function ClientManagementPage() {
   const [page, setPage] = useState(1);

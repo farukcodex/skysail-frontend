@@ -90,7 +90,7 @@ export default function SinglePostPage({ params }: { params: Promise<{ id: strin
     const fetchPost = async () => {
       try {
         setLoading(true);
-        const res = await apiFetch(`/api/posts/${id}`);
+        const res = await apiFetch(`/api/client/posts/${id}`);
         if (res.ok) {
           setPost(await res.json());
         } else {

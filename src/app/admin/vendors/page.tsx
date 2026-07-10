@@ -13,7 +13,7 @@ import { ConfirmBlockModal } from "./components/ConfirmBlockModal";
 import { NotifyUsersModal } from "@/components/shared/NotifyUsersModal";
 
 const GOLD = "#C49A3C";
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 15;
 
 const VENDOR_TABS = ["All", "Architect", "Designer", "Builder", "General Vendor"] as const;
 export type VendorTab = (typeof VENDOR_TABS)[number];

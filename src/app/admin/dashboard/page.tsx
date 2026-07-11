@@ -151,9 +151,9 @@ export default function AdminDashboardPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
               {getGreeting()}{data.user.name ? `, ${data.user.name}` : ""}{" "}
-              <span role="img" aria-label="wave">
+              {/* <span role="img" aria-label="wave">
                 👋
-              </span>
+              </span> */}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Overview of all active projects &bull;{" "}

@@ -212,9 +212,9 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
               {getGreeting()}{user.name ? `, ${user.name}` : ""}{" "}
-              <span role="img" aria-label="wave">
+              {/* <span role="img" aria-label="wave">
                 👋
-              </span>
+              </span> */}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Project Dashboard &bull; Last updated just now

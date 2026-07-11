@@ -34,7 +34,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
         <section className="col-span-1 md:col-span-3 px-6 py-10 sm:px-10 sm:py-12 lg:px-16 lg:py-14 flex flex-col justify-center bg-background relative">
           <Image
-            src="/image/logo.svg"
+            src="/image/logo-dark.svg"
             alt="logo"
             width={92}
             height={35}

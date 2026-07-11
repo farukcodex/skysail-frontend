@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, UploadIcon, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import { toast } from "sonner";
 import { getToken, setAuth, getUser } from "@/lib/auth";
@@ -267,7 +268,7 @@ export default function SettingsPage() {
     );
   }
 
-  const defaultAvatar = `https://api.dicebear.com/9.x/initials/svg?seed=${name || "User"}`;
+  const defaultAvatar = undefined;
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "edit", label: "Edit Profile" },
@@ -294,15 +295,12 @@ export default function SettingsPage() {
         {(tab === "edit" || tab === "password") && (
           <div className="flex flex-col sm:flex-row sm:items-center gap-5">
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="size-16 rounded-full overflow-hidden border border-border shrink-0 bg-muted relative">
-                <Image
-                  src={photoPreview || defaultAvatar}
-                  alt={name || "User avatar"}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              </div>
+                <Avatar className="size-16 shrink-0 border border-border relative">
+                  <AvatarImage src={photoPreview || undefined} alt={name || "User avatar"} className="object-cover" />
+                  <AvatarFallback className="bg-muted text-foreground text-xl font-bold">
+                    {name ? name[0] : "U"}
+                  </AvatarFallback>
+                </Avatar>
               <div className="min-w-0 flex-1">
                 <p className="text-base font-bold truncate">{name}</p>
                 <p className="text-sm text-muted-foreground truncate">{email}</p>

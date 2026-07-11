@@ -14,6 +14,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { apiFetch } from "@/lib/api";
 import EmojiPicker from "emoji-picker-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getEchoInstance } from "@/lib/echo";
 import { getUser } from "@/lib/auth";
 
@@ -308,17 +309,12 @@ export default function VendorMessagesPage() {
               </>
             ) : (
               <>
-                <Image
-                  src={
-                    adminInfo?.avatar ||
-                    `https://api.dicebear.com/9.x/avataaars/png?seed=${adminInfo?.name?.replace(/ /g, "") || "RemyAdmin"}&size=40&backgroundColor=b6e3f4`
-                  }
-                  alt={adminInfo?.name || "Admin"}
-                  width={40}
-                  height={40}
-                  className="rounded-full shrink-0"
-                  unoptimized
-                />
+                <Avatar className="size-10 shrink-0">
+                  <AvatarImage src={adminInfo?.avatar || undefined} alt={adminInfo?.name || "Admin"} />
+                  <AvatarFallback className="bg-secondary text-secondary-foreground font-semibold">
+                    {adminInfo?.name?.[0] || "A"}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <p className="text-sm font-bold">
                     {adminInfo?.name || "Loading..."} (Admin)
@@ -383,17 +379,12 @@ export default function VendorMessagesPage() {
             {messages.map((msg) =>
               msg.sender_id !== user?.id ? (
                 <div key={msg.id} className="flex items-end gap-2 max-w-[75%]">
-                  <Image
-                    src={
-                      adminInfo?.avatar ||
-                      `https://api.dicebear.com/9.x/avataaars/png?seed=${adminInfo?.name?.replace(/ /g, "") || "RemyAdmin"}&size=32&backgroundColor=b6e3f4`
-                    }
-                    alt={adminInfo?.name || "Admin"}
-                    width={32}
-                    height={32}
-                    className="rounded-full shrink-0"
-                    unoptimized
-                  />
+                  <Avatar className="size-8 shrink-0">
+                    <AvatarImage src={adminInfo?.avatar || undefined} alt={adminInfo?.name || "Admin"} />
+                    <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-semibold">
+                      {adminInfo?.name?.[0] || "A"}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="min-w-0">
                     {msg.file_url && msg.file_type?.startsWith("image/") && (
                       <div className="mb-2 max-w-[200px] overflow-hidden rounded-xl border border-border bg-secondary/20 min-h-[100px]">

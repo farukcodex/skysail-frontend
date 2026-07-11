@@ -8,6 +8,7 @@ import { getEchoInstance } from "@/lib/echo";
 import { toast } from "sonner";
 import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // --- Data & Types ------------------------------------------------------------
 
@@ -50,7 +51,6 @@ interface Meeting {
   projectId?: number;
 }
 
-const AVATAR = "https://api.dicebear.com/9.x/avataaars/png?seed=BobHenderson&size=32&backgroundColor=b6e3f4";
 
 const TZ_MAP: Record<string, string> = {
   "America/New_York": "ET",
@@ -76,7 +76,7 @@ function mapBackendMeeting(m: any): Meeting {
   const clientEmail = m.project?.client?.email || "";
   const clientAvatar = m.project?.client?.profile_photo_url || m.project?.client?.profile_photo_path 
     ? (m.project.client.profile_photo_url || m.project.client.profile_photo_path) 
-    : `https://api.dicebear.com/9.x/avataaars/png?seed=${encodeURIComponent(clientName)}&size=32&backgroundColor=b6e3f4`;
+    : undefined;
   const projectName = m.project?.name || "";
 
   const createdDate = new Date(m.created_at);
@@ -204,16 +204,12 @@ function MeetingCard({ meeting, onApproveReschedule, onDeclineReschedule, onProp
           </div>
 
           <div className="flex flex-row items-center gap-3 mt-1">
-            <div className="size-8 rounded-full overflow-hidden bg-[#F1EDEC] shrink-0">
-              <Image
-                src={meeting.attendeeAvatar}
-                alt={meeting.attendee}
-                width={32}
-                height={32}
-                className="object-cover w-full h-full"
-                unoptimized
-              />
-            </div>
+            <Avatar className="size-8 shrink-0">
+              <AvatarImage src={meeting.attendeeAvatar || undefined} alt={meeting.attendee} />
+              <AvatarFallback className="bg-[#F1EDEC] text-[#1C1B1B] text-xs font-semibold">
+                {meeting.attendee?.[0]}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex flex-col">
               <p className="text-sm leading-tight">
                 <span className="font-medium text-[#1C1B1B]">{meeting.attendee}</span>

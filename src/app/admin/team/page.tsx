@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api";
 import { ProjectCombobox } from "@/components/shared/ProjectCombobox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -60,8 +61,7 @@ function pageNumbers(page: number, totalPages: number): (number | "...")[] {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-const PREVIEW_AVATAR =
-  "https://api.dicebear.com/9.x/avataaars/png?seed=WadeWarren&size=64&backgroundColor=1a2332";
+const PREVIEW_AVATAR = undefined;
 
 export default function TeamPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -78,7 +78,7 @@ export default function TeamPage() {
   const [designation, setDesignation] = useState("General Vendor");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [previewAvatar, setPreviewAvatar] = useState(PREVIEW_AVATAR);
+  const [previewAvatar, setPreviewAvatar] = useState<string | undefined>(PREVIEW_AVATAR);
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -229,16 +229,12 @@ export default function TeamPage() {
                     key={m.id}
                     className="flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/30 transition-colors"
                   >
-                    <div className="size-11 rounded-full overflow-hidden bg-muted shrink-0">
-                      <Image
-                        src={m.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${m.firstName}${m.lastName}&size=64&backgroundColor=1a2332`}
-                        alt={`${m.firstName} ${m.lastName}`}
-                        width={44}
-                        height={44}
-                        className="object-cover size-11"
-                        unoptimized
-                      />
-                    </div>
+                    <Avatar className="size-11 shrink-0">
+                      <AvatarImage src={m.avatar || undefined} alt={`${m.firstName} ${m.lastName}`} />
+                      <AvatarFallback className="bg-muted text-foreground font-semibold">
+                        {m.firstName?.[0]}{m.lastName?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold">{m.firstName} {m.lastName}</p>
                       <p className="text-xs text-muted-foreground">
@@ -327,16 +323,12 @@ export default function TeamPage() {
             <div className="p-5 flex flex-col gap-5">
               {/* Avatar preview + upload */}
               <div className="flex items-center gap-4">
-                <div className="size-16 rounded-full overflow-hidden bg-muted shrink-0 border border-border">
-                  <Image
-                    src={previewAvatar}
-                    alt="Preview"
-                    width={64}
-                    height={64}
-                    className="object-cover size-16"
-                    unoptimized
-                  />
-                </div>
+                <Avatar className="size-16 shrink-0">
+                  <AvatarImage src={previewAvatar || undefined} alt="Preview" />
+                  <AvatarFallback className="bg-muted text-foreground text-xl font-bold">
+                    {name ? name[0] : "W"}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                   <p className="text-base font-bold truncate">
                     {name || "Wade Warren"}

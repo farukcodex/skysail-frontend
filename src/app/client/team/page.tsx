@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiFetch } from "@/lib/api";
 import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
@@ -26,21 +27,17 @@ interface Project {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function MemberCard({ member }: { member: TeamMember }) {
-  const avatarUrl = member.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${member.seed}&size=80&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  const avatarUrl = member.avatar || undefined;
 
   return (
     <Card className="rounded-2xl">
       <CardContent className="flex items-center gap-4 py-4">
-        <div className="size-12 rounded-full overflow-hidden shrink-0 bg-muted border border-border">
-          <Image
-            src={avatarUrl}
-            alt={member.name}
-            width={48}
-            height={48}
-            className="object-cover"
-            unoptimized
-          />
-        </div>
+          <Avatar className="size-12 shrink-0 border border-border">
+            <AvatarImage src={avatarUrl} alt={member.name} />
+            <AvatarFallback className="bg-muted text-foreground font-semibold">
+              {member.name[0]}
+            </AvatarFallback>
+          </Avatar>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold truncate">{member.name}</p>
           <p className="text-xs text-muted-foreground truncate">{member.role}</p>

@@ -37,7 +37,7 @@ function FeedPostCard({ post }: { post: Post }) {
   const authorName = post.author?.name || "Unknown";
   const avatar = post.author?.profile_photo_path 
     ? (post.author.profile_photo_path.startsWith('http') ? post.author.profile_photo_path : `${process.env.NEXT_PUBLIC_BACKEND_URL}/storage/${post.author.profile_photo_path}`)
-    : `https://api.dicebear.com/10.x/micah/svg?seed=${authorName}`;
+    : undefined;
   const time = format(new Date(post.created_at), "MMM d, yyyy");
 
   const hasImage = post.images && post.images.length > 0;

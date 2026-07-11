@@ -20,6 +20,7 @@ import { apiFetch } from "@/lib/api";
 import { getEchoInstance } from "@/lib/echo";
 import { getUser } from "@/lib/auth";
 import EmojiPicker from "emoji-picker-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Message = {
   id: number;
@@ -628,17 +629,12 @@ function MessagesContent() {
               onClick={() => handleSelectVendor(vendor)}
               className={`w-full flex items-center gap-3 p-4 text-left hover:bg-secondary/50 transition-colors ${selectedVendor?.id === vendor.id ? "bg-secondary/50" : ""}`}
             >
-              <Image
-                src={
-                  vendor.avatar ||
-                  `https://api.dicebear.com/9.x/avataaars/png?seed=${vendor.firstName}&size=40&backgroundColor=b6e3f4`
-                }
-                alt={`${vendor.firstName} ${vendor.lastName}`}
-                width={40}
-                height={40}
-                className="rounded-full shrink-0"
-                unoptimized
-              />
+              <Avatar className="size-10 shrink-0">
+                <AvatarImage src={vendor.avatar || undefined} alt={`${vendor.firstName} ${vendor.lastName}`} />
+                <AvatarFallback className="bg-secondary text-secondary-foreground font-semibold">
+                  {vendor.firstName?.[0]}{vendor.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
               <div className="overflow-hidden flex-1 min-w-0">
                 <div className="flex justify-between items-baseline mb-0.5">
                   <div className="flex items-center gap-2 truncate pr-2">
@@ -705,17 +701,12 @@ function MessagesContent() {
             >
               <ArrowLeft size={20} />
             </button>
-            <Image
-              src={
-                selectedVendor.avatar ||
-                `https://api.dicebear.com/9.x/avataaars/png?seed=${selectedVendor.firstName}&size=40&backgroundColor=b6e3f4`
-              }
-              alt={`${selectedVendor.firstName} ${selectedVendor.lastName}`}
-              width={40}
-              height={40}
-              className="rounded-full shrink-0"
-              unoptimized
-            />
+            <Avatar className="size-10 shrink-0">
+              <AvatarImage src={selectedVendor.avatar || undefined} alt={`${selectedVendor.firstName} ${selectedVendor.lastName}`} />
+              <AvatarFallback className="bg-secondary text-secondary-foreground font-semibold">
+                {selectedVendor.firstName?.[0]}{selectedVendor.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
             <div>
               <p className="text-sm font-bold">
                 {selectedVendor.firstName} {selectedVendor.lastName}
@@ -779,17 +770,12 @@ function MessagesContent() {
                       key={msg.id}
                       className="flex items-end gap-2 max-w-[75%]"
                     >
-                      <Image
-                        src={
-                          selectedVendor.avatar ||
-                          `https://api.dicebear.com/9.x/avataaars/png?seed=${selectedVendor.firstName}&size=32&backgroundColor=b6e3f4`
-                        }
-                        alt={`${selectedVendor.firstName} ${selectedVendor.lastName}`}
-                        width={32}
-                        height={32}
-                        className="rounded-full shrink-0"
-                        unoptimized
-                      />
+                      <Avatar className="size-8 shrink-0">
+                        <AvatarImage src={selectedVendor.avatar || undefined} alt={`${selectedVendor.firstName} ${selectedVendor.lastName}`} />
+                        <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-semibold">
+                          {selectedVendor.firstName?.[0]}{selectedVendor.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="min-w-0">
                         {msg.file_url &&
                           msg.file_type?.startsWith("image/") && (

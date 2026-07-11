@@ -4,6 +4,7 @@ import { CheckCircle2, Circle, CircleEllipsisIcon, Clock, Loader2 } from "lucide
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ClientProjectDropdown } from "@/components/shared/ClientProjectDropdown";
 
 type MilestoneStatus = "completed" | "active" | "upcoming";
@@ -94,16 +95,12 @@ function MilestoneRow({ m, isLast }: { m: MilestoneUI; isLast: boolean }) {
               </p>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="size-9 rounded-full overflow-hidden bg-muted shrink-0">
-                    <Image
-                      src={m.assignedVendor.avatar}
-                      alt={m.assignedVendor.name}
-                      width={36}
-                      height={36}
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
+                    <Avatar className="size-9 shrink-0">
+                      <AvatarImage src={m.assignedVendor.avatar || undefined} alt={m.assignedVendor.name} />
+                      <AvatarFallback className="bg-muted text-foreground text-xs font-medium">
+                        {m.assignedVendor.name[0]}
+                      </AvatarFallback>
+                    </Avatar>
                   <div>
                     <p className="text-sm font-bold leading-tight">
                       {m.assignedVendor.name}
@@ -190,7 +187,7 @@ export default function MilestonesPage() {
               assignedVendor: m.assignee_name ? {
                 name: m.assignee_name,
                 role: "Assigned Vendor",
-                avatar: `https://api.dicebear.com/9.x/avataaars/png?seed=${m.assigned_to}&size=40&backgroundColor=b6e3f4`
+                  avatar: ""
               } : undefined
             };
           });

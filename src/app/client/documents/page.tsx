@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Download, Loader2, ChevronDown } from "lucide-react";
 import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,7 +155,7 @@ export default function DocumentsPage() {
                   </p>
                   {group.files.map((file) => {
                     const ext = file.document_path ? file.document_path.split('.').pop() || "UNK" : "UNK";
-                    const avatarSrc = file.uploader_avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${file.uploader_name || 'U'}&size=40&backgroundColor=d1d4f9`;
+                    const avatarSrc = file.uploader_avatar || undefined;
                     
                     return (
                       <div key={file.id} className="flex items-center gap-3 py-4 border-b border-border last:border-0">
@@ -172,17 +173,13 @@ export default function DocumentsPage() {
                             </p>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 mb-1.5">Uploaded by</p>
-                          <div className="flex items-center gap-2">
-                            <div className="size-8 rounded-full overflow-hidden bg-muted shrink-0 flex items-center justify-center">
-                              <Image
-                                src={avatarSrc}
-                                alt={file.uploader_name || "Uploader"}
-                                width={32}
-                                height={32}
-                                className="object-cover w-full h-full"
-                                unoptimized
-                              />
-                            </div>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="size-8 shrink-0">
+                                <AvatarImage src={avatarSrc || undefined} alt={file.uploader_name || "Uploader"} />
+                                <AvatarFallback className="text-xs bg-muted text-foreground font-medium">
+                                  {(file.uploader_name || "U")[0]}
+                                </AvatarFallback>
+                              </Avatar>
                             <div>
                               <p className="text-sm font-bold leading-tight">{file.uploader_name || "Unknown User"}</p>
                               <p className="text-xs text-muted-foreground">{file.uploader_role || "User"}</p>

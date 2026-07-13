@@ -15,6 +15,7 @@ import { useState, useEffect, useCallback } from "react";
 
 import { apiFetch } from "@/lib/api";
 import { AddProjectModal } from "../projects/components/AddProjectModal";
+import { EditMeetingModal } from "./components/EditMeetingModal";
 
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -53,6 +54,14 @@ interface UpcomingEvent {
   title: string;
   detail: string;
   action: "rsvp" | "join";
+  project_id: number;
+  type: "meet" | "on-site" | "online" | "zoom";
+  status?: string;
+  location: string | null;
+  meeting_link: string | null;
+  timezone: string;
+  rawDate: string | null;
+  rawTime: string | null;
 }
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -112,6 +121,7 @@ export default function AdminDashboardPage() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<UpcomingEvent | null>(null);
 
   const fetchDashboard = useCallback(async () => {
     setIsLoading(true);
@@ -145,6 +155,16 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       {showAdd && <AddProjectModal onClose={() => setShowAdd(false)} onSuccess={fetchDashboard} />}
+      {editingEvent && (
+        <EditMeetingModal
+          event={editingEvent}
+          onClose={() => setEditingEvent(null)}
+          onSuccess={() => {
+            setEditingEvent(null);
+            fetchDashboard();
+          }}
+        />
+      )}
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -388,20 +408,28 @@ export default function AdminDashboardPage() {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">
+                      <p className="text-sm font-semibold truncate flex items-center gap-2">
                         {e.title}
+                        {e.status && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${e.status === 'confirmed' ? 'bg-green-100 text-green-700' : e.status === 'declined' ? 'bg-red-100 text-red-700' : 'bg-secondary text-muted-foreground'}`}>
+                            {e.status.replace('_', ' ')}
+                          </span>
+                        )}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {e.detail}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      className="text-xs font-semibold shrink-0"
-                      style={{ color: GOLD }}
-                    >
-                      <Edit2 size={14} />
-                    </button>
+                    {e.status !== 'confirmed' && (
+                      <button
+                        type="button"
+                        className="text-xs font-semibold shrink-0"
+                        style={{ color: GOLD }}
+                        onClick={() => setEditingEvent(e)}
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </CardContent>

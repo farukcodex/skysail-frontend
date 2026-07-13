@@ -235,7 +235,7 @@ function MeetingCard({ meeting, onApproveReschedule, onDeclineReschedule, onProp
               {meeting.type === "zoom" ? "Join Zoom" : "Join Meet"}
             </a>
           )}
-          {meeting.status === 'confirmed' && onEdit && (
+          {meeting.status === 'pending' && onEdit && (
             <button type="button" onClick={() => onEdit(meeting)} className="flex flex-col justify-center items-center px-4 py-2 h-[38px] border border-[#C4C7C7] text-[#1C1B1B] text-sm font-semibold w-full xl:w-auto min-w-[117px] bg-transparent hover:bg-black/5 transition-colors">Edit</button>
           )}
         </div>

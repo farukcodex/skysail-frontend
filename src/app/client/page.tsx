@@ -124,16 +124,32 @@ function RiskDot({ level }: { level: string }) {
   );
 }
 
-function EventActionBtn({ action }: { action: string }) {
+function EventActionBtn({ action, link }: { action: string; link?: string }) {
+  if (action !== "rsvp" && !link) {
+    return null;
+  }
+
+  const className = `shrink-0 text-[11px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full transition-colors ${
+    action === "rsvp"
+      ? "bg-foreground text-background hover:opacity-80"
+      : "bg-[#C49A3C] text-black hover:opacity-80"
+  }`;
+
+  if (action === "join" && link) {
+    return (
+      <a
+        href={link}
+        target="_blank"
+        rel="noreferrer"
+        className={className}
+      >
+        Join Now
+      </a>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      className={`shrink-0 text-[11px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full transition-colors ${
-        action === "rsvp"
-          ? "bg-foreground text-background hover:opacity-80"
-          : "bg-[#C49A3C] text-black hover:opacity-80"
-      }`}
-    >
+    <button type="button" className={className}>
       {action === "rsvp" ? "RSVP" : "Join Now"}
     </button>
   );
@@ -665,7 +681,7 @@ export default function DashboardPage() {
                         {e.time} &bull; {e.location}
                       </p>
                     </div>
-                    <EventActionBtn action={e.action} />
+                    <EventActionBtn action={e.action} link={e.meeting_link} />
                   </div>
                 ))
               )}

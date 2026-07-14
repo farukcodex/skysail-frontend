@@ -41,7 +41,19 @@ export function ClientDetailsModal({ client, onClose }: { client: Client, onClos
           <p className="text-sm text-muted-foreground font-medium mb-1">
             Active Projects
           </p>
-          <p className="text-base font-bold">{client.projects_count}</p>
+          <p className="text-base font-bold">{client.active_projects ?? 0}</p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground font-medium mb-1">
+            Completed Projects
+          </p>
+          <p className="text-base font-bold">{client.completed_projects ?? 0}</p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground font-medium mb-1">
+            Cancelled Projects
+          </p>
+          <p className="text-base font-bold">{client.cancelled_projects ?? 0}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground font-medium mb-1">

@@ -19,6 +19,9 @@ export interface Client {
   email: string;
   phone?: string;
   projects_count: number;
+  active_projects?: number;
+  completed_projects?: number;
+  cancelled_projects?: number;
   creationDate: string;
   avatar: string;
   status: string;
@@ -187,7 +190,7 @@ export default function ClientManagementPage() {
                         {client.email}
                       </p>
                       <p className="text-xs font-medium text-muted-foreground/80 truncate mt-1">
-                        {client.projects_count} Active Projects
+                        {client.active_projects ?? 0} Active Projects
                       </p>
                     </div>
                   </div>

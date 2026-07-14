@@ -30,6 +30,7 @@ export interface Project {
 
 export default function AllProjectsPage() {
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showAdd, setShowAdd] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [manageVendorsProject, setManageVendorsProject] = useState<Project | null>(null);
@@ -37,6 +38,9 @@ export default function AllProjectsPage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [cancelProject, setCancelProject] = useState<Project | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  const [sendEmail, setSendEmail] = useState(true);
+  const [sendNotification, setSendNotification] = useState(true);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -46,7 +50,8 @@ export default function AllProjectsPage() {
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch(`/api/admin/projects?page=${page}&per_page=${PAGE_SIZE}`);
+      const statusParam = statusFilter !== 'all' ? `&status=${statusFilter}` : '';
+      const res = await apiFetch(`/api/admin/projects?page=${page}&per_page=${PAGE_SIZE}${statusParam}`);
       const data = await res.json();
       if (res.ok) {
         setProjects(data.data);
@@ -60,7 +65,7 @@ export default function AllProjectsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page]);
+  }, [page, statusFilter]);
 
   useEffect(() => {
     fetchProjects();
@@ -71,7 +76,9 @@ export default function AllProjectsPage() {
     setIsCompleting(true);
     try {
       const res = await apiFetch(`/api/admin/projects/${completeProject.id}/complete`, {
-        method: "POST"
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ send_email: sendEmail, send_notification: sendNotification }),
       });
       if (!res.ok) throw new Error("Failed to complete project");
       setCompleteProject(null);
@@ -88,7 +95,9 @@ export default function AllProjectsPage() {
     setIsCancelling(true);
     try {
       const res = await apiFetch(`/api/admin/projects/${cancelProject.id}/cancel`, {
-        method: "POST"
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ send_email: sendEmail, send_notification: sendNotification }),
       });
       if (!res.ok) throw new Error("Failed to cancel project");
       setCancelProject(null);
@@ -139,7 +148,22 @@ export default function AllProjectsPage() {
 
         {/* Card section */}
         <div className="rounded-2xl border border-border p-5 flex flex-col gap-5">
-          <p className="text-sm font-semibold">Active projects</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p className="text-sm font-semibold">All projects</p>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="text-sm border border-border rounded-lg px-3 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 max-w-[200px]"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
           {isLoading ? (
             <div className="flex justify-center py-20">
               <Loader2 className="animate-spin text-muted-foreground" size={40} />
@@ -187,6 +211,35 @@ export default function AllProjectsPage() {
                   Warning: This action will also mark all milestones for this project as 100% completed and approved.
                 </p>
               </div>
+
+              <div className="mt-2 flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send push notification to client?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={sendNotification}
+                    onClick={() => setSendNotification((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: sendNotification ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: sendNotification ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send email to client?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={sendEmail}
+                    onClick={() => setSendEmail((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: sendEmail ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: sendEmail ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+              </div>
             </div>
             
             <div className="flex gap-3">
@@ -223,6 +276,35 @@ export default function AllProjectsPage() {
                 <p className="text-sm text-red-800 font-medium">
                   Warning: This action will also mark all pending milestones for this project as cancelled. This cannot be easily undone.
                 </p>
+              </div>
+
+              <div className="mt-2 flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send push notification to client?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={sendNotification}
+                    onClick={() => setSendNotification((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: sendNotification ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: sendNotification ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Send email to client?</p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={sendEmail}
+                    onClick={() => setSendEmail((v) => !v)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: sendEmail ? "#1a1a1a" : "#e5e7eb" }}
+                  >
+                    <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: sendEmail ? "translateX(22px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
               </div>
             </div>
             

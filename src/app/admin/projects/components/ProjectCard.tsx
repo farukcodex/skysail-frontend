@@ -40,7 +40,15 @@ export function ProjectCard({
           className="object-cover"
           unoptimized
         />
-        <span className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full">
+        <span
+          className={`absolute top-3 left-3 backdrop-blur-sm text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full text-white ${
+            project.status === 'completed' 
+              ? 'bg-green-600/90' 
+              : project.status === 'cancelled' 
+                ? 'bg-red-600/90' 
+                : 'bg-black/70'
+          }`}
+        >
           {project.phase}
         </span>
       </div>

@@ -33,7 +33,7 @@ export default function ViewLayout({
         {/* ── Footer ── */}
         <footer className="px-6 lg:px-8 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-[10px] tracking-widest uppercase text-muted-foreground">
-            © 2026 Skysail Coastal Rstates
+            © 2026 Skysail Coastal Estates
           </p>
           <div className="flex gap-4">
             <Link

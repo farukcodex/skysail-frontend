@@ -362,7 +362,7 @@ export default function DashboardPage() {
                   Project news feed
                 </CardTitle>
                 <div className="">
-                  <SectionLink href="/client/updates" />
+                  <SectionLink href="/client/feed" />
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-0 pt-2">

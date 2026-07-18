@@ -3,12 +3,12 @@ import { toast } from "sonner";
 import React, { useState } from "react";
 import { ModalShell } from "@/components/shared/ModalShell";
 import { Field } from "@/components/shared/Field";
-import { ClientCombobox } from "./ClientCombobox";
+import { ClientMultiSelect } from "./ClientMultiSelect";
 import { VendorMultiSelect } from "./VendorMultiSelect";
 import { apiFetch } from "@/lib/api";
 
 export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
-  const [clientId, setClientId] = useState("");
+  const [clientIds, setClientIds] = useState<string[]>([]);
   const [projectName, setProjectName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -19,15 +19,15 @@ export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientId) {
-      toast.error("Please select a client.");
+    if (clientIds.length === 0) {
+      toast.error("Please select at least one client.");
       return;
     }
     
     setIsSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("client_id", clientId);
+      clientIds.forEach(id => formData.append("client_ids[]", id));
       formData.append("name", projectName);
       formData.append("address", projectAddress);
       formData.append("started_at", startDate);
@@ -58,7 +58,7 @@ export function AddProjectModal({ onClose, onSuccess }: { onClose: () => void, o
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div className="sm:col-span-2">
-            <ClientCombobox value={clientId} onChange={setClientId} />
+            <ClientMultiSelect selectedClientIds={clientIds} onChange={setClientIds} />
           </div>
           <div className="sm:col-span-2">
             <Field label="Project Name" id="add-project-name" placeholder="The Sterling Penthouse" value={projectName} onChange={e => setProjectName(e.target.value)} required />

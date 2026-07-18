@@ -4,11 +4,12 @@ import React, { useState } from "react";
 import { ModalShell } from "@/components/shared/ModalShell";
 import { Field } from "@/components/shared/Field";
 import { Project } from "../page";
+import { ClientMultiSelect } from "./ClientMultiSelect";
 import { apiFetch } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function EditProjectModal({ project, onClose, onSuccess }: { project: Project, onClose: () => void, onSuccess: () => void }) {
-  const clientId = project.clientId || "";
+  const [clientIds, setClientIds] = useState<string[]>(project.clientIds || []);
   const [projectName, setProjectName] = useState(project.name);
   const [projectAddress, setProjectAddress] = useState(project.location);
   const [startDate, setStartDate] = useState(project.started || "");
@@ -18,8 +19,8 @@ export function EditProjectModal({ project, onClose, onSuccess }: { project: Pro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientId) {
-      toast.error("Please select a client.");
+    if (clientIds.length === 0) {
+      toast.error("Please select at least one client.");
       return;
     }
     
@@ -27,7 +28,7 @@ export function EditProjectModal({ project, onClose, onSuccess }: { project: Pro
     try {
       const formData = new FormData();
       formData.append("_method", "PUT"); // Laravel handles PUT via FormData using _method field
-      formData.append("client_id", clientId);
+      clientIds.forEach(id => formData.append("client_ids[]", id));
       formData.append("name", projectName);
       formData.append("address", projectAddress);
       formData.append("started_at", startDate);
@@ -56,21 +57,12 @@ export function EditProjectModal({ project, onClose, onSuccess }: { project: Pro
     <ModalShell id="edit-project-title" title="Edit Project" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {/* Read-only Client */}
           <div className="sm:col-span-2 flex flex-col gap-1.5">
-            <label className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-              Client
-            </label>
-            <div className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-secondary/20">
-              <Avatar className="size-10 shrink-0">
-                <AvatarImage src={project.clientAvatar || ""} alt={project.client} />
-                <AvatarFallback>{project.client?.[0]}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-bold">{project.client}</span>
-                <span className="text-xs text-muted-foreground mt-0.5">{project.email}</span>
-              </div>
-            </div>
+            <ClientMultiSelect 
+              selectedClientIds={clientIds} 
+              onChange={setClientIds} 
+              initialSelectedClients={project.clients || []} 
+            />
           </div>
 
           <div className="sm:col-span-2">

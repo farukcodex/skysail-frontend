@@ -72,10 +72,11 @@ function mapBackendMeeting(m: any): Meeting {
   else if (m.status === "declined") attendeeStatus = "Declined";
   else if (m.status === "reschedule_requested") attendeeStatus = "Reschedule Requested";
 
-  const clientName = m.project?.client?.name || "Project Client";
-  const clientEmail = m.project?.client?.email || "";
-  const clientAvatar = m.project?.client?.profile_photo_url || m.project?.client?.profile_photo_path 
-    ? (m.project.client.profile_photo_url || m.project.client.profile_photo_path) 
+  const clients = m.project?.clients || [];
+  const clientName = clients.length > 0 ? clients.map((c: any) => c.name || c.firstName + ' ' + c.lastName).join(', ') : "Project Client";
+  const clientEmail = clients.length > 0 ? (clients.length > 1 ? "Multiple Emails" : clients[0].email) : "";
+  const clientAvatar = clients.length > 0 && (clients[0].profile_photo_url || clients[0].profile_photo_path) 
+    ? (clients[0].profile_photo_url || clients[0].profile_photo_path) 
     : undefined;
   const projectName = m.project?.name || "";
 

@@ -17,7 +17,8 @@ export interface Project {
   name: string;
   phase: string;
   client: string;
-  clientId?: string;
+  clientIds?: string[];
+  clients?: { id: number; name: string; avatar: string }[];
   clientAvatar?: string;
   email: string;
   started: string;

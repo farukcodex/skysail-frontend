@@ -10,7 +10,9 @@ import { AddClientModal } from "./components/AddClientModal";
 import { EditClientModal } from "./components/EditClientModal";
 import { ClientDetailsModal } from "./components/ClientDetailsModal";
 import { ConfirmBlockModal } from "./components/ConfirmBlockModal";
+import { ConfirmDeleteModal } from "./components/ConfirmDeleteModal";
 import { NotifyUsersModal } from "@/components/shared/NotifyUsersModal";
+import { toast } from "sonner";
 
 export interface Client {
   id: number;
@@ -41,6 +43,7 @@ export default function ClientManagementPage() {
   const [viewClient, setViewClient] = useState<Client | null>(null);
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [clientToBlock, setClientToBlock] = useState<Client | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
   const fetchClients = useCallback(async (silent: boolean = false) => {
     if (!silent) setIsLoading(true);
@@ -78,7 +81,27 @@ export default function ClientManagementPage() {
     }
   };
 
-
+  const executeDelete = async (clientId: number) => {
+    try {
+      const res = await apiFetch(`/api/admin/clients/${clientId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        toast.success("Client deleted successfully");
+        if (clients.length === 1 && page > 1) {
+          setPage(page - 1);
+        } else {
+          fetchClients();
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.message || "Failed to delete client");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while deleting the client");
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
@@ -108,6 +131,13 @@ export default function ClientManagementPage() {
           client={clientToBlock}
           onClose={() => setClientToBlock(null)}
           onConfirm={() => executeBlockToggle(clientToBlock.id)}
+        />
+      )}
+      {clientToDelete && (
+        <ConfirmDeleteModal
+          client={clientToDelete}
+          onClose={() => setClientToDelete(null)}
+          onConfirm={() => executeDelete(clientToDelete.id)}
         />
       )}
 
@@ -217,13 +247,22 @@ export default function ClientManagementPage() {
                     >
                       Message
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => setClientToBlock(client)}
-                      className="text-xs font-bold px-4 py-2 text-red-500 hover:opacity-70 transition-opacity ml-auto"
-                    >
-                      {client.status === 'blocked' ? 'Unblock' : 'Block'}
-                    </button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setClientToBlock(client)}
+                        className="text-xs font-bold px-4 py-2 text-foreground hover:opacity-70 transition-opacity"
+                      >
+                        {client.status === 'blocked' ? 'Unblock' : 'Block'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setClientToDelete(client)}
+                        className="text-xs font-bold px-4 py-2 text-red-500 hover:opacity-70 transition-opacity"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))

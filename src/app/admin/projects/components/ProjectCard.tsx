@@ -22,12 +22,14 @@ export function ProjectCard({
   onManageVendors,
   onComplete,
   onCancel,
+  onDelete,
 }: {
   project: Project;
   onEdit: (p: Project) => void;
   onManageVendors: (p: Project) => void;
   onComplete?: (p: Project) => void;
   onCancel?: (p: Project) => void;
+  onDelete?: (p: Project) => void;
 }) {
   return (
     <div className="rounded-3xl border border-border bg-background overflow-hidden flex flex-col shadow-sm">
@@ -102,6 +104,15 @@ export function ProjectCard({
               className="w-full py-3 rounded-2xl border border-border bg-background text-foreground text-sm font-semibold hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors"
             >
               Cancel Project
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(project)}
+              className="w-full py-3 rounded-2xl bg-red-50 text-red-600 border border-red-200 text-sm font-semibold hover:bg-red-600 hover:text-white transition-colors"
+            >
+              Delete Project
             </button>
           )}
         </div>

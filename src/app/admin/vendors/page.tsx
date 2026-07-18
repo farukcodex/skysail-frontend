@@ -10,7 +10,9 @@ import { AddVendorModal } from "./components/AddVendorModal";
 import { EditVendorModal } from "./components/EditVendorModal";
 import { VendorDetailsModal } from "./components/VendorDetailsModal";
 import { ConfirmBlockModal } from "./components/ConfirmBlockModal";
+import { ConfirmDeleteModal } from "./components/ConfirmDeleteModal";
 import { NotifyUsersModal } from "@/components/shared/NotifyUsersModal";
+import { toast } from "sonner";
 
 const GOLD = "#C49A3C";
 const PAGE_SIZE = 15;
@@ -46,6 +48,7 @@ export default function VendorsPage() {
   const [viewVendor, setViewVendor] = useState<Vendor | null>(null);
   const [editVendor, setEditVendor] = useState<Vendor | null>(null);
   const [vendorToBlock, setVendorToBlock] = useState<Vendor | null>(null);
+  const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
 
   const fetchVendors = useCallback(async (silent: boolean = false) => {
     if (!silent) setIsLoading(true);
@@ -80,6 +83,28 @@ export default function VendorsPage() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const executeDelete = async (vendorId: number) => {
+    try {
+      const res = await apiFetch(`/api/admin/vendors/${vendorId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        toast.success("Vendor deleted successfully");
+        if (vendors.length === 1 && page > 1) {
+          setPage(page - 1);
+        } else {
+          fetchVendors();
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.message || "Failed to delete vendor");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while deleting the vendor");
     }
   };
 
@@ -118,6 +143,13 @@ export default function VendorsPage() {
           vendor={vendorToBlock}
           onClose={() => setVendorToBlock(null)}
           onConfirm={() => executeBlockToggle(vendorToBlock.id)}
+        />
+      )}
+      {vendorToDelete && (
+        <ConfirmDeleteModal
+          vendor={vendorToDelete}
+          onClose={() => setVendorToDelete(null)}
+          onConfirm={() => executeDelete(vendorToDelete.id)}
         />
       )}
 
@@ -253,13 +285,22 @@ export default function VendorsPage() {
                     >
                       Message
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => setVendorToBlock(vendor)}
-                      className="text-xs font-bold px-4 py-2 text-red-500 hover:opacity-70 transition-opacity ml-auto"
-                    >
-                      {vendor.status === 'blocked' ? 'Unblock' : 'Block'}
-                    </button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setVendorToBlock(vendor)}
+                        className="text-xs font-bold px-4 py-2 text-foreground hover:opacity-70 transition-opacity"
+                      >
+                        {vendor.status === 'blocked' ? 'Unblock' : 'Block'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVendorToDelete(vendor)}
+                        className="text-xs font-bold px-4 py-2 text-red-500 hover:opacity-70 transition-opacity"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))

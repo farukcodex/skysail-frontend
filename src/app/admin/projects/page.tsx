@@ -7,7 +7,9 @@ import { AddProjectModal } from "./components/AddProjectModal";
 import { EditProjectModal } from "./components/EditProjectModal";
 import { ManageVendorsModal } from "./components/ManageVendorsModal";
 import { ProjectCard } from "./components/ProjectCard";
+import { ConfirmDeleteModal } from "./components/ConfirmDeleteModal";
 import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 6;
 
@@ -39,6 +41,7 @@ export default function AllProjectsPage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [cancelProject, setCancelProject] = useState<Project | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   const [sendEmail, setSendEmail] = useState(true);
   const [sendNotification, setSendNotification] = useState(true);
@@ -110,6 +113,28 @@ export default function AllProjectsPage() {
     }
   };
 
+  const executeDelete = async (projectId: number) => {
+    try {
+      const res = await apiFetch(`/api/admin/projects/${projectId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        toast.success("Project deleted successfully");
+        if (projects.length === 1 && page > 1) {
+          setPage(page - 1);
+        } else {
+          fetchProjects();
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.message || "Failed to delete project");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while deleting the project");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       {showAdd && <AddProjectModal onClose={() => setShowAdd(false)} onSuccess={fetchProjects} />}
@@ -125,6 +150,13 @@ export default function AllProjectsPage() {
           project={manageVendorsProject}
           onClose={() => setManageVendorsProject(null)}
           onSuccess={fetchProjects}
+        />
+      )}
+      {projectToDelete && (
+        <ConfirmDeleteModal
+          project={projectToDelete}
+          onClose={() => setProjectToDelete(null)}
+          onConfirm={() => executeDelete(projectToDelete.id)}
         />
       )}
 
@@ -181,6 +213,7 @@ export default function AllProjectsPage() {
                   onManageVendors={setManageVendorsProject}
                   onComplete={setCompleteProject}
                   onCancel={setCancelProject}
+                  onDelete={setProjectToDelete}
                 />
               ))}
             </div>

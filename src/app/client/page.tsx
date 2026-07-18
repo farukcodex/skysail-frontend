@@ -288,9 +288,9 @@ export default function DashboardPage() {
                 </p>
               </div>
               <p className="text-4xl font-bold text-white">
-                {stats.phaseIndex || 1} / {stats.totalPhases || 6}
+                {stats.phaseIndex || 0} / {stats.totalPhases || 0}
               </p>
-              <p className="text-sm text-white/60">{stats.phase || 'Planning'}</p>
+              <p className="text-sm text-white/60">{stats.phase || 'N/A'}</p>
             </CardContent>
             <div className="size-30 rounded-full bg-white/20 flex items-center justify-center absolute -right-15 top-1/2 transform -translate-y-1/2"></div>
             <div className="size-10 rounded-full bg-white/50 flex items-center justify-center absolute -right-5 top-1/2 transform -translate-y-1/2"></div>

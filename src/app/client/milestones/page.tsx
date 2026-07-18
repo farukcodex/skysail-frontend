@@ -149,10 +149,15 @@ export default function MilestonesPage() {
           setProjects(data.data || []);
           if (data.data && data.data.length > 0) {
             setSelectedProjectId(data.data[0].id);
+          } else {
+            setIsLoading(false);
           }
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error(error);
+        setIsLoading(false);
       }
     };
     fetchProjectsList();

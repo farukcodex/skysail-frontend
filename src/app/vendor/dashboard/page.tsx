@@ -103,18 +103,18 @@ export default function VendorDashboardPage() {
           />
           <div className="absolute bottom-[16px] left-[16px] flex flex-col items-start gap-[8px]">
             <div
-              className="flex items-center justify-center rounded-[16px] px-[12px] py-[7px]"
+              className={`flex items-center justify-center rounded-[16px] px-[12px] py-[7px] ${!activeProject.id ? 'hidden' : ''}`}
               style={{
                 background: "linear-gradient(195.71deg, #865B15 4.8%, #E1C283 89.02%)",
                 height: "30px",
               }}
             >
               <span className="text-[12px] font-bold leading-[16px] tracking-[0.6px] uppercase text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                {activeProject.status ? activeProject.status.replace("_", " ") : "ACTIVE"}
+                {activeProject.id ? (activeProject.status ? activeProject.status.replace("_", " ") : "ACTIVE") : ""}
               </span>
             </div>
             <p className="text-white text-[32px] font-normal leading-[40px] tracking-[-0.32px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              {activeProject.name || "The Henderson Residence"}
+              {activeProject.name || "No Project Selected"}
             </p>
           </div>
         </div>

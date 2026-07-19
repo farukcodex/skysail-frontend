@@ -31,6 +31,7 @@ interface Milestone {
   completion_percent: number;
   status: Status;
   target_date: string | null;
+  raw_target_date: string | null;
   assigned_to: number | null;
   assignee_name: string | null;
   assignee_email: string | null;
@@ -228,7 +229,7 @@ export default function MilestonesPage() {
           setSelectedMilestoneId(first.id);
           setCompletion(first.completion_percent.toString());
           setStatus(first.status);
-          setTargetDate(first.target_date || "");
+          setTargetDate(first.raw_target_date || "");
           
           const vendorId = first.assigned_to ? first.assigned_to.toString() : "";
           setAssignedTo(vendorId);
@@ -262,6 +263,7 @@ export default function MilestonesPage() {
         body: JSON.stringify({
           completion_percent: pct,
           status: status,
+          target_date: targetDate || null,
           assigned_to: assignedTo ? parseInt(assignedTo) : null,
           push_notify: pushNotify,
           email_notify: emailNotify,
@@ -505,7 +507,7 @@ export default function MilestonesPage() {
                             setSelectedMilestoneId(m.id);
                             setCompletion(m.completion_percent.toString());
                             setStatus(m.status);
-                            setTargetDate(m.target_date || "");
+                            setTargetDate(m.raw_target_date || "");
                             setAssignedTo(m.assigned_to ? m.assigned_to.toString() : "");
                             setInitialVendorLabel(m.assignee_name || "");
                           }}
@@ -564,7 +566,7 @@ export default function MilestonesPage() {
                       if (m) {
                         setCompletion(m.completion_percent.toString());
                         setStatus(m.status);
-                        setTargetDate(m.target_date || "");
+                        setTargetDate(m.raw_target_date || "");
                         
                         const vendorId = m.assigned_to ? m.assigned_to.toString() : "";
                         setAssignedTo(vendorId);
@@ -625,16 +627,17 @@ export default function MilestonesPage() {
                 </div>
               </div>
 
-              {/* Target date (disabled in update view for simplicity unless date picker) */}
+              {/* Target date */}
               <div className="flex flex-col gap-1.5">
                 <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-                  Target Date (Read-only)
+                  Target Date
                 </p>
                 <input
-                  type="text"
+                  type="date"
                   value={targetDate}
-                  disabled
-                  className="w-full rounded-xl border border-border bg-secondary/50 px-4 py-3 text-sm font-medium focus:outline-none"
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  disabled={isFormDisabled}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C49A3C]/40 transition disabled:opacity-50"
                 />
               </div>
 

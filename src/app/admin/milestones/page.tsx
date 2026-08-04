@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Pencil, Send, Plus, Loader2 } from "lucide-react";
+import { ChevronDown, Pencil, Send, Plus, Loader2, Trash2, Settings, Target, AlertTriangle } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
@@ -157,6 +157,146 @@ function CreateMilestoneModal({ projectId, vendors, nextPhase, onClose, onSucces
   );
 }
 
+function EditMilestoneModal({ milestone, vendors, onClose, onSuccess, onAddVendorToProject }: { milestone: Milestone, vendors: {id: number, name: string}[], onClose: () => void, onSuccess: () => void, onAddVendorToProject: () => void }) {
+  const [phase, setPhase] = useState(milestone.phase.toString());
+  const [name, setName] = useState(milestone.name);
+  const [targetDate, setTargetDate] = useState(milestone.raw_target_date || "");
+  const [assignedTo, setAssignedTo] = useState(milestone.assigned_to ? milestone.assigned_to.toString() : "");
+  const [pushNotify, setPushNotify] = useState(false);
+  const [emailNotify, setEmailNotify] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await apiFetch(`/api/admin/milestones/${milestone.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phase: parseInt(phase),
+          name: name,
+          target_date: targetDate || null,
+          assigned_to: assignedTo ? parseInt(assignedTo) : null,
+          push_notify: pushNotify,
+          email_notify: emailNotify,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Milestone updated.");
+        onSuccess();
+        onClose();
+      } else {
+        toast.error(data.message || "Failed to update milestone");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error updating milestone");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ModalShell id="edit-milestone" title="Edit Milestone Details" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Field label="Phase Number" type="number" id="milestone-phase" value={phase} onChange={e => setPhase(e.target.value)} required />
+        <Field label="Milestone Name" id="milestone-name" value={name} onChange={e => setName(e.target.value)} required />
+        <Field label="Target Date" type="date" id="milestone-date" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
+        
+        <VendorCombobox 
+          vendors={vendors as any}
+          value={assignedTo}
+          onChange={setAssignedTo}
+          onAddVendorToProject={onAddVendorToProject}
+        />
+
+        <div className="flex flex-col gap-4 bg-secondary/20 p-4 rounded-xl border border-border/50">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Send push notification?</p>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={pushNotify}
+              onClick={() => setPushNotify((v) => !v)}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+              style={{ backgroundColor: pushNotify ? "#1a1a1a" : "#e5e7eb" }}
+            >
+              <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: pushNotify ? "translateX(22px)" : "translateX(2px)" }} />
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Send email notification?</p>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={emailNotify}
+              onClick={() => setEmailNotify((v) => !v)}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+              style={{ backgroundColor: emailNotify ? "#1a1a1a" : "#e5e7eb" }}
+            >
+              <span className="inline-block size-5 rounded-full bg-white shadow transition-transform" style={{ transform: emailNotify ? "translateX(22px)" : "translateX(2px)" }} />
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" disabled={isSubmitting} className="w-full flex items-center justify-center gap-2 py-3.5 mt-2 rounded-2xl bg-foreground text-background text-sm font-semibold hover:opacity-80 transition-opacity disabled:opacity-50">
+          {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+          Update
+        </button>
+      </form>
+    </ModalShell>
+  );
+}
+
+function ConfirmDeleteModal({ milestone, onClose, onConfirm }: { milestone: Milestone, onClose: () => void, onConfirm: () => Promise<void> }) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    await onConfirm();
+    setIsLoading(false);
+  };
+
+  return (
+    <ModalShell id="confirm-delete-title" title="Delete Milestone" onClose={onClose}>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+          <div className="flex items-center justify-center size-10 rounded-full bg-red-500/20 text-red-500 shrink-0">
+            <AlertTriangle size={18} />
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Are you sure you want to delete <strong className="text-foreground">{milestone.name}</strong>? 
+            This will permanently remove the milestone from this project.
+            <br/><br/>
+            <strong className="text-red-500">This action cannot be undone.</strong>
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            disabled={isLoading} 
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-border text-sm font-semibold hover:bg-secondary transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            onClick={handleConfirm}
+            disabled={isLoading} 
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50 font-semibold"
+          >
+            {isLoading ? <Loader2 className="animate-spin" size={16} /> : "Yes, Delete"}
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -176,6 +316,8 @@ export default function MilestonesPage() {
   const [initialVendorLabel, setInitialVendorLabel] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [editModalMs, setEditModalMs] = useState<Milestone | null>(null);
+  const [deleteModalMs, setDeleteModalMs] = useState<Milestone | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
   const [manageVendorsProject, setManageVendorsProject] = useState<Project | null>(null);
@@ -342,6 +484,27 @@ export default function MilestonesPage() {
     }
   };
 
+  const executeDelete = async (milestoneId: number) => {
+    try {
+      const res = await apiFetch(`/api/admin/milestones/${milestoneId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        toast.success("Milestone deleted successfully.");
+        if (selectedProjectId) fetchMilestones(selectedProjectId);
+        setDeleteModalMs(null);
+        if (selectedMilestoneId === milestoneId) {
+          setSelectedMilestoneId(null);
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.message || "Failed to delete milestone");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while deleting the milestone");
+    }
+  };
 
   const selectedProjectObj = projects.find(p => p.id === selectedProjectId);
 
@@ -412,6 +575,26 @@ export default function MilestonesPage() {
           </div>
         </ModalShell>
       )}
+
+      {editModalMs && selectedProjectObj && (
+        <EditMilestoneModal
+          milestone={editModalMs}
+          vendors={selectedProjectObj.vendors}
+          onClose={() => setEditModalMs(null)}
+          onSuccess={() => {
+            if (selectedProjectId) fetchMilestones(selectedProjectId);
+          }}
+          onAddVendorToProject={() => setManageVendorsProject(selectedProjectObj as any)}
+        />
+      )}
+
+      {deleteModalMs && (
+        <ConfirmDeleteModal
+          milestone={deleteModalMs}
+          onClose={() => setDeleteModalMs(null)}
+          onConfirm={() => executeDelete(deleteModalMs.id)}
+        />
+      )}
       
       <div className="flex-1 px-6 py-8 lg:px-8 flex flex-col gap-6">
         {/* Header */}
@@ -460,7 +643,7 @@ export default function MilestonesPage() {
             <div className="overflow-x-auto">
               <div className="min-w-[650px]">
                 {/* Column headers */}
-                <div className="grid grid-cols-[48px_1fr_100px_110px_100px_80px] px-5 py-2 border-y border-border bg-secondary/30">
+                <div className="grid grid-cols-[48px_1fr_100px_110px_100px_220px] px-5 py-2 border-y border-border bg-secondary/30">
                   {["PH", "PHASE NAME", "COMPLETE %", "STATUS", "TARGET", "ACTION"].map(
                     (h) => (
                       <p
@@ -486,7 +669,7 @@ export default function MilestonesPage() {
                   ) : milestones.map((m) => (
                     <div
                       key={m.id}
-                      className="grid grid-cols-[48px_1fr_100px_110px_100px_80px] px-5 py-4 items-center hover:bg-secondary/20 transition-colors"
+                      className="grid grid-cols-[48px_1fr_100px_110px_100px_220px] px-5 py-4 items-center hover:bg-secondary/20 transition-colors"
                     >
                       <p className="text-sm text-muted-foreground font-medium">
                         {String(m.phase).padStart(2, "0")}
@@ -501,7 +684,6 @@ export default function MilestonesPage() {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          aria-label={`Edit ${m.name}`}
                           onClick={() => {
                             setIsUnlocked(false);
                             setSelectedMilestoneId(m.id);
@@ -511,9 +693,23 @@ export default function MilestonesPage() {
                             setAssignedTo(m.assigned_to ? m.assigned_to.toString() : "");
                             setInitialVendorLabel(m.assignee_name || "");
                           }}
-                          className="flex items-center justify-center size-8 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                          className="px-3 py-1.5 rounded-lg bg-secondary text-xs font-semibold text-foreground hover:opacity-80 transition-opacity"
                         >
-                          <Pencil size={14} />
+                          Progress
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditModalMs(m)}
+                          className="px-3 py-1.5 rounded-lg bg-secondary text-xs font-semibold text-foreground hover:opacity-80 transition-opacity"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteModalMs(m)}
+                          className="px-3 py-1.5 rounded-lg bg-red-500/10 text-xs font-semibold text-red-600 hover:bg-red-500/20 transition-colors"
+                        >
+                          Delete
                         </button>
                       </div>
                     </div>

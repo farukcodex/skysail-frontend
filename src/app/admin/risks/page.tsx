@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Send, Loader2 } from "lucide-react";
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Send, Loader2, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
@@ -51,9 +51,11 @@ function pageNumbers(page: number, totalPages: number): (number | "...")[] {
 function RiskCard({
   risk,
   onStatusChange,
+  onDeleteClick,
 }: {
   risk: Risk;
   onStatusChange: (risk: Risk, status: RiskStatus) => void;
+  onDeleteClick?: (risk: Risk) => void;
 }) {
   const getStatusColor = (status: RiskStatus) => {
     if (status === "active") return "text-red-600 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/50";
@@ -104,6 +106,15 @@ function RiskCard({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {onDeleteClick && (
+            <button
+              onClick={() => onDeleteClick(risk)}
+              className="p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+              title="Delete Risk"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed break-words">{risk.body}</p>
@@ -239,6 +250,30 @@ export default function RisksPage() {
     }
   }
 
+  const [deleteModalRisk, setDeleteModalRisk] = useState<Risk | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function submitDelete() {
+    if (!deleteModalRisk) return;
+    setIsDeleting(true);
+    try {
+      const res = await apiFetch(`/api/admin/risks/${deleteModalRisk.id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        toast.success("Risk deleted successfully");
+        setDeleteModalRisk(null);
+        fetchData();
+      } else {
+        toast.error("Failed to delete risk");
+      }
+    } catch {
+      toast.error("Error deleting risk");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   const active = risks.filter((r) => r.status !== "resolved");
   const resolved = risks.filter((r) => r.status === "resolved");
   const allPageable = [...active, ...resolved];
@@ -292,7 +327,7 @@ export default function RisksPage() {
                     </p>
                     <div className="rounded-2xl border border-border p-4 flex flex-col gap-3">
                       {pageActive.map((r) => (
-                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChangeClick} />
+                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChangeClick} onDeleteClick={setDeleteModalRisk} />
                       ))}
                     </div>
                   </div>
@@ -306,7 +341,7 @@ export default function RisksPage() {
                     </p>
                     <div className="rounded-2xl border border-border p-4 flex flex-col gap-3">
                       {pageResolved.map((r) => (
-                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChangeClick} />
+                        <RiskCard key={r.id} risk={r} onStatusChange={handleStatusChangeClick} onDeleteClick={setDeleteModalRisk} />
                       ))}
                     </div>
                   </div>
@@ -525,6 +560,28 @@ export default function RisksPage() {
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-foreground text-background font-bold tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {isUpdatingStatus ? <Loader2 size={16} className="animate-spin" /> : "CONFIRM UPDATE"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteModalRisk} onOpenChange={(open) => !open && setDeleteModalRisk(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Risk</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to delete the risk <strong>{deleteModalRisk?.title}</strong>? This action cannot be undone.
+            </p>
+            <button
+              type="button"
+              onClick={submitDelete}
+              disabled={isDeleting}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 text-white font-bold tracking-wide hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              CONFIRM DELETION
             </button>
           </div>
         </DialogContent>

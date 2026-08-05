@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeft, ChevronRight, FileText, ImagePlus, Loader2, CheckCircle, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, ImagePlus, Loader2, CheckCircle, Check, X, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { ImageViewer } from "@/components/shared/ImageViewer";
@@ -279,6 +279,30 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
     }
   };
 
+  const [deleteModalMs, setDeleteModalMs] = useState<VendorDecision | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const submitDelete = async () => {
+    if (!deleteModalMs) return;
+    setIsDeleting(true);
+    try {
+      const res = await apiFetch(`/api/admin/decisions/${deleteModalMs.id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        toast.success("Decision deleted successfully");
+        setDeleteModalMs(null);
+        fetchData();
+      } else {
+        toast.error("Failed to delete decision");
+      }
+    } catch {
+      toast.error("Error deleting decision");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       <div className="flex-1 px-6 py-8 lg:px-8 max-w-6xl mx-auto w-full flex flex-col lg:flex-row gap-8">
@@ -414,21 +438,33 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
                           </div>
                         )}
                       </div>
-                      {role === "admin" && doc.status === "pending" && (
+                      {role === "admin" && (
                         <div className="flex gap-2 p-4 pt-0 mt-auto">
+                          {doc.status === "pending" && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleApprove(doc)}
+                                className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-bold tracking-wider uppercase bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                              >
+                                <Check size={14} /> Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleReject(doc)}
+                                className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-bold tracking-wider uppercase bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                              >
+                                <X size={14} /> Reject
+                              </button>
+                            </>
+                          )}
                           <button
                             type="button"
-                            onClick={() => handleApprove(doc)}
-                            className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-bold tracking-wider uppercase bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                            onClick={() => setDeleteModalMs(doc)}
+                            className={`flex items-center justify-center gap-1 py-2 px-3 text-xs font-bold tracking-wider uppercase bg-red-500/10 text-red-600 rounded-lg hover:bg-red-500/20 transition-colors ${doc.status !== 'pending' ? 'flex-1' : ''}`}
+                            title="Delete Decision"
                           >
-                            <Check size={14} /> Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleReject(doc)}
-                            className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-bold tracking-wider uppercase bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                          >
-                            <X size={14} /> Reject
+                            <Trash2 size={14} /> {doc.status !== 'pending' ? 'Delete' : ''}
                           </button>
                         </div>
                       )}
@@ -799,6 +835,28 @@ export function ManageDecisions({ role }: { role: "admin" | "vendor" }) {
         currentIndex={viewingImage ? 0 : null}
         onClose={() => setViewingImage(null)}
       />
+
+      <Dialog open={!!deleteModalMs} onOpenChange={(open) => !open && setDeleteModalMs(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Decision</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to delete the decision <strong>{deleteModalMs?.title}</strong>? This action cannot be undone.
+            </p>
+            <button
+              type="button"
+              onClick={submitDelete}
+              disabled={isDeleting}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 text-white font-bold tracking-wide hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              CONFIRM DELETION
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

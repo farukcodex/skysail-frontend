@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, MapPin, Send, Video, Monitor, Loader2, CalendarClock } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, MapPin, Send, Video, Monitor, Loader2, CalendarClock, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
@@ -154,7 +154,7 @@ function groupByMonth(meetings: Meeting[]): { month: string; items: Meeting[] }[
 
 // --- Meeting card -------------------------------------------------------------
 
-function MeetingCard({ meeting, onApproveReschedule, onDeclineReschedule, onProposeNewTime, onEdit }: { meeting: Meeting; onApproveReschedule: (id: number) => void; onDeclineReschedule: (id: number) => void; onProposeNewTime: (id: number, date: string, time: string, tz: string) => void; onEdit?: (m: Meeting) => void }) {
+function MeetingCard({ meeting, onApproveReschedule, onDeclineReschedule, onProposeNewTime, onEdit, onDelete }: { meeting: Meeting; onApproveReschedule: (id: number) => void; onDeclineReschedule: (id: number) => void; onProposeNewTime: (id: number, date: string, time: string, tz: string) => void; onEdit?: (m: Meeting) => void; onDelete?: (m: Meeting) => void }) {
   const [proposing, setProposing] = useState(false);
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
@@ -239,6 +239,11 @@ function MeetingCard({ meeting, onApproveReschedule, onDeclineReschedule, onProp
           {meeting.status === 'pending' && onEdit && (
             <button type="button" onClick={() => onEdit(meeting)} className="flex flex-col justify-center items-center px-4 py-2 h-[38px] border border-[#C4C7C7] text-[#1C1B1B] text-sm font-semibold w-full xl:w-auto min-w-[117px] bg-transparent hover:bg-black/5 transition-colors">Edit</button>
           )}
+          {onDelete && (
+            <button type="button" onClick={() => onDelete(meeting)} className="flex flex-col justify-center items-center px-4 py-2 h-[38px] border border-red-200 text-red-600 text-sm font-semibold w-full xl:w-auto min-w-[117px] bg-red-50 hover:bg-red-100 transition-colors">
+              <span className="flex items-center gap-1.5"><Trash2 size={14} /> Delete</span>
+            </button>
+          )}
         </div>
       </div>
       
@@ -322,6 +327,9 @@ export default function CalendarPage() {
   const [proposePushNotify, setProposePushNotify] = useState(true);
   const [proposeEmailNotify, setProposeEmailNotify] = useState(true);
   const [isProposing, setIsProposing] = useState(false);
+
+  const [deleteModalMeeting, setDeleteModalMeeting] = useState<Meeting | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch projects
   useEffect(() => {
@@ -455,6 +463,27 @@ export default function CalendarPage() {
     } catch (err: any) {
       toast.error(err.message);
     } finally { setIsProposing(false); }
+  };
+
+  const submitDelete = async () => {
+    if (!deleteModalMeeting) return;
+    setIsDeleting(true);
+    try {
+      const res = await apiFetch(`/api/admin/meetings/${deleteModalMeeting.id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        toast.success("Meeting deleted successfully");
+        setDeleteModalMeeting(null);
+        fetchMeetings();
+      } else {
+        toast.error("Failed to delete meeting");
+      }
+    } catch {
+      toast.error("Error deleting meeting");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -670,6 +699,7 @@ export default function CalendarPage() {
                             onDeclineReschedule={clickDeclineReschedule}
                             onProposeNewTime={clickProposeNewTime}
                             onEdit={handleEditClick} 
+                            onDelete={setDeleteModalMeeting}
                           />
                       ))}
                     </div>
@@ -933,6 +963,29 @@ export default function CalendarPage() {
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-500 text-white font-bold tracking-wide hover:bg-orange-600 transition-colors disabled:opacity-50"
             >
               {isProposing ? <Loader2 size={16} className="animate-spin" /> : "PROPOSE TIME"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Modal */}
+      <Dialog open={!!deleteModalMeeting} onOpenChange={(open) => !open && setDeleteModalMeeting(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Meeting</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to delete the meeting <strong>{deleteModalMeeting?.title}</strong>? This action cannot be undone.
+            </p>
+            <button
+              type="button"
+              onClick={submitDelete}
+              disabled={isDeleting}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 text-white font-bold tracking-wide hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              CONFIRM DELETION
             </button>
           </div>
         </DialogContent>
